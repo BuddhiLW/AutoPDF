@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/rwxrob/bonzai v0.20.2
+	github.com/rwxrob/bonzai-example v0.4.3
 	github.com/rwxrob/compfile v0.1.12
 	github.com/rwxrob/conf v0.8.2
-	github.com/rwxrob/config v0.4.3
 	github.com/rwxrob/help v0.7.0
 	github.com/rwxrob/vars v0.5.0
 )
@@ -29,14 +29,11 @@ require (
 	github.com/rwxrob/fn v0.3.3 // indirect
 	github.com/rwxrob/fs v0.16.2 // indirect
 	github.com/rwxrob/pegn v0.1.0 // indirect
-	github.com/rwxrob/scan v0.11.0 // indirect
 	github.com/rwxrob/structs v0.6.0 // indirect
 	github.com/rwxrob/term v0.2.8 // indirect
 	github.com/rwxrob/to v0.11.3 // indirect
 	github.com/rwxrob/uniq v0.5.0 // indirect
 	github.com/rwxrob/yq v0.3.2 // indirect
-	github.com/timtadh/data-structures v0.6.2 // indirect
-	github.com/timtadh/lexmachine v0.2.3 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
