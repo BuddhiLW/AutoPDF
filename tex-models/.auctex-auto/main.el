@@ -10,6 +10,8 @@
     "inputenc"
     "fontenc"
     "xcolor"
-    "pgfornament"))
+    "pgfornament")
+   (LaTeX-add-xcolor-definecolors
+    "fondpaille"))
  :latex)
 

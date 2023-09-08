@@ -36,3 +36,37 @@ func TestBarCmd(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func checkFileExists(filePath string) bool {
+	_, error := os.Stat(filePath)
+	//return !os.IsNotExist(err)
+	return !errors.Is(error, os.ErrNotExist)
+}
+
+func TestCompileCmd(t *testing.T) {
+
+	// capture the output
+	buf := new(bytes.Buffer)
+	log.SetFlags(0)
+	log.SetOutput(buf)
+	defer log.SetFlags(log.Flags())
+	defer log.SetOutput(os.Stderr)
+
+	CompileCmd.Call("test")
+
+	t.Log(buf)
+	if buf.String() != "Baz, suncreen song\n" {
+		t.Fail()
+	}
+
+	var filePath string = "pdfs/test.pdf"
+
+	isFileExist := checkFileExists(filePath)
+
+	if isFileExist {
+		fmt.Println("file exist")
+	} else {
+		t.Fail("file does not exist")
+	}
+
+}

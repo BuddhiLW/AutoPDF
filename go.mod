@@ -1,4 +1,4 @@
-module github.com/rwxrob/bonzai-example
+module github.com/BuddhiLW/AutoPDF
 
 go 1.18
 

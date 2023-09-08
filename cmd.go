@@ -50,7 +50,7 @@ var Cmd = &Z.Cmd{
 		help.Cmd, conf.Cmd, vars.Cmd,
 
 		// local commands (in this module)
-		BarCmd, ownCmd, pkgexampleCmd, CompileCmd, CleanCmd,
+		BarCmd, ownCmd, pkgexampleCmd, CompileCmd, CleanCmd, BazCmd,
 	},
 
 	// Add custom BonzaiMark template extensions (or overwrite existing ones).
