@@ -1,4 +1,4 @@
-// Copyright 2022 bonzai-example Authors
+// Copyright 2022 autopdf Pedro G. Branquinho
 // SPDX-License-Identifier: Apache-2.0
 
 // Package example provides the Bonzai command branch of the same name.
@@ -32,13 +32,13 @@ func init() {
 var Cmd = &Z.Cmd{
 
 	Name:      `example`,
-	Summary:   `an example of Bonzai composite command tree`,
-	Version:   `v0.4.2`,
-	Copyright: `Copyright 2021 Robert S Muhlestein`,
+	Summary:   `an example of Bonzai composite command tree, for generating PDFs using LaTeX`,
+	Version:   `v0.1.1`,
+	Copyright: `Copyright 2023 Pedro G. Branquinho`,
 	License:   `Apache-2.0`,
-	Site:      `rwxrob.tv`,
-	Source:    `git@github.com:rwxrob/bonzai-example.git`,
-	Issues:    `github.com/rwxrob/bonzai-example/issues`,
+	Site:      `buddhilw.com`,
+	Source:    `git@github.com:BuddhiLW/AutoPDF.git`,
+	Issues:    `github.com/BuddhiLW/AutoPDF/issues`,
 
 	// Composite commands, local and external, all have their own names
 	// that are added to the command tree depending on where they are

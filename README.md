@@ -15,7 +15,7 @@ Bonzai command tree.
 Standalone
 
 ```
-go install github.com/rwxrob/bonzai-example/cmd/bonzai-example@latest
+go install github.com/BuddhiLW/AutoPDF/cmd/bonzai-example@latest
 ```
 
 Composed
