@@ -7,7 +7,6 @@ package autopdf
 import (
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/build"
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/tex"
@@ -45,7 +44,7 @@ about each command.
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
 		vars.Cmd,
-		build.Cmd,
+		tex.BuildCmd,
 		tex.CleanCmd,
 		convertCmd,
 	},

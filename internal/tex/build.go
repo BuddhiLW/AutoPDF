@@ -1,4 +1,4 @@
-package build
+package tex
 
 import (
 	"fmt"
@@ -8,13 +8,12 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/template"
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
 )
 
-var Cmd = &bonzai.Cmd{
+var BuildCmd = &bonzai.Cmd{
 	Name:    `build`,
 	Alias:   `b`,
 	Short:   `process template and compile to PDF`,
@@ -75,7 +74,7 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		}
 
 		// Compile the LaTeX to PDF
-		compiler := tex.NewCompiler(cfg)
+		compiler := NewCompiler(cfg)
 		outputPDF, err := compiler.Compile(processedTexFile)
 		if err != nil {
 			return fmt.Errorf("LaTeX compilation failed: %w", err)

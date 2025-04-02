@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/build"
+	"github.com/BuddhiLW/AutoPDF/internal/tex"
 	"github.com/rwxrob/bonzai"
 )
 
@@ -134,7 +134,7 @@ conversion:
 
 	// Run the build command (but don't fail the test if LaTeX compilation fails
 	// since it's expecting a full LaTeX installation)
-	output, err := captureOutput(build.Cmd, templatePath, configPath)
+	output, err := captureOutput(tex.BuildCmd, templatePath, configPath)
 	fmt.Println(output)
 	log.Print(output)
 	log.Println("Error:", err)
