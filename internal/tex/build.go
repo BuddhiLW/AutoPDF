@@ -2,9 +2,11 @@ package tex
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/template"
@@ -17,9 +19,9 @@ var BuildCmd = &bonzai.Cmd{
 	Name:    `build`,
 	Alias:   `b`,
 	Short:   `process template and compile to PDF`,
-	Usage:   `TEMPLATE [CONFIG]`,
+	Usage:   `TEMPLATE [CONFIG] [CLEAN]`,
 	MinArgs: 1,
-	MaxArgs: 2,
+	MaxArgs: 3,
 	Long: `
 The build command processes a template file using variables from a configuration,
 compiles the processed template to LaTeX, and produces a PDF output.
@@ -31,22 +33,33 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		help.Cmd,
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
+		log.Println("Building PDF...")
 		templateFile := args[0]
-		configFile := "autopdf.yaml"
+		configFile := configs.DefaultConfigName
+		log.Println("Template file:", templateFile)
+		log.Println("Config file:", configFile)
 		if len(args) > 1 {
+			log.Println("Using provided config file:", args[1])
 			configFile = args[1]
+		} else {
+			log.Println("No config file provided, creating default config file...")
+			err := Default(templateFile)
+			if err != nil {
+				return configs.BuildError
+			}
+			log.Println("Default config file written to:", configs.DefaultConfigName)
+			configFile = configs.DefaultConfigName
 		}
 
-		// Read the YAML config
 		yamlData, err := os.ReadFile(configFile)
 		if err != nil {
-			return fmt.Errorf("failed to read config file: %w", err)
+			return configs.ReadError
 		}
 
 		// Parse the YAML config
 		cfg, err := config.NewConfigFromYAML(yamlData)
 		if err != nil {
-			return fmt.Errorf("failed to parse config: %w", err)
+			return configs.ParseError
 		}
 
 		// If template not set in config, use the provided one
@@ -59,41 +72,42 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		// write temporarly in the working directory
 		tempDir, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("failed to get working directory: %w", err)
+			return configs.BuildError
 		}
 		processedTexFile := filepath.Join(tempDir, "autopdf_"+filepath.Base(cfg.Template.String()))
 
 		result, err := engine.Process(cfg.Template.String())
 		if err != nil {
-			return fmt.Errorf("template processing failed: %w", err)
+			return configs.TemplateError
 		}
 
 		// Write processed template to temp file
 		if err := os.WriteFile(processedTexFile, []byte(result), 0644); err != nil {
-			return fmt.Errorf("failed to write processed template: %w", err)
+			return configs.WriteError
 		}
 
 		// Compile the LaTeX to PDF
 		compiler := NewCompiler(cfg)
 		outputPDF, err := compiler.Compile(processedTexFile)
 		if err != nil {
-			return fmt.Errorf("LaTeX compilation failed: %w", err)
+			log.Printf("Error compiling: %s", err)
+			return configs.BuildError
 		}
 
 		// If output path is specified in config, move the PDF there
 		if cfg.Output != "" && outputPDF != cfg.Output.String() {
 			outputDir := filepath.Dir(cfg.Output.String())
 			if err := os.MkdirAll(outputDir, 0755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+				return configs.BuildError
 			}
 
 			pdfData, err := os.ReadFile(outputPDF)
 			if err != nil {
-				return fmt.Errorf("failed to read compiled PDF: %w", err)
+				return configs.ReadError
 			}
 
 			if err := os.WriteFile(cfg.Output.String(), pdfData, 0644); err != nil {
-				return fmt.Errorf("failed to write to output location: %w", err)
+				return configs.WriteError
 			}
 
 			outputPDF = cfg.Output.String()
@@ -119,6 +133,24 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		}
 
 		fmt.Printf("Successfully built PDF: %s\n", outputPDF)
+		if len(args) > 2 && args[2] == "clean" {
+
+			// Get the directory of the input file
+			dir := filepath.Dir(outputPDF)
+			baseName := filepath.Base(outputPDF)
+
+			// Determine output PDF path
+			outputPDF := filepath.Join(dir, replaceExt(baseName, ".pdf"))
+			if cfg.Output.String() != "" {
+				outputPDF = cfg.Output.String()
+			}
+
+			// Create output directory, if it doesn't exist
+			dirOutput := filepath.Dir(outputPDF)
+			if err := CleanCmd.Do(cmd, dirOutput); err != nil {
+				return configs.CleanError
+			}
+		}
 		return nil
 	},
 }

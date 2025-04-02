@@ -9,7 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/futil"
@@ -56,19 +58,36 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 	if c.Config.Output.String() != "" {
 		outputPDF = c.Config.Output.String()
 	}
+	// Create output directory, if it doesn't exist
 	dirOutput := filepath.Dir(outputPDF)
 	baseNameOutput := filepath.Base(outputPDF)
-
-	// if dirOutput doesn't exist, create it
 	err := futil.CreateDir(dirOutput)
 	if err != nil {
 		return "", fmt.Errorf("failed to create output directory: %s", err)
 	}
 
+	// Remove the .pdf extension from the base name, if it exists
+	// e.g., normalize: "output.pdf" -> "output"
+	// or: "output" -> "output"
+	baseNameOutput = strings.TrimSuffix(baseNameOutput, ".pdf")
+
+	var cmd *exec.Cmd
 	// Create command to run
-	cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
-	cmd := exec.Command("sh", "-c", cmdStr)
-	log.Printf("Running command: %s", cmd.String())
+	if dirOutput == "." {
+		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseNameOutput, texFile)
+		cmd = exec.Command("sh", "-c", cmdStr)
+		log.Printf("Running command: %s", cmd.String())
+		if err := cmd.Run(); err != nil {
+			log.Printf("Error running command: %s", err)
+		}
+	} else {
+		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
+		cmd = exec.Command("sh", "-c", cmdStr)
+		log.Printf("Running command: %s", cmd.String())
+		if err := cmd.Run(); err != nil {
+			log.Printf("Error running command: %s", err)
+		}
+	}
 
 	// Check if output PDF exists
 	if _, err := os.Stat(fmt.Sprintf("%s.pdf", outputPDF)); os.IsNotExist(err) {
@@ -149,17 +168,24 @@ var CompileCmd = &bonzai.Cmd{
 		texFile := args[0]
 
 		// Create a default config for standalone use
-		cfg := &config.Config{
+		cfg := config.Config{
 			Engine: "pdflatex",
+			Output: config.Output(strings.TrimSuffix(texFile, ".tex")),
 		}
 
-		compiler := NewCompiler(cfg)
+		compiler := NewCompiler(&cfg)
 		outputPDF, err := compiler.Compile(texFile)
 		if err != nil {
-			return err
+			log.Printf("Error compiling: %s", err)
+			return configs.BuildError
 		}
 
 		fmt.Printf("Successfully compiled: %s\n", outputPDF)
+		if len(args) > 1 && args[1] == "clean" {
+			if err := CleanCmd.Do(caller); err != nil {
+				return configs.CleanError
+			}
+		}
 		return nil
 	},
 }

@@ -3,16 +3,19 @@ package tex
 import (
 	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 )
 
-func Default(texFile string) {
+func Default(texFilePath string) error {
 	// create default config.yaml for autopdf
 	config := config.Config{
-		Template: config.Template(texFile),
-		Output:   config.Output(texFile),
-		Engine:   config.Engine("pdflatex"),
+		Template:  config.Template(texFilePath),
+		Output:    config.Output(texFilePath),
+		Engine:    config.Engine("pdflatex"),
+		Variables: map[string]string{},
 		Conversion: config.Conversion{
 			Enabled: false,
 			Formats: []string{},
@@ -20,7 +23,15 @@ func Default(texFile string) {
 	}
 
 	// write autopdf.yaml to current directory
-	if err := os.WriteFile("autopdf.yaml", []byte(config.String()), 0644); err != nil {
-		log.Fatalf("Failed to write autopdf.yaml: %v", err)
+	defaultPath, err := os.Getwd()
+	if err != nil {
+		return configs.BuildError
 	}
+	defaultPath = filepath.Join(defaultPath, configs.DefaultConfigName)
+	err = os.WriteFile(defaultPath, []byte(config.String()), 0644)
+	if err != nil {
+		return configs.WriteError
+	}
+	log.Println("Default config file written to:", defaultPath)
+	return nil
 }

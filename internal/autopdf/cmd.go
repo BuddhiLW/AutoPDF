@@ -35,6 +35,7 @@ operations and workflow management.
 - build:    Process template and compile to PDF
 - clean:    Remove LaTeX auxiliary files
 - convert:  Convert PDF to images
+- compile:  Compile LaTeX to PDF
 - vars:     View and set configuration variables
 
 Use 'autopdf help <command> <subcommand>...' for detailed information
@@ -47,6 +48,7 @@ about each command.
 		tex.BuildCmd,
 		tex.CleanCmd,
 		convertCmd,
+		tex.CompileCmd,
 	},
 	Def: help.Cmd,
 }

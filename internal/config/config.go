@@ -18,6 +18,14 @@ type Config struct {
 	Conversion Conversion `yaml:"conversion" json:"conversion"`
 }
 
+func (c *Config) String() string {
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
 type Template string
 
 func (t Template) String() string {
@@ -127,9 +135,4 @@ func NewConfigFromYAML(yamlData []byte) (*Config, error) {
 	}
 
 	return &config, nil
-}
-
-// String returns a string representation of the Config
-func (c *Config) String() string {
-	return fmt.Sprintf("Engine: %s, Output: %s", c.Engine, c.Output)
 }

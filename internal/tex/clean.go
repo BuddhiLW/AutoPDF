@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/rwxrob/bonzai"
+	"github.com/rwxrob/bonzai/futil"
 )
 
 // Cleaner handles the removal of auxiliary LaTeX files
@@ -30,48 +31,45 @@ var auxiliaryExtensions = []string{
 	".bcf", ".idx", ".ilg", ".ind", ".brf", ".vrb", ".xdv", ".dvi",
 }
 
-// Clean removes all auxiliary files in the specified directory
-func (c *Cleaner) Clean() error {
-	if c.Directory == "" {
-		return fmt.Errorf("no directory specified")
+func isAuxFile(filename string) bool {
+	for _, ext := range auxiliaryExtensions {
+		if strings.HasSuffix(filename, ext) {
+			return true
+		}
+	}
+	return false
+}
+
+func removeAuxFiles(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return err
 	}
 
+	// Skip directories
+	if info.IsDir() {
+		return nil
+	}
+
+	// Remove file if it has an auxiliary extension
+	if isAuxFile(info.Name()) {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("failed to remove %s: %w", path, err)
+		}
+		log.Printf("Removed: %s", path)
+	}
+
+	return nil
+}
+
+// Clean removes all auxiliary files in the specified directory
+func (c *Cleaner) Clean() error {
 	// Check if directory exists
-	if _, err := os.Stat(c.Directory); os.IsNotExist(err) {
+	if !futil.IsDir(c.Directory) {
 		return fmt.Errorf("directory does not exist: %s", c.Directory)
 	}
 
-	// Function to check if a file has an auxiliary extension
-	isAuxFile := func(filename string) bool {
-		for _, ext := range auxiliaryExtensions {
-			if strings.HasSuffix(filename, ext) {
-				return true
-			}
-		}
-		return false
-	}
-
 	// Walk through directory and remove auxiliary files
-	err := filepath.Walk(c.Directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip directories
-		if info.IsDir() {
-			return nil
-		}
-
-		// Remove file if it has an auxiliary extension
-		if isAuxFile(info.Name()) {
-			if err := os.Remove(path); err != nil {
-				return fmt.Errorf("failed to remove %s: %w", path, err)
-			}
-			log.Printf("Removed: %s", path)
-		}
-
-		return nil
-	})
+	err := filepath.Walk(c.Directory, removeAuxFiles)
 
 	if err != nil {
 		return fmt.Errorf("error cleaning auxiliary files: %w", err)
@@ -82,8 +80,8 @@ func (c *Cleaner) Clean() error {
 
 // CleanCmd is the bonzai command for cleaning auxiliary LaTeX files
 var CleanCmd = &bonzai.Cmd{
-	Name: `clean`,
-	Short: `Remove LaTeX auxiliary files`,
+	Name:  `clean`,
+	Short: `remove LaTeX auxiliary files`,
 	Long: `
 The clean command removes auxiliary files created during LaTeX compilation.
 These include .aux, .log, .toc, and other temporary files.
@@ -96,12 +94,12 @@ directory as an argument.
 		if len(args) > 0 {
 			dir = args[0]
 		}
-		
+
 		cleaner := NewCleaner(dir)
 		if err := cleaner.Clean(); err != nil {
 			return err
 		}
-		
+
 		fmt.Printf("Successfully cleaned auxiliary files in: %s\n", dir)
 		return nil
 	},
