@@ -5,9 +5,9 @@ go 1.24
 require (
 	github.com/rwxrob/bonzai v0.56.6
 	github.com/rwxrob/bonzai/cmds/help v0.8.2
-	github.com/rwxrob/bonzai/cmds/vars v0.1.0
 	github.com/rwxrob/bonzai/comp v0.10.0
 	github.com/rwxrob/bonzai/persisters/inyaml v0.3.0
+	github.com/rwxrob/bonzai/vars v0.12.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -37,10 +37,9 @@ require (
 	github.com/rwxrob/bonzai/mark/funcs v0.8.6 // indirect
 	github.com/rwxrob/bonzai/run v0.7.0 // indirect
 	github.com/rwxrob/bonzai/scanner v0.1.0 // indirect
+	github.com/rwxrob/bonzai/term v0.2.1 // indirect
 	github.com/rwxrob/bonzai/to v0.6.1 // indirect
 	github.com/rwxrob/bonzai/uniq v0.1.0 // indirect
-	github.com/rwxrob/bonzai/vars v0.3.2 // indirect
-	github.com/rwxrob/term v0.2.9 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.4 // indirect
 	golang.org/x/crypto v0.31.0 // indirect

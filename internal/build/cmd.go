@@ -57,7 +57,12 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 
 		// Process the template
 		engine := template.NewEngine(cfg)
-		processedTexFile := filepath.Join(os.TempDir(), "autopdf_"+filepath.Base(cfg.Template))
+		// write temporarly in the working directory
+		tempDir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
+		processedTexFile := filepath.Join(tempDir, "autopdf_"+filepath.Base(cfg.Template))
 
 		result, err := engine.Process(cfg.Template)
 		if err != nil {

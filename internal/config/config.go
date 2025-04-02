@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/rwxrob/bonzai/persisters/inyaml"
 	"gopkg.in/yaml.v3"
@@ -23,17 +24,17 @@ type Config struct {
 // GetConfig retrieves the configuration from the persister
 func GetConfig(persister *inyaml.Persister) (*Config, error) {
 	configStr := persister.Get("autopdf_config")
-	
+
 	if configStr == "" {
 		// Return default config
 		return getDefaultConfig(), nil
 	}
-	
+
 	var config Config
 	if err := yaml.Unmarshal([]byte(configStr), &config); err != nil {
 		return nil, err
 	}
-	
+
 	return &config, nil
 }
 
@@ -42,12 +43,12 @@ func SaveConfig(persister *inyaml.Persister, config *Config) error {
 	if config == nil {
 		return errors.New("config cannot be nil")
 	}
-	
+
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		return err
 	}
-	
+
 	persister.Set("autopdf_config", string(data))
 	return nil
 }
@@ -82,15 +83,20 @@ func NewConfigFromYAML(yamlData []byte) (*Config, error) {
 	if err := yaml.Unmarshal(yamlData, &config); err != nil {
 		return nil, err
 	}
-	
+
 	// Set defaults for required fields
 	if config.Engine == "" {
 		config.Engine = "pdflatex"
 	}
-	
+
 	if config.Variables == nil {
 		config.Variables = make(map[string]string)
 	}
-	
+
 	return &config, nil
+}
+
+// String returns a string representation of the Config
+func (c *Config) String() string {
+	return fmt.Sprintf("Engine: %s, Output: %s", c.Engine, c.Output)
 }

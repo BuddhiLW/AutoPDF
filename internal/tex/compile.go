@@ -5,12 +5,14 @@ package tex
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/rwxrob/bonzai"
+	"github.com/rwxrob/bonzai/futil"
 )
 
 // Compiler handles LaTeX compilation
@@ -54,21 +56,22 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 	if c.Config.Output != "" {
 		outputPDF = c.Config.Output
 	}
+	dirOutput := filepath.Dir(outputPDF)
+	baseNameOutput := filepath.Base(outputPDF)
 
-	// Create command to run
-	cmd := exec.Command(engine,
-		"-interaction=nonstopmode",
-		"-output-directory="+dir,
-		texFile)
-
-	// Capture output
-	output, err := cmd.CombinedOutput()
+	// if dirOutput doesn't exist, create it
+	err := futil.CreateDir(dirOutput)
 	if err != nil {
-		return "", fmt.Errorf("LaTeX compilation failed: %s\n%s", err, string(output))
+		return "", fmt.Errorf("failed to create output directory: %s", err)
 	}
 
+	// Create command to run
+	cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
+	cmd := exec.Command("sh", "-c", cmdStr)
+	log.Printf("Running command: %s", cmd.String())
+
 	// Check if output PDF exists
-	if _, err := os.Stat(outputPDF); os.IsNotExist(err) {
+	if _, err := os.Stat(fmt.Sprintf("%s.pdf", outputPDF)); os.IsNotExist(err) {
 		return "", errors.New("PDF output file was not created")
 	}
 

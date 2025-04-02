@@ -13,8 +13,8 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/tex"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
-	"github.com/rwxrob/bonzai/cmds/vars"
 	"github.com/rwxrob/bonzai/comp"
+	"github.com/rwxrob/bonzai/vars"
 )
 
 var Cmd = &bonzai.Cmd{

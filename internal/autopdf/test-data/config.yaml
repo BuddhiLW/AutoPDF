@@ -1,0 +1,8 @@
+template: "./template.tex"
+output: "./out/output"
+variables:
+  title: "Test Document"
+  content: "This is a test document."
+engine: "pdflatex"
+conversion:
+  enabled: false

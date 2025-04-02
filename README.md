@@ -10,14 +10,30 @@ Perfect for creating professional, customizable PDF documents as a service.
 
 ## Install
 
-```
+``` bash
 go install github.com/BuddhiLW/AutoPDF/cmd/AutoPDF@latest
+```
+
+## Testing
+
+``` bash
+go test ./...
 ```
 
 ## Usage
 
+``` bash
+cd ./internal/autopdf/test-data
+
+autopdf build template.tex config.yaml
+cat out/output.pdf
 ```
-AutoPDF
+
+Should output:
+
+```
+file out/output.pdf 
+out/output.pdf: PDF document, version 1.5
 ```
 
 ## License
