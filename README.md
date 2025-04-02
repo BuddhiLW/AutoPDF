@@ -1,23 +1,29 @@
-# 🌳 AutoPDF
+# 📄 AutoPDF 
 
-**AutoPDF is a tool that helps you create PDF documents from templates.**
+<div align="center">
+<img src="./.gitassets/logo.png" alt="AutoPDF Logo" width="300" height="300" class="center">
 
-Simple. Neat. Fast. Powerful.
+[![GoDoc](https://godoc.org/github.com/BuddhiLW/AutoPDF?status.svg)](https://godoc.org/github.com/BuddhiLW/AutoPDF) [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
 
-Perfect for creating professional, customizable PDF documents as a service.
+**A tool that creates PDFs, using LaTeX and Go's templating syntax.**
+</div>
 
-Like, Share, Subscribe, and Hit the Bell Icon! 
 
-(Please do mention the software usage in your projects, products, etc.)
 
-[![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
+- :zap: Simple. Neat. Fast. Powerful. :zap:
+- Perfect for creating professional, customizable PDF documents.
+- *Leverages* the most powerful PDF document generator: $\LaTeX$.
 
-Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW)
-Using [Bonzai](https://github.com/rwxrob/bonzai)
+> *Like, Share, Subscribe, and Hit the Bell Icon!* 
+
+**Please do mention the software usage in your projects, products, etc.**
+
+
+Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW). Using [Bonzai](https://github.com/rwxrob/bonzai) 🌳.
 
 ## Install
 
-``` bash
+```bash
 go install github.com/BuddhiLW/AutoPDF/cmd/autopdf@latest
 ```
 
@@ -25,34 +31,32 @@ go install github.com/BuddhiLW/AutoPDF/cmd/autopdf@latest
 
 ### Build
 
-``` bash
+```bash
 cd ./internal/autopdf/test-data
 
 autopdf build template.tex config.yaml # [optional: `clean`]
 file out/output.pdf
 ```
+
 Should output:
 
 ```
-file out/output.pdf 
+file out/output.pdf
 out/output.pdf: PDF document, version 1.5
 ```
 
 ### Clean up auxiliary files
 
-``` bash
+```bash
 autopdf clean <path-to-output-directory>
 ```
 
 Or, more conveniently, you can use the `build` command with the `clean` flag:
 
-``` bash
+```bash
 autopdf build template.tex config.yaml clean
 ```
-
 
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
-
-
