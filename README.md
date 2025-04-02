@@ -6,6 +6,8 @@ Simple. Neat. Fast. Powerful.
 
 Perfect for creating professional, customizable PDF documents as a service.
 
+Like, Share, Subscribe, and Hit the Bell Icon! (Please do mention the software usage in your projects, products, etc.)
+
 [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
 
 ## Install

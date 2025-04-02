@@ -1,0 +1,77 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags, e.g., v1.0.0
+
+# Add permissions block at the workflow level
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux builds
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          # macOS builds
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.0"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist
+          go build -o dist/autopdf-${{ matrix.os }}-${{ matrix.arch }} ./cmd/autopdf
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autopdf-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/autopdf-${{ matrix.os }}-${{ matrix.arch }}*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          artifacts: dist/*
+          generateReleaseNotes: true
+          body: |
+            ## Autopdf ${{ github.ref_name }}
+
+            ### Downloads
+            - Linux: `autopdf-linux-amd64`, `autopdf-linux-arm64`
+            - macOS: `autopdf-darwin-amd64`, `autopdf-darwin-arm64` (Apple Silicon)
+
+            ### Installation
+            Download the appropriate binary for your system and add it to your PATH.
+
+            For detailed installation instructions and usage guide, please visit our documentation.
