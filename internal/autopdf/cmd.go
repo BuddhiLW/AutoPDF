@@ -74,10 +74,7 @@ The convert command takes a PDF file and converts it to one or more image format
 
 		// Create a minimal config for the converter
 		cfg := &config.Config{
-			Conversion: struct {
-				Enabled bool     `yaml:"enabled" json:"enabled"`
-				Formats []string `yaml:"formats" json:"formats"`
-			}{
+			Conversion: config.Conversion{
 				Enabled: true,
 				Formats: formats,
 			},

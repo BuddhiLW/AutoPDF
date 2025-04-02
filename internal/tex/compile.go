@@ -43,7 +43,7 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 	}
 
 	// Verify that the engine is installed
-	if _, err := exec.LookPath(engine); err != nil {
+	if _, err := exec.LookPath(engine.String()); err != nil {
 		return "", fmt.Errorf("LaTeX engine not found: %s", engine)
 	}
 
@@ -53,8 +53,8 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 
 	// Determine output PDF path
 	outputPDF := filepath.Join(dir, replaceExt(baseName, ".pdf"))
-	if c.Config.Output != "" {
-		outputPDF = c.Config.Output
+	if c.Config.Output.String() != "" {
+		outputPDF = c.Config.Output.String()
 	}
 	dirOutput := filepath.Dir(outputPDF)
 	baseNameOutput := filepath.Base(outputPDF)
@@ -89,7 +89,7 @@ func (c *Compiler) CompileWithBibtex(texFile string) (string, error) {
 	baseName := replaceExt(baseNameWithExt, "")
 
 	// First LaTeX run
-	cmd := exec.Command(c.Config.Engine,
+	cmd := exec.Command(c.Config.Engine.String(),
 		"-interaction=nonstopmode",
 		"-output-directory="+dir,
 		texFile)
@@ -113,10 +113,12 @@ func (c *Compiler) CompileWithBibtex(texFile string) (string, error) {
 		return "", fmt.Errorf("third LaTeX run failed: %w", err)
 	}
 
-	// Output path
+	// Default output path
 	outputPDF := filepath.Join(dir, baseName+".pdf")
-	if c.Config.Output != "" {
-		outputPDF = c.Config.Output
+
+	// If output path is set in config, use it instead of default
+	if c.Config.Output.String() != "" {
+		outputPDF = c.Config.Output.String()
 	}
 
 	// Check if output PDF exists

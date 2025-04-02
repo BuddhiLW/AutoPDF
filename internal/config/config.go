@@ -11,14 +11,48 @@ import (
 
 // Config defines the YAML configuration schema for AutoPDF
 type Config struct {
-	Template   string            `yaml:"template" json:"template"`
-	Output     string            `yaml:"output" json:"output"`
-	Variables  map[string]string `yaml:"variables" json:"variables"`
-	Engine     string            `yaml:"engine" json:"engine"`
-	Conversion struct {
-		Enabled bool     `yaml:"enabled" json:"enabled"`
-		Formats []string `yaml:"formats" json:"formats"`
-	} `yaml:"conversion" json:"conversion"`
+	Template   Template   `yaml:"template" json:"template" default:""`
+	Output     Output     `yaml:"output" json:"output" default:""`
+	Variables  Variables  `yaml:"variables" json:"variables" default:"{}"`
+	Engine     Engine     `yaml:"engine" json:"engine" default:"pdflatex"`
+	Conversion Conversion `yaml:"conversion" json:"conversion"`
+}
+
+type Template string
+
+func (t Template) String() string {
+	return string(t)
+}
+
+type Output string
+
+func (o Output) String() string {
+	return string(o)
+}
+
+type Engine string
+
+func (e Engine) String() string {
+	return string(e)
+}
+
+type Variables map[string]string
+
+func (v Variables) String() string {
+	if len(v) == 0 {
+		return "{}"
+	}
+	s := "{"
+	for k, v := range v {
+		s += fmt.Sprintf("%s: %s, ", k, v)
+	}
+	s += "}"
+	return s
+}
+
+type Conversion struct {
+	Enabled bool     `yaml:"enabled" json:"enabled" default:"false"`
+	Formats []string `yaml:"formats" json:"formats" default:"[]"`
 }
 
 // GetConfig retrieves the configuration from the persister
@@ -56,15 +90,14 @@ func SaveConfig(persister *inyaml.Persister, config *Config) error {
 // getDefaultConfig returns a default configuration
 func getDefaultConfig() *Config {
 	return &Config{
-		Engine: "pdflatex",
-		Conversion: struct {
-			Enabled bool     `yaml:"enabled" json:"enabled"`
-			Formats []string `yaml:"formats" json:"formats"`
-		}{
+		Template: "",
+		Output:   "",
+		Engine:   "pdflatex",
+		Conversion: Conversion{
 			Enabled: false,
 			Formats: []string{},
 		},
-		Variables: make(map[string]string),
+		Variables: Variables(make(map[string]string)),
 	}
 }
 

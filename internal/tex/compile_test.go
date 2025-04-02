@@ -146,7 +146,7 @@ Hello, World!
 	// Create compiler with custom output path
 	cfg := &config.Config{
 		Engine: "pdflatex",
-		Output: customOutput,
+		Output: config.Output(customOutput),
 	}
 	compiler := NewCompiler(cfg)
 

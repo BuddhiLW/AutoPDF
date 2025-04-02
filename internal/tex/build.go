@@ -51,7 +51,7 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 
 		// If template not set in config, use the provided one
 		if cfg.Template == "" {
-			cfg.Template = templateFile
+			cfg.Template = config.Template(templateFile)
 		}
 
 		// Process the template
@@ -61,9 +61,9 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		if err != nil {
 			return fmt.Errorf("failed to get working directory: %w", err)
 		}
-		processedTexFile := filepath.Join(tempDir, "autopdf_"+filepath.Base(cfg.Template))
+		processedTexFile := filepath.Join(tempDir, "autopdf_"+filepath.Base(cfg.Template.String()))
 
-		result, err := engine.Process(cfg.Template)
+		result, err := engine.Process(cfg.Template.String())
 		if err != nil {
 			return fmt.Errorf("template processing failed: %w", err)
 		}
@@ -81,8 +81,8 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		}
 
 		// If output path is specified in config, move the PDF there
-		if cfg.Output != "" && outputPDF != cfg.Output {
-			outputDir := filepath.Dir(cfg.Output)
+		if cfg.Output != "" && outputPDF != cfg.Output.String() {
+			outputDir := filepath.Dir(cfg.Output.String())
 			if err := os.MkdirAll(outputDir, 0755); err != nil {
 				return fmt.Errorf("failed to create output directory: %w", err)
 			}
@@ -92,11 +92,11 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 				return fmt.Errorf("failed to read compiled PDF: %w", err)
 			}
 
-			if err := os.WriteFile(cfg.Output, pdfData, 0644); err != nil {
+			if err := os.WriteFile(cfg.Output.String(), pdfData, 0644); err != nil {
 				return fmt.Errorf("failed to write to output location: %w", err)
 			}
 
-			outputPDF = cfg.Output
+			outputPDF = cfg.Output.String()
 		}
 
 		// Clean up the temp file

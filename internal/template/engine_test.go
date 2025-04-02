@@ -45,8 +45,8 @@ delim[[.content]]
 \end{document}
 `
 	// Write the template to a temporary file
-	templatePath := filepath.Join(tempDir, "test-template.tex")
-	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
+	templatePath := config.Template(filepath.Join(tempDir, "test-template.tex"))
+	if err := os.WriteFile(templatePath.String(), []byte(templateContent), 0644); err != nil {
 		t.Fatalf("Failed to write test template: %v", err)
 	}
 
@@ -68,7 +68,7 @@ delim[[.content]]
 
 	// Create and use the template engine
 	engine := NewEngine(cfg)
-	result, err := engine.Process(templatePath)
+	result, err := engine.Process(templatePath.String())
 	if err != nil {
 		t.Fatalf("Template processing failed: %v", err)
 	}
@@ -112,8 +112,8 @@ func TestProcessToFile(t *testing.T) {
 
 	// Create a test config with variables
 	cfg := &config.Config{
-		Template: templatePath,
-		Output:   outputPath,
+		Template: config.Template(templatePath),
+		Output:   config.Output(outputPath),
 		Variables: map[string]string{
 			"title": "Test Document",
 		},
@@ -159,7 +159,7 @@ func TestAddFunction(t *testing.T) {
 
 	// Create a test config
 	cfg := &config.Config{
-		Template: templatePath,
+		Template: config.Template(templatePath),
 		Variables: map[string]string{
 			"title": "test document",
 		},

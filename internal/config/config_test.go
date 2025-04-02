@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -75,8 +76,8 @@ output: "output.pdf"
 		t.Errorf("Default Engine should be 'pdflatex', got '%s'", cfg.Engine)
 	}
 
-	if cfg.Variables == nil {
-		t.Errorf("Variables should be initialized to empty map, got nil")
+	if cfg.Variables.String() != "{}" {
+		t.Errorf("Variables should be initialized to empty map, got %v", cfg.Variables)
 	}
 }
 
@@ -85,13 +86,10 @@ func TestToJSON(t *testing.T) {
 		Template: "test.tex",
 		Output:   "output.pdf",
 		Engine:   "pdflatex",
-		Variables: map[string]string{
+		Variables: Variables(map[string]string{
 			"title": "Test Document",
-		},
-		Conversion: struct {
-			Enabled bool     `yaml:"enabled" json:"enabled"`
-			Formats []string `yaml:"formats" json:"formats"`
-		}{
+		}),
+		Conversion: Conversion{
 			Enabled: true,
 			Formats: []string{"png"},
 		},
@@ -122,5 +120,5 @@ func TestToJSON(t *testing.T) {
 
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[0:len(s)][0:len(substr)] == substr
+	return strings.Contains(s, substr)
 }
