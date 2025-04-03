@@ -3,7 +3,8 @@
 <div align="center">
 <img src="./.gitassets/logo.png" alt="AutoPDF Logo" width="300" height="300" class="center">
 
-[![GoDoc](https://godoc.org/github.com/BuddhiLW/AutoPDF?status.svg)](https://godoc.org/github.com/BuddhiLW/AutoPDF) [![License](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](LICENSE)
+<img data-badge="GoDoc" src="https://godoc.org/github.com/BuddhiLW/AutoPDF?status.svg">
+<img data-badge="License" src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
 
 **A tool that creates PDFs, using LaTeX and Go's templating syntax.**
 </div>
@@ -20,6 +21,12 @@
 
 
 Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW). Using [Bonzai](https://github.com/rwxrob/bonzai) 🌳.
+
+## Showcase
+
+<div align="center">
+<img src="./.gitassets/2.png" alt="AutoPDF Showcase" width="950" height="180" class="center">
+</div>
 
 ## Install
 

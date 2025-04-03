@@ -1,0 +1,6 @@
+template: "./test.tex"
+output: "./out/output"
+variables:
+engine: "pdflatex"
+conversion:
+  enabled: false
