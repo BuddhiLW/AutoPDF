@@ -1,4 +1,4 @@
-# 📄 AutoPDF 
+# 📄 AutoPDF
 
 <div align="center">
 <img src="./.gitassets/logo.png" alt="AutoPDF Logo" width="300" height="300" class="center">
@@ -7,25 +7,23 @@
 <img data-badge="License" src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
 
 **A tool that creates PDFs, using LaTeX and Go's templating syntax.**
+
 </div>
-
-
 
 - :zap: Simple. Neat. Fast. Powerful. :zap:
 - Perfect for creating professional, customizable PDF documents.
-- *Leverages* the most powerful PDF document generator: $\LaTeX$.
+- _Leverages_ the most powerful PDF document generator: $\LaTeX$.
 
-> *Like, Share, Subscribe, and Hit the Bell Icon!* 
+> _Like, Share, Subscribe, and Hit the Bell Icon!_
 
 **Please do mention the software usage in your projects, products, etc.**
-
 
 Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW). Using [Bonzai](https://github.com/rwxrob/bonzai) 🌳.
 
 ## Showcase
 
 <div align="center">
-<img src="./.gitassets/2.png" alt="AutoPDF Showcase" width="950" height="180" class="center">
+<img src="./.gitassets/2.png" alt="AutoPDF Showcase" width="950" height="400" class="center">
 </div>
 
 ## Install
