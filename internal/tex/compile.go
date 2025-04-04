@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/futil"
 )

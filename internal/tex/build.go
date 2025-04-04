@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/config"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/template"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"

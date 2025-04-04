@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	
-	"github.com/BuddhiLW/AutoPDF/internal/config"
+
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 // Converter handles PDF to image conversion
@@ -53,18 +53,18 @@ func (c *Converter) ConvertPDFToImages(pdfFile string) ([]string, error) {
 		// ImageMagick approach
 		for _, format := range formats {
 			outputPath := filepath.Join(dir, fmt.Sprintf("%s.%s", baseName, format))
-			cmd := exec.Command("convert", 
-				"-density", "300", 
-				pdfFile, 
+			cmd := exec.Command("convert",
+				"-density", "300",
+				pdfFile,
 				outputPath)
-			
+
 			if err := cmd.Run(); err != nil {
 				return outputFiles, fmt.Errorf("image conversion failed for %s: %w", format, err)
 			}
-			
+
 			outputFiles = append(outputFiles, outputPath)
 		}
-		
+
 		return outputFiles, nil
 	}
 
@@ -75,7 +75,7 @@ func (c *Converter) ConvertPDFToImages(pdfFile string) ([]string, error) {
 			// pdftoppm has specific flags for different formats
 			var outputPrefix string
 			var args []string
-			
+
 			switch format {
 			case "png":
 				outputPrefix = filepath.Join(dir, baseName)
@@ -86,18 +86,18 @@ func (c *Converter) ConvertPDFToImages(pdfFile string) ([]string, error) {
 			default:
 				continue // Skip unsupported formats
 			}
-			
+
 			cmd := exec.Command("pdftoppm", args...)
-			
+
 			if err := cmd.Run(); err != nil {
 				return outputFiles, fmt.Errorf("image conversion failed for %s: %w", format, err)
 			}
-			
+
 			// pdftoppm adds numeric suffixes to outputs for multi-page documents
 			// For simplicity, we'll just note the base name
 			outputFiles = append(outputFiles, fmt.Sprintf("%s-*.%s", outputPrefix, format))
 		}
-		
+
 		return outputFiles, nil
 	}
 

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 func TestReplaceExt(t *testing.T) {

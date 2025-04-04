@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 func TestNewConverter(t *testing.T) {

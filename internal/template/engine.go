@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/BuddhiLW/AutoPDF/internal/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 // Engine represents the template processing engine

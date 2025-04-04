@@ -69,7 +69,7 @@ func GetConfig(persister *inyaml.Persister) (*Config, error) {
 
 	if configStr == "" {
 		// Return default config
-		return getDefaultConfig(), nil
+		return GetDefaultConfig(), nil
 	}
 
 	var config Config
@@ -95,8 +95,8 @@ func SaveConfig(persister *inyaml.Persister, config *Config) error {
 	return nil
 }
 
-// getDefaultConfig returns a default configuration
-func getDefaultConfig() *Config {
+// GetDefaultConfig returns a default configuration
+func GetDefaultConfig() *Config {
 	return &Config{
 		Template: "",
 		Output:   "",
@@ -135,4 +135,12 @@ func NewConfigFromYAML(yamlData []byte) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func (c *Config) Marshal() ([]byte, error) {
+	return yaml.Marshal(c)
+}
+
+func (c *Config) Unmarshal(data []byte) error {
+	return yaml.Unmarshal(data, c)
 }
