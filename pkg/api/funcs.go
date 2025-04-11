@@ -28,9 +28,15 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, error) {
 
 	// Create a temporary directory for out build process
 	tmpDir := os.TempDir()
+	//create a temp directory for the output
+	tmpOutDir := filepath.Join(tmpDir, "out")
+	err := os.MkdirAll(tmpOutDir, 0755)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create a temporary output-directory for the pdf
-	outputFile := filepath.Join(tmpDir, "out/output.pdf")
+	outputFile := filepath.Join(tmpOutDir, "output.pdf")
 	log.Println("Output file:", outputFile)
 	cfg.Output = config.Output(outputFile)
 	log.Println("Final merged config:", cfg)
