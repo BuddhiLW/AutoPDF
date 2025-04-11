@@ -52,20 +52,39 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, error) {
 	// Build the pdf using the merged config
 	err = tex.BuildCmd.Do(nil, cfg.Template.String(), writer.Name())
 	if err != nil {
+		// First check if output file exists before trying to read it
+		if _, statErr := os.Stat(cfg.Output.String()); os.IsNotExist(statErr) {
+			return nil, err
+		}
+		
+		// Now check if file is empty
 		if futil.FileIsEmpty(cfg.Output.String()) {
 			return nil, err
 		}
-		// Normal to LaTeX to send build verbose info to stderr
-		// so we need to return the error only if the output file is empty
-		//
-		// To print the verbose "error" info, we need to print the stderr
-		// log.Println("Stderr while building pdf:", err)
+		
+		// If we get here, file exists and has content despite LaTeX errors
+		log.Printf("Warning: LaTeX reported errors but a PDF was produced: %v", err)
+	}
+
+	// Verify the file exists before attempting to read it
+	if _, statErr := os.Stat(cfg.Output.String()); os.IsNotExist(statErr) {
+		return nil, os.ErrNotExist
 	}
 
 	// Read the generated pdf
 	pdfBytes, err := os.ReadFile(cfg.Output.String())
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify that the file is not empty and contains valid PDF data
+	if len(pdfBytes) == 0 {
+		return nil, os.ErrInvalid
+	}
+	
+	// Basic check for PDF header signature
+	if len(pdfBytes) < 5 || string(pdfBytes[0:5]) != "%PDF-" {
+		return nil, os.ErrInvalid
 	}
 
 	// Return the generated pdf

@@ -73,25 +73,50 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 
 	var cmd *exec.Cmd
 	// Create command to run
+	var cmdErr error
+	
 	if dirOutput == "." {
 		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseNameOutput, texFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 		log.Printf("Running command: %s", cmd.String())
-		if err := cmd.Run(); err != nil {
-			log.Printf("Error running command: %s", err)
+		cmdErr = cmd.Run()
+		if cmdErr != nil {
+			log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+			// Don't return error yet - check if file was created
 		}
 	} else {
 		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 		log.Printf("Running command: %s", cmd.String())
-		if err := cmd.Run(); err != nil {
-			log.Printf("Error running command: %s", err)
+		cmdErr = cmd.Run()
+		if cmdErr != nil {
+			log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+			// Don't return error yet - check if file was created
 		}
 	}
 
-	// Check if output PDF exists
-	if _, err := os.Stat(fmt.Sprintf("%s.pdf", outputPDF)); os.IsNotExist(err) {
-		return "", errors.New("PDF output file was not created")
+	// Normalize output path with .pdf extension
+	outputPDFWithExt := outputPDF
+	if !strings.HasSuffix(outputPDF, ".pdf") {
+		outputPDFWithExt = outputPDF + ".pdf"
+	}
+
+	// Check if output PDF exists and has content
+	fileInfo, statErr := os.Stat(outputPDFWithExt)
+	if statErr != nil {
+		if os.IsNotExist(statErr) {
+			// File doesn't exist, return the original command error
+			if cmdErr != nil {
+				return "", fmt.Errorf("PDF output file was not created: %w", cmdErr)
+			}
+			return "", errors.New("PDF output file was not created")
+		}
+		return "", fmt.Errorf("error checking output file: %w", statErr)
+	}
+	
+	// Check if file is empty
+	if fileInfo.Size() == 0 {
+		return "", errors.New("PDF output file was created but is empty")
 	}
 
 	return outputPDF, nil

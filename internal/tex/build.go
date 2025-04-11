@@ -132,13 +132,21 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 			}
 		}
 
-		// Ensure that the output file exists; if not, create an empty file.
+		// Ensure that the output file exists and isn't empty
 		if cfg.Output != "" {
-			if _, err := os.Stat(cfg.Output.String()); os.IsNotExist(err) {
-				if err := os.WriteFile(cfg.Output.String(), []byte{}, 0644); err != nil {
-					return configs.WriteError
+			// Check if output file exists
+			fileInfo, err := os.Stat(cfg.Output.String())
+			if err != nil {
+				if os.IsNotExist(err) {
+					log.Printf("Warning: Output file %s doesn't exist after compilation", cfg.Output.String())
+					// Don't create an empty file here - that would hide the real issue
+				} else {
+					log.Printf("Error checking output file: %s", err)
 				}
+			} else if fileInfo.Size() == 0 {
+				log.Printf("Warning: Output file %s exists but is empty", cfg.Output.String())
 			}
+			
 			// Use the provided output path
 			outputPDF = cfg.Output.String()
 		}
