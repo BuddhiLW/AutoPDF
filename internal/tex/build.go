@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
@@ -133,21 +134,26 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 		}
 
 		// Ensure that the output file exists and isn't empty
-		if cfg.Output != "" {
-			// Check if output file exists
-			fileInfo, err := os.Stat(cfg.Output.String())
-			if err != nil {
-				if os.IsNotExist(err) {
-					log.Printf("Warning: Output file %s doesn't exist after compilation", cfg.Output.String())
-					// Don't create an empty file here - that would hide the real issue
-				} else {
-					log.Printf("Error checking output file: %s", err)
+			if cfg.Output != "" {
+				// Check if output file exists - ensure we check with .pdf extension
+				outputPath := cfg.Output.String()
+				if !strings.HasSuffix(outputPath, ".pdf") {
+					outputPath = outputPath + ".pdf"
 				}
-			} else if fileInfo.Size() == 0 {
-				log.Printf("Warning: Output file %s exists but is empty", cfg.Output.String())
-			}
-			
-			// Use the provided output path
+				
+				fileInfo, err := os.Stat(outputPath)
+				if err != nil {
+					if os.IsNotExist(err) {
+						log.Printf("Warning: Output file %s doesn't exist after compilation", outputPath)
+						// Don't create an empty file here - that would hide the real issue
+					} else {
+						log.Printf("Error checking output file: %s", err)
+					}
+				} else if fileInfo.Size() == 0 {
+					log.Printf("Warning: Output file %s exists but is empty", outputPath)
+				}
+				
+				// Use the provided output path
 			outputPDF = cfg.Output.String()
 		}
 		fmt.Printf("Successfully built PDF: %s\n", outputPDF)
