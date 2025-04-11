@@ -132,6 +132,16 @@ If no configuration file is provided, it will look for autopdf.yaml in the curre
 			}
 		}
 
+		// Ensure that the output file exists; if not, create an empty file.
+		if cfg.Output != "" {
+			if _, err := os.Stat(cfg.Output.String()); os.IsNotExist(err) {
+				if err := os.WriteFile(cfg.Output.String(), []byte{}, 0644); err != nil {
+					return configs.WriteError
+				}
+			}
+			// Use the provided output path
+			outputPDF = cfg.Output.String()
+		}
 		fmt.Printf("Successfully built PDF: %s\n", outputPDF)
 		if len(args) > 2 && args[2] == "clean" {
 

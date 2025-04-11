@@ -19,26 +19,20 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, error) {
 	if cfg.Variables == nil {
 		cfg.Variables = defaultCfg.Variables
 	}
-	if cfg.Output == "" {
-		cfg.Output = defaultCfg.Output
-	}
 	if cfg.Engine == "" {
 		cfg.Engine = defaultCfg.Engine
 	}
-
-	// Create a temporary directory for out build process
 	tmpDir := os.TempDir()
-	//create a temp directory for the output
-	tmpOutDir := filepath.Join(tmpDir, "out")
-	err := os.MkdirAll(tmpOutDir, 0755)
-	if err != nil {
-		return nil, err
+	if cfg.Output == "" {
+		// No output file provided, generate a temporary one.
+		tmpOutDir := filepath.Join(tmpDir, "out")
+		err := os.MkdirAll(tmpOutDir, 0755)
+		if err != nil {
+			return nil, err
+		}
+		cfg.Output = config.Output(filepath.Join(tmpOutDir, "output.pdf"))
 	}
-
-	// Create a temporary output-directory for the pdf
-	outputFile := filepath.Join(tmpOutDir, "output.pdf")
-	log.Println("Output file:", outputFile)
-	cfg.Output = config.Output(outputFile)
+	log.Println("Output file:", cfg.Output)
 	log.Println("Final merged config:", cfg)
 
 	// Create a temporary config.yaml file, with the merged config
@@ -58,7 +52,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, error) {
 	// Build the pdf using the merged config
 	err = tex.BuildCmd.Do(nil, cfg.Template.String(), writer.Name())
 	if err != nil {
-		if futil.FileIsEmpty(outputFile) {
+		if futil.FileIsEmpty(cfg.Output.String()) {
 			return nil, err
 		}
 		// Normal to LaTeX to send build verbose info to stderr
@@ -69,7 +63,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, error) {
 	}
 
 	// Read the generated pdf
-	pdfBytes, err := os.ReadFile(outputFile)
+	pdfBytes, err := os.ReadFile(cfg.Output.String())
 	if err != nil {
 		return nil, err
 	}
