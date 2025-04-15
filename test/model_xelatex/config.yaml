@@ -1,0 +1,6 @@
+template: "./main.tex"
+output: "./out/output"
+variables:
+engine: "lualatex"
+conversion:
+  enabled: false

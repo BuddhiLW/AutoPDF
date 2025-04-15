@@ -74,25 +74,49 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 	var cmd *exec.Cmd
 	// Create command to run
 	var cmdErr error
-	
-	if dirOutput == "." {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseNameOutput, texFile)
-		cmd = exec.Command("sh", "-c", cmdStr)
-		log.Printf("Running command: %s", cmd.String())
-		cmdErr = cmd.Run()
-		if cmdErr != nil {
-			log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
-			// Don't return error yet - check if file was created
+
+	if engine != "pdflatex" {
+		for i := 0; i < 2; i++ {
+			if dirOutput == "." {
+				cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseNameOutput, texFile)
+				cmd = exec.Command("sh", "-c", cmdStr)
+				log.Printf("Running command: %s", cmd.String())
+				cmdErr = cmd.Run()
+				if cmdErr != nil {
+					log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+					// Don't return error yet - check if file was created
+				}
+			} else {
+				cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
+				cmd = exec.Command("sh", "-c", cmdStr)
+				log.Printf("Running command: %s", cmd.String())
+				cmdErr = cmd.Run()
+				if cmdErr != nil {
+					log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+					// Don't return error yet - check if file was created
+				}
+			}
 		}
 	} else {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
-		cmd = exec.Command("sh", "-c", cmdStr)
-		log.Printf("Running command: %s", cmd.String())
-		cmdErr = cmd.Run()
-		if cmdErr != nil {
-			log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
-			// Don't return error yet - check if file was created
-		}
+			if dirOutput == "." {
+				cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseNameOutput, texFile)
+				cmd = exec.Command("sh", "-c", cmdStr)
+				log.Printf("Running command: %s", cmd.String())
+				cmdErr = cmd.Run()
+				if cmdErr != nil {
+					log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+					// Don't return error yet - check if file was created
+				}
+			} else {
+				cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseNameOutput, dirOutput, texFile)
+				cmd = exec.Command("sh", "-c", cmdStr)
+				log.Printf("Running command: %s", cmd.String())
+				cmdErr = cmd.Run()
+				if cmdErr != nil {
+					log.Printf("Warning: LaTeX command reported errors: %s", cmdErr)
+					// Don't return error yet - check if file was created
+				}
+			}
 	}
 
 	// Normalize output path with .pdf extension
@@ -113,7 +137,7 @@ func (c *Compiler) Compile(texFile string) (string, error) {
 		}
 		return "", fmt.Errorf("error checking output file: %w", statErr)
 	}
-	
+
 	// Check if file is empty
 	if fileInfo.Size() == 0 {
 		return "", errors.New("PDF output file was created but is empty")

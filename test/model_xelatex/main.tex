@@ -1,0 +1,29 @@
+\documentclass{scrartcl}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[object=vectorian]{pgfornament}
+\usetikzlibrary{calc}
+\definecolor{fondpaille}{cmyk}{0,0,0.1,0}
+
+\begin{document}
+\pagecolor{fondpaille}
+\color{Maroon}
+\begin{tikzpicture}[every node/.style={inner sep=0pt}]
+  \node[text width=8cm,align=center](Text){%
+    main pdf
+} ;
+\node[shift={(-1cm,1cm)},anchor=north west](CNW)  at (Text.north west)
+                 {\pgfornament[width=2cm]{61}};
+\node[shift={(1cm,1cm)},anchor=north east](CNE)   at (Text.north east)
+                 {\pgfornament[width=2cm,symmetry=v]{61}};
+\node[shift={(-1cm,-1cm)},anchor=south west](CSW) at (Text.south west)
+                 {\pgfornament[width=2cm,symmetry=h]{61}};
+\node[shift={(1cm,-1cm)},anchor=south east](CSE)  at (Text.south east)
+                 {\pgfornament[width=2cm,symmetry=c]{61}};
+\pgfornamenthline{CNW}{CNE}{north}{87}
+\pgfornamenthline{CSW}{CSE}{south}{87}
+\pgfornamentvline{CNW}{CSW}{west}{87}
+\pgfornamentvline{CNE}{CSE}{east}{87}
+\end{tikzpicture}
+\end{document}
