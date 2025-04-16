@@ -3,4 +3,6 @@ output: "./out/output"
 variables:
 engine: "lualatex"
 conversion:
-  enabled: false
+  enabled: true
+  formats: 
+    - "jpeg"

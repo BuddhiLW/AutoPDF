@@ -27,6 +27,7 @@ func (c *Converter) ConvertPDFToImages(pdfFile string) ([]string, error) {
 		return nil, errors.New("no PDF file specified")
 	}
 
+	pdfFile = fmt.Sprintf("%s.pdf", pdfFile)
 	// Check if the file exists
 	if _, err := os.Stat(pdfFile); os.IsNotExist(err) {
 		return nil, fmt.Errorf("PDF file does not exist: %s", pdfFile)
