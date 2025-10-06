@@ -44,15 +44,15 @@ func (e Engine) String() string {
 	return string(e)
 }
 
-type Variables map[string]string
+type Variables map[string]interface{}
 
 func (v Variables) String() string {
 	if len(v) == 0 {
 		return "{}"
 	}
 	s := "{"
-	for k, v := range v {
-		s += fmt.Sprintf("%s: %s, ", k, v)
+	for k, val := range v {
+		s += fmt.Sprintf("%s: %v, ", k, val)
 	}
 	s += "}"
 	return s
@@ -105,7 +105,7 @@ func GetDefaultConfig() *Config {
 			Enabled: false,
 			Formats: []string{},
 		},
-		Variables: Variables(make(map[string]string)),
+		Variables: Variables(make(map[string]interface{})),
 	}
 }
 
@@ -131,7 +131,7 @@ func NewConfigFromYAML(yamlData []byte) (*Config, error) {
 	}
 
 	if config.Variables == nil {
-		config.Variables = make(map[string]string)
+		config.Variables = make(map[string]interface{})
 	}
 
 	return &config, nil

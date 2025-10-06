@@ -1,0 +1,138 @@
+# Enhanced AutoPDF Configuration
+# This configuration demonstrates support for complex nested data structures
+
+# Path to the LaTeX template file
+template: "templates/enhanced-document.tex"
+
+# Path where the final PDF should be saved
+output: "output/enhanced-document.pdf"
+
+# LaTeX engine to use for compilation (pdflatex, xelatex, lualatex)
+engine: "xelatex"
+
+# Complex variables with nested structures
+variables:
+  # Simple variables
+  title: "Enhanced Document with Complex Data"
+  author: "AutoPDF Team"
+  date: "2024-01-15"
+  
+  # Nested object structure
+  company:
+    name: "AutoPDF Solutions"
+    address:
+      street: "123 Technology Drive"
+      city: "San Francisco"
+      state: "CA"
+      zip: "94105"
+      country: "USA"
+    contact:
+      phone: "+1-555-0123"
+      email: "info@autopdf.com"
+      website: "https://autopdf.com"
+  
+  # Array of objects
+  team:
+    - name: "John Doe"
+      role: "Lead Developer"
+      skills: ["Go", "LaTeX", "Templates"]
+      experience: 5
+    - name: "Jane Smith"
+      role: "Technical Writer"
+      skills: ["Documentation", "LaTeX", "Markdown"]
+      experience: 3
+    - name: "Bob Johnson"
+      role: "DevOps Engineer"
+      skills: ["Docker", "Kubernetes", "CI/CD"]
+      experience: 4
+  
+  # Complex nested structure for legal documents
+  legal_document:
+    case:
+      number: "2024-001"
+      title: "Enhanced Template System"
+      court: "Superior Court"
+      jurisdiction: "California"
+    
+    parties:
+      plaintiff:
+        name: "AutoPDF Corporation"
+        type: "Corporation"
+        address:
+          street: "456 Business Ave"
+          city: "Los Angeles"
+          state: "CA"
+          zip: "90210"
+      
+      defendant:
+        name: "Template Systems Inc"
+        type: "Corporation"
+        address:
+          street: "789 Innovation Blvd"
+          city: "San Diego"
+          state: "CA"
+          zip: "92101"
+    
+    # Array of legal proceedings
+    proceedings:
+      - date: "2024-01-10"
+        type: "Filing"
+        description: "Initial complaint filed"
+        documents: ["Complaint.pdf", "Exhibit_A.pdf"]
+      
+      - date: "2024-01-15"
+        type: "Response"
+        description: "Defendant response filed"
+        documents: ["Response.pdf", "Motion_to_Dismiss.pdf"]
+      
+      - date: "2024-01-20"
+        type: "Hearing"
+        description: "Motion hearing scheduled"
+        documents: ["Notice_of_Hearing.pdf"]
+    
+    # Financial information
+    financial:
+      damages:
+        requested: 1000000
+        currency: "USD"
+        breakdown:
+          - category: "Lost Revenue"
+            amount: 500000
+          - category: "Legal Fees"
+            amount: 200000
+          - category: "Punitive Damages"
+            amount: 300000
+      
+      costs:
+        filing_fee: 500
+        service_fee: 150
+        total_costs: 650
+  
+  # Configuration for document generation
+  document_config:
+    language: "en-US"
+    format: "legal"
+    template_version: "2.0"
+    features:
+      - "complex_templates"
+      - "nested_loops"
+      - "conditional_sections"
+      - "dynamic_content"
+    
+    # Styling options
+    styling:
+      font_family: "Times New Roman"
+      font_size: 12
+      line_spacing: 1.5
+      margins:
+        top: 1.0
+        bottom: 1.0
+        left: 1.0
+        right: 1.0
+
+# Optional PDF to image conversion settings
+conversion:
+  # Whether to convert the PDF to images
+  enabled: false
+  # Formats to convert to (png, jpg)
+  formats: []

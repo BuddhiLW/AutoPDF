@@ -54,7 +54,7 @@ delim[[.content]]
 	cfg := &config.Config{
 		// Use the temporary template file
 		Template: templatePath,
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			// Title variable
 			"title": "Test Document",
 			// Author variable
@@ -114,7 +114,7 @@ func TestProcessToFile(t *testing.T) {
 	cfg := &config.Config{
 		Template: config.Template(templatePath),
 		Output:   config.Output(outputPath),
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"title": "Test Document",
 		},
 	}
@@ -160,7 +160,7 @@ func TestAddFunction(t *testing.T) {
 	// Create a test config
 	cfg := &config.Config{
 		Template: config.Template(templatePath),
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"title": "test document",
 		},
 	}

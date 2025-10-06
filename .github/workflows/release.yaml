@@ -10,7 +10,44 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.0"
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Generate mocks
+        run: |
+          go install github.com/vektra/mockery/v3@latest
+          mockery --config .mockery.yml
+
+      - name: Run tests
+        run: |
+          go test ./... -v -race -coverprofile=coverage.out
+
+      - name: Run benchmarks
+        run: |
+          go test ./test/ -bench=. -benchmem -v -run=^$
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,7 +86,7 @@ jobs:
           path: dist/autopdf-${{ matrix.os }}-${{ matrix.arch }}*
 
   release:
-    needs: build
+    needs: [test, build]
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts

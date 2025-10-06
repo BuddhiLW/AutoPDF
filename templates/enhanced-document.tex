@@ -1,0 +1,132 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{geometry}
+
+% Set margins
+\geometry{margin=1in}
+
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Company Information}
+
+\textbf{Company Name:} delim[[.company.name]]
+
+\textbf{Address:}
+\begin{itemize}
+    \item Street: delim[[.company.address.street]]
+    \item City: delim[[.company.address.city]]
+    \item State: delim[[.company.address.state]]
+    \item ZIP: delim[[.company.address.zip]]
+    \item Country: delim[[.company.address.country]]
+\end{itemize}
+
+\textbf{Contact Information:}
+\begin{itemize}
+    \item Phone: delim[[.company.contact.phone]]
+    \item Email: delim[[.company.contact.email]]
+    \item Website: delim[[.company.contact.website]]
+\end{itemize}
+
+\section{Team Members}
+
+delim[[range .team]]
+\subsection{delim[[.name]]}
+\begin{itemize}
+    \item \textbf{Role:} delim[[.role]]
+    \item \textbf{Experience:} delim[[.experience]] years
+    \item \textbf{Skills:} delim[[join ", " .skills]]
+\end{itemize}
+delim[[end]]
+
+\section{Legal Document Information}
+
+\subsection{Case Details}
+\begin{itemize}
+    \item \textbf{Case Number:} delim[[.legal_document.case.number]]
+    \item \textbf{Title:} delim[[.legal_document.case.title]]
+    \item \textbf{Court:} delim[[.legal_document.case.court]]
+    \item \textbf{Jurisdiction:} delim[[.legal_document.case.jurisdiction]]
+\end{itemize}
+
+\subsection{Parties}
+
+\textbf{Plaintiff:}
+\begin{itemize}
+    \item Name: delim[[.legal_document.parties.plaintiff.name]]
+    \item Type: delim[[.legal_document.parties.plaintiff.type]]
+    \item Address: delim[[.legal_document.parties.plaintiff.address.street]], delim[[.legal_document.parties.plaintiff.address.city]], delim[[.legal_document.parties.plaintiff.address.state]] delim[[.legal_document.parties.plaintiff.address.zip]]
+\end{itemize}
+
+\textbf{Defendant:}
+\begin{itemize}
+    \item Name: delim[[.legal_document.parties.defendant.name]]
+    \item Type: delim[[.legal_document.parties.defendant.type]]
+    \item Address: delim[[.legal_document.parties.defendant.address.street]], delim[[.legal_document.parties.defendant.address.city]], delim[[.legal_document.parties.defendant.address.state]] delim[[.legal_document.parties.defendant.address.zip]]
+\end{itemize}
+
+\subsection{Proceedings}
+
+delim[[range .legal_document.proceedings]]
+\subsubsection{delim[[.type]] - delim[[.date]]}
+\textbf{Description:} delim[[.description]]
+
+\textbf{Documents:}
+\begin{itemize}
+delim[[range .documents]]
+    \item delim[[.]]
+delim[[end]]
+\end{itemize}
+delim[[end]]
+
+\subsection{Financial Information}
+
+\textbf{Damages Requested:} \$delim[[.legal_document.financial.damages.requested]] delim[[.legal_document.financial.damages.currency]]
+
+\textbf{Breakdown:}
+\begin{itemize}
+delim[[range .legal_document.financial.damages.breakdown]]
+    \item delim[[.category]]: \$delim[[.amount]]
+delim[[end]]
+\end{itemize}
+
+\textbf{Costs:}
+\begin{itemize}
+    \item Filing Fee: \$delim[[.legal_document.financial.costs.filing_fee]]
+    \item Service Fee: \$delim[[.legal_document.financial.costs.service_fee]]
+    \item Total Costs: \$delim[[.legal_document.financial.costs.total_costs]]
+\end{itemize}
+
+\section{Document Configuration}
+
+\textbf{Language:} delim[[.document_config.language]]
+\textbf{Format:} delim[[.document_config.format]]
+\textbf{Template Version:} delim[[.document_config.template_version]]
+
+\textbf{Features:}
+\begin{itemize}
+delim[[range .document_config.features]]
+    \item delim[[.]]
+delim[[end]]
+\end{itemize}
+
+\textbf{Styling:}
+\begin{itemize}
+    \item Font Family: delim[[.document_config.styling.font_family]]
+    \item Font Size: delim[[.document_config.styling.font_size]]pt
+    \item Line Spacing: delim[[.document_config.styling.line_spacing]]
+    \item Margins: delim[[.document_config.styling.margins.top]]in (top), delim[[.document_config.styling.margins.bottom]]in (bottom), delim[[.document_config.styling.margins.left]]in (left), delim[[.document_config.styling.margins.right]]in (right)
+\end{itemize}
+
+\end{document}
