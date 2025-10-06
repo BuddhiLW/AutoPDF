@@ -2,7 +2,7 @@
 # This is a sample YAML configuration file for AutoPDF
 
 # Path to the LaTeX template file
-template: "templates/document.tex"
+template: "templates/sample-template.tex"
 
 # Path where the final PDF should be saved
 output: "output/final.pdf"

@@ -1,6 +1,6 @@
 all: false
 dir: 'mocks'
-filename: mocks.go
+filename: '{{.PackageName}}_mocks.go'
 force-file-write: true
 formatter: goimports
 include-auto-generated: false
@@ -15,6 +15,9 @@ packages:
   github.com/BuddhiLW/AutoPDF/internal/template:
     config:
       all: false
+      dir: 'mocks'
+      filename: 'template_mocks.go'
+      pkgname: 'mocks'
     interfaces:
       TemplateEngine:
       EnhancedTemplateEngine:
@@ -22,3 +25,25 @@ packages:
       VariableProcessor:
       TemplateValidator:
       FileProcessor:
+  github.com/BuddhiLW/AutoPDF/internal/autopdf/domain:
+    config:
+      all: false
+      dir: 'mocks'
+      filename: 'domain_mocks.go'
+      pkgname: 'mocks'
+      structname: '{{.Mock}}Domain{{.InterfaceName}}'
+    interfaces:
+      TemplateProcessingService:
+      PDFGenerationService:
+      ConversionService:
+      FileManagementService:
+      ConfigurationService:
+      BuildService:
+      TemplateEngine:
+      PDFEngine:
+      ConversionEngine:
+      TemplateEngineFactory:
+      PDFEngineFactory:
+      ConversionEngineFactory:
+      EventPublisher:
+      EventHandler:

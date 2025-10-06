@@ -15,7 +15,7 @@ func Default(texFilePath string) error {
 		Template:  config.Template(texFilePath),
 		Output:    config.Output(texFilePath),
 		Engine:    config.Engine("pdflatex"),
-		Variables: map[string]string{},
+		Variables: config.Variables(make(map[string]interface{})),
 		Conversion: config.Conversion{
 			Enabled: false,
 			Formats: []string{},

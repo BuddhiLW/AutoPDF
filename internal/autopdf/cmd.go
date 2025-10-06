@@ -2,40 +2,64 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package autopdf provides the Bonzai command branch of the same name.
+// This package now uses SOLID principles, Domain-Driven Design, and Gang of Four patterns.
 package autopdf
 
 import (
-	"fmt"
-
-	"github.com/BuddhiLW/AutoPDF/internal/converter"
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
 	"github.com/rwxrob/bonzai/vars"
 )
 
+// 🏗️  Architecture: SOLID + DDD + GoF Patterns
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// This version uses a refactored architecture following:
+//
+// SOLID Principles:
+//   • Single Responsibility: Each service has one clear purpose
+//   • Open/Closed: Extensible through interfaces and strategies
+//   • Liskov Substitution: All implementations are interchangeable
+//   • Interface Segregation: Small, focused interfaces
+//   • Dependency Inversion: Depends on abstractions, not concretions
+//
+// Domain-Driven Design:
+//   • Domain Services: Business logic orchestration
+//   • Value Objects: Immutable data with validation
+//   • Entities: Objects with identity and lifecycle
+//   • Factories: Complex object creation
+//   • Events: Loose coupling through event-driven architecture
+//
+// Gang of Four Patterns:
+//   • Factory Pattern: Engine creation and selection
+//   • Strategy Pattern: Template processing strategies
+//   • Observer Pattern: Event-driven architecture
+
+// # Features:
+// - Generate pdfs from latex templates
+// - Generate images from pdfs
+// - Clean up auxiliary files generated during compilation
+// - Define templates, variables, LaTeX engine, output settings, and conversion options
+// - Event-driven architecture for extensibility
+// - Multiple engine support (pdflatex, xelatex, lualatex)
+
 var Cmd = &bonzai.Cmd{
 	Name:  `autopdf`,
 	Alias: `apdf`,
-	Vers:  `v1.0.0`,
+	Vers:  `v2.0.0`,
 	Short: `generate pdfs from latex templates`,
 	Long: `
 The autopdf tool helps generate pdfs from latex templates. It simplifies common latex
 operations and workflow management.
 
-# Features:
-- Generate pdfs from latex templates
-- Generate images from pdfs
-- Clean up auxiliary files generated during compilation
-- Define templates, variables, LaTeX engine, output settings, and conversion options.
-
 # Commands:
-- build:    Process template and compile to PDF
-- clean:    Remove LaTeX auxiliary files
-- convert:  Convert PDF to images
-- compile:  Compile LaTeX to PDF
+- build:    Process template and compile to PDF (uses Application Layer)
+- debug:    Enable verbose debug output for build operations
+- clean:    Remove LaTeX auxiliary files (uses Domain Layer)
+- convert:  Convert PDF to images (uses Strategy Pattern)
+- compile:  Compile LaTeX to PDF (uses Factory Pattern)
 - vars:     View and set configuration variables
 
 Use 'autopdf help <command> <subcommand>...' for detailed information
@@ -45,59 +69,11 @@ about each command.
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
 		vars.Cmd,
-		tex.BuildCmd,
-		tex.CleanCmd,
-		convertCmd,
-		tex.CompileCmd,
+		commands.BuildCmd,
+		commands.DebugCmd,
+		commands.CleanCmd,
+		commands.ConvertCmd,
+		commands.CompileCmd,
 	},
 	Def: help.Cmd,
-}
-
-var convertCmd = &bonzai.Cmd{
-	Name:    `convert`,
-	Alias:   `c`,
-	Short:   `convert PDF to images`,
-	Usage:   `PDF [FORMAT...]`,
-	MinArgs: 1,
-	Long: `
-The convert command takes a PDF file and converts it to one or more image formats.
-`,
-	Comp: comp.Cmds,
-	Cmds: []*bonzai.Cmd{
-		help.Cmd,
-	},
-	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		pdfFile := args[0]
-		formats := []string{"png"}
-
-		if len(args) > 1 {
-			formats = args[1:]
-		}
-
-		// Create a minimal config for the converter
-		cfg := &config.Config{
-			Conversion: config.Conversion{
-				Enabled: true,
-				Formats: formats,
-			},
-		}
-
-		// Convert the PDF to images
-		conv := converter.NewConverter(cfg)
-		imageFiles, err := conv.ConvertPDFToImages(pdfFile)
-		if err != nil {
-			return fmt.Errorf("PDF to image conversion failed: %w", err)
-		}
-
-		if len(imageFiles) > 0 {
-			fmt.Println("Generated image files:")
-			for _, file := range imageFiles {
-				fmt.Printf("  - %s\n", file)
-			}
-		} else {
-			fmt.Println("No image files were generated")
-		}
-
-		return nil
-	},
 }

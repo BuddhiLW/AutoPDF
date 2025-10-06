@@ -13,8 +13,8 @@ func TestBackwardCompatibility(t *testing.T) {
 	t.Run("Original Config Structure", func(t *testing.T) {
 		// Test that the original config structure continues to work
 		cfg := &Config{
-			Template:  "test.tex",
-			Output:    "output.pdf",
+			Template: "test.tex",
+			Output:   "output.pdf",
 			Variables: map[string]interface{}{
 				"title":   "Test Document",
 				"author":  "John Doe",
@@ -223,7 +223,7 @@ func TestMinimumBar(t *testing.T) {
 		assert.Error(t, err)
 
 		// Test nil config
-		_, err = SaveConfig(nil, nil)
+		err = SaveConfig(nil, nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "config cannot be nil")
 	})
@@ -368,7 +368,7 @@ func TestConfigMigration(t *testing.T) {
 
 		// Both should work
 		assert.Equal(t, "Simple Document", simpleConfig.Variables["title"])
-		
+
 		document := complexConfig.Variables["document"].(map[string]interface{})
 		assert.Equal(t, "Complex Document", document["title"])
 

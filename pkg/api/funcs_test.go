@@ -13,14 +13,14 @@ func TestGeneratePDF(t *testing.T) {
 	defaultCfg := config.GetDefaultConfig()
 	testCfg := &config.Config{
 		Template: "./test_data/template.tex",
-		Variables: map[string]string{
+		Variables: config.Variables{
 			"title":   "Test Title: api call",
 			"content": "Test Content: api call",
 		},
 	}
 
 	// Call the function
-	pdfBytes, err := GeneratePDF(testCfg, defaultCfg.Template)
+	pdfBytes, _, err := GeneratePDF(testCfg, defaultCfg.Template)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

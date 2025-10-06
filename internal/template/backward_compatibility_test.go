@@ -585,8 +585,12 @@ delim[[end]]
 		engine := NewEnhancedEngine(config)
 
 		// Add formatter functions to the engine
-		engine.AddFunction("format_time", formatter.FormatTime)
-		engine.AddFunction("format_date", formatter.FormatDate)
+		engine.AddFunction("format_time", func(hour, minute int) string {
+			return formatter.FormatTime(hour, minute)
+		})
+		engine.AddFunction("format_date", func(day, month, year int) string {
+			return formatter.FormatDate(day, month, year)
+		})
 
 		// Set variables that would use the formatter
 		variables := map[string]interface{}{

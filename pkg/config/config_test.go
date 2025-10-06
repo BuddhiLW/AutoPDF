@@ -86,7 +86,7 @@ func TestToJSON(t *testing.T) {
 		Template: "test.tex",
 		Output:   "output.pdf",
 		Engine:   "pdflatex",
-		Variables: Variables(map[string]string{
+		Variables: Variables(map[string]interface{}{
 			"title": "Test Document",
 		}),
 		Conversion: Conversion{
