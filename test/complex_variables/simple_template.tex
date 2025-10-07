@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
+\begin{document}
+\maketitle
+
+\section{Document Information}
+This document demonstrates the complex variables functionality of AutoPDF.
+
+\section{Basic Variables}
+Title: delim[[.title]]
+Author: delim[[.author]]
+Date: delim[[.date]]
+
+\section{Metadata}
+Version: delim[[.metadata.version]]
+Verbose: delim[[.metadata.settings.verbose]]
+Debug: delim[[.metadata.settings.debug]]
+Timeout: delim[[.metadata.settings.timeout]]
+
+\section{Configuration}
+Engine: delim[[.configuration.engine]]
+Output Format: delim[[.configuration.output_format]]
+Quality: delim[[.configuration.quality]]
+
+\section{Summary}
+This test demonstrates that the CLI can successfully parse and use complex nested variables from YAML configuration files.
+
+\end{document}

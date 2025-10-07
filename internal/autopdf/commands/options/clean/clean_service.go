@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 	"github.com/rwxrob/bonzai"
@@ -95,7 +95,7 @@ Examples:
   autopdf clean on
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := application.NewPersistentService()
+		persistentService := services.NewPersistentService()
 
 		if err := persistentService.SetCleanEnabled(true); err != nil {
 			return fmt.Errorf("failed to enable persistent cleaning: %w", err)
@@ -124,7 +124,7 @@ Examples:
   autopdf clean off
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := application.NewPersistentService()
+		persistentService := services.NewPersistentService()
 
 		if err := persistentService.SetCleanEnabled(false); err != nil {
 			return fmt.Errorf("failed to disable persistent cleaning: %w", err)
@@ -153,7 +153,7 @@ Examples:
   autopdf clean switch
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := application.NewPersistentService()
+		persistentService := services.NewPersistentService()
 
 		enabled, err := persistentService.ToggleClean()
 		if err != nil {
@@ -187,7 +187,7 @@ Examples:
   autopdf clean status
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := application.NewPersistentService()
+		persistentService := services.NewPersistentService()
 		status := persistentService.GetStatus()
 
 		// Create logger for user feedback

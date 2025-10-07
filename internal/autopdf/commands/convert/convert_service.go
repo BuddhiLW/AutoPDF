@@ -4,6 +4,7 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -53,7 +54,8 @@ Examples:
 		svc := serviceBuilder.BuildConverterService(convertArgs)
 
 		// Execute the conversion
-		imageFiles, err := svc.ConvertPDFToImages(convertArgs.PDFFile)
+		ctx := context.Background()
+		imageFiles, err := svc.ConvertToImages(ctx, convertArgs.PDFFile, convertArgs.Formats)
 		if err != nil {
 			log.Printf("Error converting PDF: %s", err)
 			return fmt.Errorf("PDF to image conversion failed: %w", err)

@@ -1,0 +1,66 @@
+template: "loops_document.tex"
+output: "loops_document.pdf"
+engine: "pdflatex"
+variables:
+  title: "AutoPDF For Loops Example"
+  author: "AutoPDF Developer"
+  date: "2025-01-07"
+  description: "Demonstrating for loops with complex variables in AutoPDF templates"
+  
+  # Array of strings
+  tags:
+    - "templates"
+    - "loops"
+    - "variables"
+    - "automation"
+  
+  # Array of objects
+  features:
+    - name: "Range Loops"
+      description: "Iterate over arrays and objects"
+      enabled: true
+      priority: 1
+    - name: "Nested Access"
+      description: "Access nested properties in loops"
+      enabled: true
+      priority: 2
+    - name: "Mixed Types"
+      description: "Handle different data types"
+      enabled: false
+      priority: 3
+    - name: "Dynamic Content"
+      description: "Generate content dynamically"
+      enabled: true
+      priority: 4
+  
+  # Nested structure with arrays
+  sections:
+    - title: "Introduction"
+      content: "This document demonstrates for loops"
+      subsections:
+        - "Getting Started"
+        - "Basic Syntax"
+        - "Advanced Usage"
+    - title: "Examples"
+      content: "Practical examples of for loops"
+      subsections:
+        - "Simple Arrays"
+        - "Object Arrays"
+        - "Nested Loops"
+    - title: "Best Practices"
+      content: "Tips for effective loop usage"
+      subsections:
+        - "Performance"
+        - "Readability"
+        - "Maintenance"
+  
+  # Configuration options
+  settings:
+    theme: "professional"
+    colors: ["blue", "green", "red"]
+    fonts: ["Arial", "Times", "Courier"]
+    sizes: [10, 12, 14, 16, 18, 20]
+
+conversion:
+  enabled: false
+  formats: []

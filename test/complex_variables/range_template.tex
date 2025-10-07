@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+\begin{document}
+\maketitle
+
+\section{Document Information}
+This document demonstrates for loops with complex variables in AutoPDF.
+
+\section{Basic Variables (using vars)}
+Title: delim[[.vars.title]]
+Author: delim[[.vars.author]]
+Date: delim[[.vars.date]]
+
+\section{Metadata (using vars)}
+Version: delim[[.vars.metadata.version]]
+Verbose: delim[[.vars.metadata.settings.verbose]]
+Debug: delim[[.vars.metadata.settings.debug]]
+Timeout: delim[[.vars.metadata.settings.timeout]]
+
+\section{Tags (using range loop on complex structure)}
+delim[[range .complex.metadata.tags]]
+delim[[.]]\par
+delim[[end]]
+
+\section{Features (using range loop on complex structure)}
+delim[[range .complex.metadata.settings.features]]
+delim[[.]]\par
+delim[[end]]
+
+\section{Items (using range loop on complex structure)}
+delim[[range .complex.items]]
+Item: delim[[.name]] (Enabled: delim[[.enabled]], Priority: delim[[.priority]])
+Description: delim[[.description]]\par
+delim[[end]]
+
+\section{Configuration Options (using range loop on complex structure)}
+delim[[range .complex.configuration.options]]
+delim[[.]]\par
+delim[[end]]
+
+\section{Summary}
+This test demonstrates:
+\begin{itemize}
+\item Range loops over arrays (metadata.tags, metadata.settings.features)
+\item Range loops over objects (items, configuration.options)
+\item Access to nested properties within loops
+\item Mixed data types in loops
+\item Both flattened variables (.vars.*) and complex structure (.complex.*)
+\end{itemize}
+
+\end{document}

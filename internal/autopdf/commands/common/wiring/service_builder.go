@@ -10,11 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/internal/application"
-	"github.com/BuddhiLW/AutoPDF/internal/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
 	appAdapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
-	"github.com/BuddhiLW/AutoPDF/internal/converter"
+
+	// Legacy converter functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/rwxrob/bonzai/futil"
 	"go.uber.org/zap"
@@ -29,8 +30,8 @@ func NewServiceBuilder() *ServiceBuilder {
 }
 
 // BuildDocumentService constructs the DocumentService with all required adapters
-func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *application.DocumentService {
-	return &application.DocumentService{
+func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *services.DocumentService {
+	return &services.DocumentService{
 		TemplateProcessor: adapters.NewTemplateProcessorAdapter(cfg),
 		LaTeXCompiler:     adapters.NewLaTeXCompilerAdapter(cfg),
 		Converter:         adapters.NewConverterAdapter(cfg),
@@ -39,16 +40,16 @@ func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *application.
 }
 
 // BuildRequest constructs a BuildRequest from the parsed arguments and config
-func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) application.BuildRequest {
-	return application.BuildRequest{
+func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) services.BuildRequest {
+	return services.BuildRequest{
 		TemplatePath: cfg.Template.String(),
 		ConfigPath:   args.ConfigFile,
-		Variables:    map[string]string(cfg.Variables),
+		Variables:    &cfg.Variables, // Use complex variables from pkg/
 		Engine:       cfg.Engine.String(),
 		OutputPath:   cfg.Output.String(),
 		DoConvert:    cfg.Conversion.Enabled,
 		DoClean:      args.Options.Clean.Enabled,
-		Conversion: application.ConversionSettings{
+		Conversion: services.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
 		},
@@ -61,7 +62,7 @@ func NewConvertServiceBuilder() *ServiceBuilder {
 }
 
 // BuildConverterService constructs the converter service
-func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *converter.Converter {
+func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *adapters.ConverterAdapter {
 	// Create a config with the provided formats
 	cfg := &config.Config{
 		Conversion: config.Conversion{
@@ -70,7 +71,7 @@ func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *convert
 		},
 	}
 
-	return converter.NewConverter(cfg)
+	return adapters.NewConverterAdapter(cfg)
 }
 
 // BuildCleanerService constructs the cleaner service

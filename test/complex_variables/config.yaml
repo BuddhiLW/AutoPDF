@@ -1,0 +1,46 @@
+template: "loop_template.tex"
+output: "output.pdf"
+engine: "pdflatex"
+variables:
+  title: "Complex Variables Test"
+  author: "AutoPDF Test Suite"
+  date: "2025-01-07"
+  metadata:
+    version: "1.0"
+    tags: 
+      - "example"
+      - "complex"
+      - "variables"
+      - "test"
+    settings:
+      verbose: true
+      debug: false
+      timeout: 30
+      features:
+        - "nested objects"
+        - "array access"
+        - "mixed types"
+  items:
+    - name: "Feature 1"
+      enabled: true
+      priority: 1
+      description: "Basic functionality"
+    - name: "Feature 2"
+      enabled: false
+      priority: 2
+      description: "Advanced features"
+    - name: "Feature 3"
+      enabled: true
+      priority: 3
+      description: "Experimental features"
+  configuration:
+    engine: "pdflatex"
+    output_format: "pdf"
+    quality: "high"
+    options:
+      - "verbose"
+      - "clean"
+      - "force"
+conversion:
+  enabled: false
+  formats: []

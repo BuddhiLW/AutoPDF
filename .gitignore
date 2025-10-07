@@ -2,13 +2,20 @@ go.work
 go.work.off
 go.work.sum
 dist
+autopdf
 main
 out/
-*output.pdf
-*output.png
-*output.jpg
-*output.tex
-*output.aux
-*output.log
+output.pdf
+output.png
+output.jpg
+output.tex
+output.aux
+output.log
+*output.*
+*.pdf
+*.png
+*.jpg
+*.aux
+*.log
 
 .auctex-auto

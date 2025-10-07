@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 	"github.com/rwxrob/bonzai"
@@ -46,7 +46,7 @@ Examples:
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		// Create persistent service
-		persistentService := application.NewPersistentService()
+		persistentService := services.NewPersistentService()
 
 		// Default to current level if no level specified
 		level := int(persistentService.GetVerboseLevel())

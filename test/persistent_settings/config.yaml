@@ -1,0 +1,38 @@
+template: "settings_document.tex"
+output: "settings_document.pdf"
+engine: "pdflatex"
+variables:
+  title: "AutoPDF Persistent Settings"
+  author: "AutoPDF User"
+  date: "2025-01-07"
+  description: "Demonstrating persistent CLI settings and configuration management"
+  
+  # Settings demonstration
+  settings:
+    verbose_level: 3
+    clean_enabled: true
+    debug_enabled: false
+    force_enabled: false
+    
+  # Available settings
+  available_settings:
+    - name: "verbose"
+      description: "Set logging verbosity level"
+      commands: ["on", "off", "level"]
+      levels: [0, 1, 2, 3, 4]
+    - name: "clean"
+      description: "Control auxiliary file cleaning"
+      commands: ["on", "off", "switch", "status"]
+      default: false
+    - name: "debug"
+      description: "Enable debug information"
+      commands: ["on", "off", "switch"]
+      output: "stdout"
+    - name: "force"
+      description: "Force operations and overwrite files"
+      commands: ["on", "off", "switch"]
+      default: false
+
+conversion:
+  enabled: false
+  formats: []

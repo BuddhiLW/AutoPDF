@@ -8,9 +8,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
+	// Legacy tex functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
@@ -30,7 +31,7 @@ func (cr *ConfigResolver) ResolveConfigFile(templateFile string, providedConfigF
 
 	// Create default config if not provided
 	log.Println("No config file provided, creating default config file...")
-	err := tex.Default(templateFile)
+	err := cr.createDefaultConfig(templateFile)
 	if err != nil {
 		return "", configs.BuildError
 	}
@@ -64,6 +65,25 @@ func (cr *ConfigResolver) ResolveTemplatePath(cfg *config.Config, templateFile, 
 		}
 	}
 	return nil
+}
+
+// createDefaultConfig creates a default configuration file
+func (cr *ConfigResolver) createDefaultConfig(templateFile string) error {
+	// Create a basic default config
+	defaultConfig := `template: "` + templateFile + `"
+variables:
+  title: "My Document"
+  author: "AutoPDF User"
+  date: "` + time.Now().Format("2006-01-02") + `"
+engine: "pdflatex"
+output: ""
+conversion:
+  enabled: false
+  formats: ["png"]
+`
+
+	// Write the default config to file
+	return os.WriteFile(configs.DefaultConfigName, []byte(defaultConfig), 0644)
 }
 
 // LoadConfig loads and parses the config file

@@ -1,0 +1,13 @@
+template: "document.tex"
+output: "basic_document.pdf"
+engine: "pdflatex"
+variables:
+  title: "Basic AutoPDF Example"
+  author: "AutoPDF User"
+  date: "2025-01-07"
+  company: "AutoPDF Inc."
+  version: "1.0.0"
+  description: "This is a simple example demonstrating basic AutoPDF functionality"
+conversion:
+  enabled: false
+  formats: []

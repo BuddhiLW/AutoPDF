@@ -1,0 +1,122 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\geometry{margin=1in}
+
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Document Information}
+delim[[.vars.description]]
+
+\section{Current Settings}
+The following settings are currently configured:
+
+\begin{itemize}
+\item Verbose Level: delim[[.vars.settings.verbose_level]]
+\item Clean Enabled: delim[[.vars.settings.clean_enabled]]
+\item Debug Enabled: delim[[.vars.settings.debug_enabled]]
+\item Force Enabled: delim[[.vars.settings.force_enabled]]
+\end{itemize}
+
+\section{Available Settings}
+AutoPDF provides persistent CLI settings that are saved across sessions:
+
+delim[[range .complex.available_settings]]
+\subsection{delim[[.name]]}
+\begin{itemize}
+\item Description: delim[[.description]]
+\item Commands: delim[[.commands]]
+\item Default: delim[[.default]]
+\end{itemize}
+delim[[end]]
+
+\section{Setting Commands}
+\subsection{Verbose Settings}
+\begin{verbatim}
+# Set verbose level
+autopdf verbose 3
+
+# Enable verbose logging
+autopdf verbose on
+
+# Disable verbose logging
+autopdf verbose off
+\end{verbatim}
+
+\subsection{Clean Settings}
+\begin{verbatim}
+# Enable cleaning
+autopdf clean on
+
+# Disable cleaning
+autopdf clean off
+
+# Toggle cleaning
+autopdf clean switch
+
+# Check status
+autopdf clean status
+\end{verbatim}
+
+\subsection{Debug Settings}
+\begin{verbatim}
+# Enable debug
+autopdf debug on
+
+# Disable debug
+autopdf debug off
+
+# Toggle debug
+autopdf debug switch
+\end{verbatim}
+
+\subsection{Force Settings}
+\begin{verbatim}
+# Enable force mode
+autopdf force on
+
+# Disable force mode
+autopdf force off
+
+# Toggle force mode
+autopdf force switch
+\end{verbatim}
+
+\section{Persistent Storage}
+Settings are automatically saved to:
+\begin{itemize}
+\item \texttt{\textasciitilde/.autopdf/config.yaml} (user home directory)
+\item Fallback to system temp directory if home directory is unavailable
+\item Settings persist across CLI sessions
+\item Automatic configuration management
+\end{itemize}
+
+\section{Configuration Management}
+\begin{itemize}
+\item Settings are stored in YAML format
+\item Automatic backup and recovery
+\item Cross-platform compatibility
+\item Secure file permissions
+\end{itemize}
+
+\section{Best Practices}
+\begin{itemize}
+\item Use persistent settings for frequently used options
+\item Check settings with status commands
+\item Reset to defaults when needed
+\item Export/import configurations for sharing
+\end{itemize}
+
+\end{document}

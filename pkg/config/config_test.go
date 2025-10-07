@@ -51,11 +51,13 @@ conversion:
 	}
 
 	// Check that variables are parsed correctly
-	if cfg.Variables["title"] != "Test Document" {
-		t.Errorf("Expected title to be 'Test Document', got '%s'", cfg.Variables["title"])
+	title, exists := cfg.Variables.GetString("title")
+	if !exists || title != "Test Document" {
+		t.Errorf("Expected title to be 'Test Document', got '%s' (exists: %v)", title, exists)
 	}
-	if cfg.Variables["author"] != "Test User" {
-		t.Errorf("Expected author to be 'Test User', got '%s'", cfg.Variables["author"])
+	author, exists := cfg.Variables.GetString("author")
+	if !exists || author != "Test User" {
+		t.Errorf("Expected author to be 'Test User', got '%s' (exists: %v)", author, exists)
 	}
 }
 
@@ -83,17 +85,18 @@ output: "output.pdf"
 
 func TestToJSON(t *testing.T) {
 	cfg := &Config{
-		Template: "test.tex",
-		Output:   "output.pdf",
-		Engine:   "pdflatex",
-		Variables: Variables(map[string]string{
-			"title": "Test Document",
-		}),
+		Template:  "test.tex",
+		Output:    "output.pdf",
+		Engine:    "pdflatex",
+		Variables: *NewVariables(),
 		Conversion: Conversion{
 			Enabled: true,
 			Formats: []string{"png"},
 		},
 	}
+
+	// Set a test variable
+	cfg.Variables.SetString("title", "Test Document")
 
 	json, err := cfg.ToJSON()
 	if err != nil {
@@ -125,12 +128,10 @@ func contains(s, substr string) bool {
 
 func TestConfig_String(t *testing.T) {
 	cfg := &Config{
-		Template: "test.tex",
-		Output:   "output.pdf",
-		Engine:   "pdflatex",
-		Variables: Variables(map[string]string{
-			"title": "Test Document",
-		}),
+		Template:  "test.tex",
+		Output:    "output.pdf",
+		Engine:    "pdflatex",
+		Variables: *NewVariables(),
 		Conversion: Conversion{
 			Enabled: true,
 			Formats: []string{"png"},
@@ -187,10 +188,9 @@ func TestVariables_String(t *testing.T) {
 	}
 
 	// Test variables with content
-	vars := Variables(map[string]string{
-		"title":  "Test Document",
-		"author": "Test User",
-	})
+	vars := *NewVariables()
+	vars.SetString("title", "Test Document")
+	vars.SetString("author", "Test User")
 	result := vars.String()
 	expectedSubstrings := []string{"title:", "Test Document", "author:", "Test User"}
 	for _, substr := range expectedSubstrings {
@@ -259,19 +259,17 @@ func TestGetDefaultConfig(t *testing.T) {
 		t.Errorf("Default conversion formats should be empty, got %v", cfg.Conversion.Formats)
 	}
 
-	if cfg.Variables == nil {
+	if cfg.Variables.VariableSet == nil {
 		t.Error("Default variables should not be nil")
 	}
 }
 
 func TestConfig_Marshal(t *testing.T) {
 	cfg := &Config{
-		Template: "test.tex",
-		Output:   "output.pdf",
-		Engine:   "pdflatex",
-		Variables: Variables(map[string]string{
-			"title": "Test Document",
-		}),
+		Template:  "test.tex",
+		Output:    "output.pdf",
+		Engine:    "pdflatex",
+		Variables: *NewVariables(),
 		Conversion: Conversion{
 			Enabled: true,
 			Formats: []string{"png"},

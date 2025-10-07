@@ -1,0 +1,235 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+\geometry{margin=1in}
+
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Document Information}
+delim[[.vars.description]]
+
+\section{Company Overview}
+\begin{itemize}
+\item Total Employees: delim[[.vars.company.total_employees]]
+\item Total Departments: delim[[.vars.company.total_departments]]
+\item Total Projects: delim[[.vars.company.total_projects]]
+\item Total Skills: delim[[.vars.company.total_skills]]
+\item Average Salary: \$${delim[[.vars.company.avg_salary]]:,}
+\item Active Employees: delim[[.vars.company.active_employees]]
+\item Inactive Employees: delim[[.vars.company.inactive_employees]]
+\end{itemize}
+
+\section{Employee Directory}
+\begin{longtable}{|p{3cm}|p{3cm}|p{2.5cm}|p{2cm}|p{2cm}|p{2cm}|}
+\hline
+\textbf{Name} & \textbf{Position} & \textbf{Department} & \textbf{Salary} & \textbf{Experience} & \textbf{Status} \\
+\hline
+\endhead
+
+delim[[range .complex.employees]]
+delim[[.name]] & delim[[.position]] & delim[[.department]] & \$${delim[[.salary]]:,} & delim[[.experience]] years & delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]] \\
+\hline
+delim[[end]]
+
+\end{longtable}
+
+\section{Department Statistics}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Department} & \textbf{Head Count} & \textbf{Average Salary} \\
+\hline
+delim[[range .complex.departments]]
+delim[[.name]] & delim[[.head_count]] & \$${delim[[.avg_salary]]:,} \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Department Overview}
+\end{table}
+
+\section{Project Portfolio}
+\begin{longtable}{|p{3cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|p{2.5cm}|p{2.5cm}|}
+\hline
+\textbf{Project} & \textbf{Status} & \textbf{Priority} & \textbf{Team Size} & \textbf{Budget} & \textbf{Start Date} & \textbf{End Date} \\
+\hline
+\endhead
+
+delim[[range .complex.projects]]
+delim[[.name]] & delim[[.status]] & delim[[.priority]] & delim[[.team_size]] & \$${delim[[.budget]]:,} & delim[[.start_date]] & delim[[.end_date]] \\
+\hline
+delim[[end]]
+
+\end{longtable}
+
+\section{Skills Matrix}
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{4cm}|p{10cm}|}
+\hline
+\textbf{Employee} & \textbf{Skills} \\
+\hline
+delim[[range .complex.employees]]
+delim[[.name]] & delim[[range .skills]]delim[[.]]\delim[[end]] \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Employee Skills Matrix}
+\end{table}
+
+\section{Department Skills}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|p{8cm}|}
+\hline
+\textbf{Department} & \textbf{Skills} \\
+\hline
+delim[[range .complex.departments]]
+delim[[.name]] & delim[[range .skills]]delim[[.]]\delim[[end]] \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Department Skills Overview}
+\end{table}
+
+\section{Project Technologies}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|p{8cm}|}
+\hline
+\textbf{Project} & \textbf{Technologies} \\
+\hline
+delim[[range .complex.projects]]
+delim[[.name]] & delim[[range .technologies]]delim[[.]]\delim[[end]] \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Project Technology Stack}
+\end{table}
+
+\section{All Skills Inventory}
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|}
+\hline
+delim[[range .complex.all_skills]]
+delim[[.]] & delim[[end]]
+\end{tabular}
+\caption{Complete Skills Inventory}
+\end{table}
+
+\section{Salary Analysis}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Department} & \textbf{Min Salary} & \textbf{Max Salary} & \textbf{Average} \\
+\hline
+delim[[range .complex.departments]]
+delim[[.name]] & \$${delim[[.min_salary]]:,} & \$${delim[[.max_salary]]:,} & \$${delim[[.avg_salary]]:,} \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Salary Analysis by Department}
+\end{table}
+
+\section{Project Status Summary}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Status} & \textbf{Count} & \textbf{Percentage} \\
+\hline
+delim[[range .complex.project_status]]
+delim[[.status]] & delim[[.count]] & delim[[.percentage]]\% \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Project Status Distribution}
+\end{table}
+
+\section{Employee Experience Levels}
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Experience Range} & \textbf{Employee Count} \\
+\hline
+delim[[range .complex.experience_levels]]
+delim[[.range]] & delim[[.count]] \\
+\hline
+delim[[end]]
+\end{tabular}
+\caption{Experience Distribution}
+\end{table}
+
+\section{Table Generation Examples}
+
+This document demonstrates various ways to fill LaTeX tables with data:
+
+\begin{enumerate}
+\item \textbf{Simple Tables}: Basic tabular data with headers
+\item \textbf{Long Tables}: Multi-page tables with automatic page breaks
+\item \textbf{Complex Data}: Nested objects and arrays
+\item \textbf{Conditional Formatting}: Status indicators and conditional content
+\item \textbf{Number Formatting}: Currency and number formatting
+\item \textbf{Range Loops}: Dynamic content generation from arrays
+\item \textbf{Nested Loops}: Complex data structures with multiple levels
+\end{enumerate}
+
+\section{Template Syntax Examples}
+
+\subsection{Basic Table with Range Loop}
+\begin{verbatim}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Name} & \textbf{Value} \\
+\hline
+delim[[range .complex.employees]]
+delim[[.name]] & delim[[.salary]] \\
+\hline
+delim[[end]]
+\end{tabular}
+\end{verbatim}
+
+\subsection{Conditional Content}
+\begin{verbatim}
+delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]]
+\end{verbatim}
+
+\subsection{Nested Loops}
+\begin{verbatim}
+delim[[range .complex.employees]]
+delim[[.name]]: delim[[range .skills]]
+delim[[.]]\delim[[end]]
+delim[[end]]
+\end{verbatim}
+
+\section{Best Practices}
+
+\begin{itemize}
+\item Use \texttt{longtable} for tables that might span multiple pages
+\item Use \texttt{booktabs} package for professional table formatting
+\item Format numbers and currency appropriately
+\item Use conditional statements for status indicators
+\item Organize data hierarchically for better template readability
+\item Test with different data sizes to ensure table formatting
+\end{itemize}
+
+\end{document}

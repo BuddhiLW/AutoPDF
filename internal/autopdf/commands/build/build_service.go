@@ -91,7 +91,7 @@ Examples:
 			logger.ErrorWithFields("Failed to load configuration", "error", err)
 			return err
 		}
-		logger.LogConfigBuilding(configFile, map[string]string(cfg.Variables))
+		logger.LogConfigBuilding(configFile, cfg.Variables.Flatten())
 
 		// Resolve template path
 		logger.Debug("Resolving template path")
@@ -100,7 +100,7 @@ Examples:
 			logger.ErrorWithFields("Failed to resolve template path", "error", err)
 			return err
 		}
-		logger.LogDataMapping(cfg.Template.String(), map[string]string(cfg.Variables))
+		logger.LogDataMapping(cfg.Template.String(), cfg.Variables.Flatten())
 
 		// Build the application service
 		logger.Debug("Building application service")

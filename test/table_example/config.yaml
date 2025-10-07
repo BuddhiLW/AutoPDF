@@ -1,0 +1,159 @@
+template: "table_document.tex"
+output: "table_document.pdf"
+engine: "pdflatex"
+variables:
+  title: "AutoPDF Table Examples"
+  author: "AutoPDF Developer"
+  date: "2025-01-07"
+  description: "Demonstrating how to fill LaTeX tables with data using AutoPDF's complex variables and for loops"
+  
+  # Table data examples
+  employees:
+    - name: "John Doe"
+      position: "Software Engineer"
+      department: "Engineering"
+      salary: 75000
+      experience: 3
+      skills: ["Go", "Python", "JavaScript"]
+      active: true
+    - name: "Jane Smith"
+      position: "Product Manager"
+      department: "Product"
+      salary: 85000
+      experience: 5
+      skills: ["Strategy", "Analytics", "Leadership"]
+      active: true
+    - name: "Bob Johnson"
+      position: "Data Scientist"
+      department: "Analytics"
+      salary: 90000
+      experience: 4
+      skills: ["Python", "R", "Machine Learning"]
+      active: false
+    - name: "Alice Brown"
+      position: "UX Designer"
+      department: "Design"
+      salary: 70000
+      experience: 2
+      skills: ["Figma", "User Research", "Prototyping"]
+      active: true
+    - name: "Charlie Wilson"
+      position: "DevOps Engineer"
+      department: "Engineering"
+      salary: 80000
+      experience: 6
+      skills: ["Docker", "Kubernetes", "AWS"]
+      active: true
+  
+  # Department statistics
+  departments:
+    - name: "Engineering"
+      head_count: 2
+      avg_salary: 77500
+      min_salary: 75000
+      max_salary: 80000
+      skills: ["Go", "Python", "JavaScript", "Docker", "Kubernetes", "AWS"]
+    - name: "Product"
+      head_count: 1
+      avg_salary: 85000
+      min_salary: 85000
+      max_salary: 85000
+      skills: ["Strategy", "Analytics", "Leadership"]
+    - name: "Analytics"
+      head_count: 1
+      avg_salary: 90000
+      min_salary: 90000
+      max_salary: 90000
+      skills: ["Python", "R", "Machine Learning"]
+    - name: "Design"
+      head_count: 1
+      avg_salary: 70000
+      min_salary: 70000
+      max_salary: 70000
+      skills: ["Figma", "User Research", "Prototyping"]
+  
+  # Project data
+  projects:
+    - name: "AutoPDF"
+      status: "Active"
+      priority: "High"
+      team_size: 3
+      budget: 50000
+      start_date: "2024-01-01"
+      end_date: "2025-06-30"
+      technologies: ["Go", "LaTeX", "PDF"]
+    - name: "Data Pipeline"
+      status: "Planning"
+      priority: "Medium"
+      team_size: 2
+      budget: 30000
+      start_date: "2025-02-01"
+      end_date: "2025-08-31"
+      technologies: ["Python", "Apache Airflow", "PostgreSQL"]
+    - name: "Mobile App"
+      status: "On Hold"
+      priority: "Low"
+      team_size: 4
+      budget: 75000
+      start_date: "2024-06-01"
+      end_date: "2025-12-31"
+      technologies: ["React Native", "TypeScript", "Node.js"]
+  
+  # Skills inventory
+  all_skills:
+    - "Go"
+    - "Python"
+    - "JavaScript"
+    - "Docker"
+    - "Kubernetes"
+    - "AWS"
+    - "Strategy"
+    - "Analytics"
+    - "Leadership"
+    - "R"
+    - "Machine Learning"
+    - "Figma"
+    - "User Research"
+    - "Prototyping"
+    - "React Native"
+    - "TypeScript"
+    - "Node.js"
+    - "Apache Airflow"
+    - "PostgreSQL"
+    - "LaTeX"
+    - "PDF"
+  
+  # Project status summary
+  project_status:
+    - status: "Active"
+      count: 1
+      percentage: 33.3
+    - status: "Planning"
+      count: 1
+      percentage: 33.3
+    - status: "On Hold"
+      count: 1
+      percentage: 33.3
+  
+  # Experience level distribution
+  experience_levels:
+    - range: "1-2 years"
+      count: 1
+    - range: "3-4 years"
+      count: 2
+    - range: "5-6 years"
+      count: 2
+  
+  # Company metrics
+  company:
+    total_employees: 5
+    total_departments: 4
+    total_projects: 3
+    total_skills: 21
+    avg_salary: 80000
+    active_employees: 4
+    inactive_employees: 1
+
+conversion:
+  enabled: false
+  formats: []

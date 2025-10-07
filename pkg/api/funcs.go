@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/rwxrob/bonzai/futil"
 	"gopkg.in/yaml.v3"
@@ -17,7 +19,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 	if cfg.Template == "" {
 		cfg.Template = template
 	}
-	if cfg.Variables == nil {
+	if cfg.Variables.VariableSet == nil {
 		cfg.Variables = defaultCfg.Variables
 	}
 	if cfg.Engine == "" {
@@ -50,8 +52,40 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 		return nil, nil, err
 	}
 
-	// Build the pdf using the merged config
-	err = tex.BuildCmd.Do(nil, cfg.Template.String(), writer.Name())
+	// Build the pdf using the new application service
+	ctx := context.Background()
+
+	// Create adapters
+	templateAdapter := adapters.NewTemplateProcessorAdapter(cfg)
+	latexAdapter := adapters.NewLaTeXCompilerAdapter(cfg)
+	converterAdapter := adapters.NewConverterAdapter(cfg)
+	cleanerAdapter := adapters.NewCleanerAdapter()
+
+	// Create document service
+	docService := &application.DocumentService{
+		TemplateProcessor: templateAdapter,
+		LaTeXCompiler:     latexAdapter,
+		Converter:         converterAdapter,
+		Cleaner:           cleanerAdapter,
+	}
+
+	// Create build request
+	req := application.BuildRequest{
+		TemplatePath: cfg.Template.String(),
+		ConfigPath:   writer.Name(),
+		Variables:    &cfg.Variables,
+		Engine:       cfg.Engine.String(),
+		OutputPath:   cfg.Output.String(),
+		DoConvert:    cfg.Conversion.Enabled,
+		DoClean:      false, // Don't clean for API usage
+		Conversion: application.ConversionSettings{
+			Enabled: cfg.Conversion.Enabled,
+			Formats: cfg.Conversion.Formats,
+		},
+	}
+
+	// Build the document
+	result, err := docService.Build(ctx, req)
 	if err != nil {
 		// First check if output file exists before trying to read it
 		if _, statErr := os.Stat(cfg.Output.String()); os.IsNotExist(statErr) {
@@ -67,6 +101,10 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 		log.Printf("Warning: LaTeX reported errors but a PDF was produced: %v", err)
 	}
 
+	// Update output path if it was changed by the service
+	if result.PDFPath != "" {
+		cfg.Output = config.Output(result.PDFPath)
+	}
 
 	// Verify the file exists before attempting to read it
 	if _, statErr := os.Stat(cfg.Output.String()); os.IsNotExist(statErr) {

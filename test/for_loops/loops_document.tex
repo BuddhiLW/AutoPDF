@@ -1,0 +1,107 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\geometry{margin=1in}
+
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Document Information}
+delim[[.vars.description]]
+
+\section{Tags}
+This document is tagged with:
+\begin{itemize}
+delim[[range .complex.tags]]
+\item delim[[.]]
+delim[[end]]
+\end{itemize}
+
+\section{Features}
+The following features are demonstrated:
+
+delim[[range .complex.features]]
+\subsection{delim[[.name]]}
+\begin{itemize}
+\item Description: delim[[.description]]
+\item Enabled: delim[[.enabled]]
+\item Priority: delim[[.priority]]
+\end{itemize}
+delim[[end]]
+
+\section{Document Sections}
+delim[[range .complex.sections]]
+\section{delim[[.title]]}
+delim[[.content]]
+
+\subsection{Subsections}
+\begin{itemize}
+delim[[range .subsections]]
+\item delim[[.]]
+delim[[end]]
+\end{itemize}
+delim[[end]]
+
+\section{Configuration Settings}
+\subsection{Theme}
+Theme: delim[[.vars.settings.theme]]
+
+\subsection{Colors}
+Available colors:
+\begin{itemize}
+delim[[range .complex.settings.colors]]
+\item delim[[.]]
+delim[[end]]
+\end{itemize}
+
+\subsection{Fonts}
+Available fonts:
+\begin{itemize}
+delim[[range .complex.settings.fonts]]
+\item delim[[.]]
+delim[[end]]
+\end{itemize}
+
+\subsection{Font Sizes}
+Available font sizes:
+\begin{itemize}
+delim[[range .complex.settings.sizes]]
+\item delim[[.]]pt
+delim[[end]]
+\end{itemize}
+
+\section{For Loop Syntax}
+AutoPDF supports Go template range syntax:
+
+\begin{verbatim}
+% Range over arrays
+delim[[range .complex.tags]]
+delim[[.]]\par
+delim[[end]]
+
+% Range over objects with properties
+delim[[range .complex.features]]
+delim[[.name]]: delim[[.description]]
+delim[[end]]
+\end{verbatim}
+
+\section{Best Practices}
+\begin{itemize}
+\item Use \texttt{.vars.*} for simple variable access
+\item Use \texttt{.complex.*} for range loops
+\item Combine both approaches for maximum flexibility
+\item Test templates with different data structures
+\end{itemize}
+
+\end{document}

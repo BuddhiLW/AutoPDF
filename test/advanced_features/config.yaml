@@ -1,0 +1,49 @@
+template: "advanced_document.tex"
+output: "advanced_document.pdf"
+engine: "pdflatex"
+variables:
+  title: "Advanced AutoPDF Features"
+  author: "AutoPDF Developer"
+  date: "2025-01-07"
+  company: "AutoPDF Solutions"
+  version: "2.0.0"
+  description: "Demonstrating advanced AutoPDF features including complex variables and nested structures"
+  metadata:
+    version: "2.0.0"
+    tags: 
+      - "advanced"
+      - "features"
+      - "complex"
+      - "variables"
+    settings:
+      verbose: true
+      debug: false
+      timeout: 30
+      features:
+        - "nested objects"
+        - "array access"
+        - "mixed types"
+  items:
+    - name: "Feature 1"
+      enabled: true
+      priority: 1
+      description: "Advanced template processing"
+    - name: "Feature 2"
+      enabled: false
+      priority: 2
+      description: "Complex variable handling"
+    - name: "Feature 3"
+      enabled: true
+      priority: 3
+      description: "Range loop support"
+  configuration:
+    engine: "pdflatex"
+    output_format: "pdf"
+    quality: "high"
+    options:
+      - "verbose"
+      - "clean"
+      - "force"
+conversion:
+  enabled: true
+  formats: ["png", "jpeg"]

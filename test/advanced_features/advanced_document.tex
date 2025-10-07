@@ -1,0 +1,92 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{margin=1in}
+
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Document Information}
+This document demonstrates advanced AutoPDF features including complex variables, nested structures, and range loops.
+
+\subsection{Basic Variables}
+\begin{itemize}
+\item Title: delim[[.vars.title]]
+\item Author: delim[[.vars.author]]
+\item Date: delim[[.vars.date]]
+\item Company: delim[[.vars.company]]
+\item Version: delim[[.vars.version]]
+\end{itemize}
+
+\section{Complex Variables}
+\subsection{Metadata}
+Version: delim[[.vars.metadata.version]]
+Verbose: delim[[.vars.metadata.settings.verbose]]
+Debug: delim[[.vars.metadata.settings.debug]]
+Timeout: delim[[.vars.metadata.settings.timeout]]
+
+\subsection{Tags (using range loop)}
+delim[[range .complex.metadata.tags]]
+delim[[.]]\par
+delim[[end]]
+
+\subsection{Features (using range loop)}
+delim[[range .complex.metadata.settings.features]]
+delim[[.]]\par
+delim[[end]]
+
+\section{Items (using range loop)}
+delim[[range .complex.items]]
+\subsection{delim[[.name]]}
+Enabled: delim[[.enabled]]
+Priority: delim[[.priority]]
+Description: delim[[.description]]\par
+delim[[end]]
+
+\section{Configuration}
+Engine: delim[[.vars.configuration.engine]]
+Output Format: delim[[.vars.configuration.output_format]]
+Quality: delim[[.vars.configuration.quality]]
+
+\subsection{Options (using range loop)}
+delim[[range .complex.configuration.options]]
+delim[[.]]\par
+delim[[end]]
+
+\section{Advanced Features Demonstrated}
+\begin{itemize}
+\item Complex nested variables
+\item Range loops over arrays and objects
+\item Mixed data types (strings, booleans, numbers)
+\item Nested object access
+\item Array indexing
+\item Template processing with complex structures
+\end{itemize}
+
+\section{Usage}
+To generate this document:
+\begin{verbatim}
+autopdf build advanced_document.tex config.yaml
+\end{verbatim}
+
+\section{Configuration Details}
+This example uses:
+\begin{itemize}
+\item Complex YAML structure with nested objects
+\item Array variables with multiple elements
+\item Mixed data types throughout the structure
+\item Range loops for dynamic content generation
+\item Both flattened (.vars.*) and complex (.complex.*) variable access
+\end{itemize}
+
+\end{document}

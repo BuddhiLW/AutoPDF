@@ -4,8 +4,8 @@
 package result
 
 import (
-	"github.com/BuddhiLW/AutoPDF/internal/application"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 )
 
@@ -18,7 +18,7 @@ func NewResultHandler() *ResultHandler {
 }
 
 // HandleBuildResult processes and displays the build result
-func (rh *ResultHandler) HandleBuildResult(result application.BuildResult) error {
+func (rh *ResultHandler) HandleBuildResult(result services.BuildResult) error {
 	// Create logger for user feedback
 	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
 	logger.InfoWithFields("Successfully built PDF", "pdf_path", result.PDFPath)

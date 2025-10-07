@@ -1,0 +1,46 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+\title{delim[[.vars.title]]}
+\author{delim[[.vars.author]]}
+\date{delim[[.vars.date]]}
+
+\begin{document}
+
+\maketitle
+
+\section{Document Information}
+This document was generated using AutoPDF with basic variable substitution.
+
+\subsection{Document Details}
+\begin{itemize}
+\item Title: delim[[.vars.title]]
+\item Author: delim[[.vars.author]]
+\item Date: delim[[.vars.date]]
+\item Company: delim[[.vars.company]]
+\item Version: delim[[.vars.version]]
+\end{itemize}
+
+\section{Description}
+delim[[.vars.description]]
+
+\section{Features Demonstrated}
+\begin{itemize}
+\item Basic variable substitution
+\item YAML configuration
+\item LaTeX compilation
+\item PDF generation
+\end{itemize}
+
+\section{Usage}
+To generate this document:
+\begin{verbatim}
+autopdf build document.tex config.yaml
+\end{verbatim}
+
+\end{document}

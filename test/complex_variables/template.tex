@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
+\begin{document}
+\maketitle
+
+\section{Document Information}
+This document demonstrates the complex variables functionality of AutoPDF.
+
+\section{Metadata}
+Version: delim[[.metadata.version]]
+Tags: delim[[.metadata.tags.0]], delim[[.metadata.tags.1]], delim[[.metadata.tags.2]], delim[[.metadata.tags.3]]
+Verbose: delim[[.metadata.settings.verbose]]
+Debug: delim[[.metadata.settings.debug]]
+Timeout: delim[[.metadata.settings.timeout]]
+
+\subsection{Feature List}
+delim[[.metadata.settings.features.0]], delim[[.metadata.settings.features.1]], delim[[.metadata.settings.features.2]]
+
+\section{Items}
+\subsection{Item 1}
+Name: delim[[.items.0.name]]
+Enabled: delim[[.items.0.enabled]]
+Priority: delim[[.items.0.priority]]
+Description: delim[[.items.0.description]]
+
+\subsection{Item 2}
+Name: delim[[.items.1.name]]
+Enabled: delim[[.items.1.enabled]]
+Priority: delim[[.items.1.priority]]
+Description: delim[[.items.1.description]]
+
+\subsection{Item 3}
+Name: delim[[.items.2.name]]
+Enabled: delim[[.items.2.enabled]]
+Priority: delim[[.items.2.priority]]
+Description: delim[[.items.2.description]]
+
+\section{Configuration}
+Engine: delim[[.configuration.engine]]
+Output Format: delim[[.configuration.output_format]]
+Quality: delim[[.configuration.quality]]
+
+\subsection{Options}
+delim[[.configuration.options.0]], delim[[.configuration.options.1]], delim[[.configuration.options.2]]
+
+\section{Summary}
+This test demonstrates:
+\begin{itemize}
+\item Nested object access (metadata.settings.verbose)
+\item Array access (metadata.tags.0, items.0.name)
+\item Mixed data types (strings, booleans, numbers)
+\item Complex nested structures (items.0.description)
+\item Multiple levels of nesting (configuration.options.0)
+\end{itemize}
+
+\end{document}
