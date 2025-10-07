@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 )
 
 // OptionsService handles the execution of build options
@@ -30,31 +30,31 @@ func NewOptionsService(cleaner CleanerPort, logger LoggerPort, debugger Debugger
 }
 
 // ExecuteOptions executes all enabled options
-func (os *OptionsService) ExecuteOptions(ctx context.Context, options domain.BuildOptions) error {
+func (os *OptionsService) ExecuteOptions(ctx context.Context, buildOptions options.BuildOptions) error {
 	// Execute clean option
-	if options.Clean.Enabled {
-		if err := os.Cleaner.CleanAux(ctx, options.Clean.Target); err != nil {
+	if buildOptions.Clean.Enabled {
+		if err := os.Cleaner.CleanAux(ctx, buildOptions.Clean.Target); err != nil {
 			return fmt.Errorf("failed to clean auxiliary files: %w", err)
 		}
-		log.Printf("Cleaned auxiliary files in: %s", options.Clean.Target)
+		log.Printf("Cleaned auxiliary files in: %s", buildOptions.Clean.Target)
 	}
 
 	// Execute verbose option
-	if options.Verbose.Enabled {
-		os.Logger.SetVerbosity(options.Verbose.Level)
-		log.Printf("Verbose logging enabled at level %d", options.Verbose.Level)
+	if buildOptions.Verbose.Enabled {
+		os.Logger.SetVerbosity(buildOptions.Verbose.Level)
+		log.Printf("Verbose logging enabled at level %d", buildOptions.Verbose.Level)
 	}
 
 	// Execute debug option
-	if options.Debug.Enabled {
-		os.Debugger.EnableDebug(options.Debug.Output)
-		log.Printf("Debug information enabled, output to: %s", options.Debug.Output)
+	if buildOptions.Debug.Enabled {
+		os.Debugger.EnableDebug(buildOptions.Debug.Output)
+		log.Printf("Debug information enabled, output to: %s", buildOptions.Debug.Output)
 	}
 
 	// Execute force option
-	if options.Force.Enabled {
-		os.Forcer.SetForceMode(options.Force.Overwrite)
-		log.Printf("Force mode enabled, overwrite: %t", options.Force.Overwrite)
+	if buildOptions.Force.Enabled {
+		os.Forcer.SetForceMode(buildOptions.Force.Overwrite)
+		log.Printf("Force mode enabled, overwrite: %t", buildOptions.Force.Overwrite)
 	}
 
 	return nil

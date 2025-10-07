@@ -16,6 +16,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/convert"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/config"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/multiple"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -120,6 +121,7 @@ func handleDelegation(ctx context.Context, buildArgs *argsPkg.BuildArgs, result 
 		convert.ConvertServiceCmd,
 		config.ConfigServiceCmd,
 		multiple.MultipleServiceCmd,
+		watch.WatchServiceCmd,
 	)
 
 	// Delegate using the flexible approach

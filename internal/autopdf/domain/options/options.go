@@ -1,7 +1,7 @@
 // Copyright 2025 AutoPDF BuddhiLW
 // SPDX-License-Identifier: Apache-2.0
 
-package domain
+package options
 
 // BuildOptions represents the domain model for build command options
 type BuildOptions struct {

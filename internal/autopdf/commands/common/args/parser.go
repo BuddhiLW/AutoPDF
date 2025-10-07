@@ -8,14 +8,14 @@ import (
 	"fmt"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 )
 
 // BuildArgs represents the parsed arguments for the build command
 type BuildArgs struct {
 	TemplateFile  string
 	ConfigFile    string
-	Options       domain.BuildOptions
+	Options       options.BuildOptions
 	RemainingArgs []string
 }
 
@@ -35,8 +35,8 @@ func (ap *ArgsParser) ParseBuildArgs(args []string) (*BuildArgs, error) {
 
 	buildArgs := &BuildArgs{
 		TemplateFile:  args[0],
-		ConfigFile:    "",                       // Will be resolved by ConfigResolver
-		Options:       domain.NewBuildOptions(), // Initialize with default values
+		ConfigFile:    "",                        // Will be resolved by ConfigResolver
+		Options:       options.NewBuildOptions(), // Initialize with default values
 		RemainingArgs: []string{},
 	}
 
@@ -77,8 +77,8 @@ func (ap *ArgsParser) ParseBuildArgsWithDelegation(args []string) (*BuildArgs, e
 
 	buildArgs := &BuildArgs{
 		TemplateFile:  args[0],
-		ConfigFile:    "",                       // Will be resolved by ConfigResolver
-		Options:       domain.NewBuildOptions(), // Initialize with default values
+		ConfigFile:    "",                        // Will be resolved by ConfigResolver
+		Options:       options.NewBuildOptions(), // Initialize with default values
 		RemainingArgs: []string{},
 	}
 
@@ -223,15 +223,15 @@ func (ap *ArgsParser) parseOption(option string) (string, error) {
 }
 
 // setOption sets the appropriate option in BuildOptions
-func (ap *ArgsParser) setOption(options *domain.BuildOptions, option string) {
+func (ap *ArgsParser) setOption(buildOptions *options.BuildOptions, option string) {
 	switch option {
 	case "clean":
-		options.EnableClean(".") // Default to current directory
+		buildOptions.EnableClean(".") // Default to current directory
 	case "verbose":
-		options.EnableVerbose(2) // Default to level 2 (verbose)
+		buildOptions.EnableVerbose(2) // Default to level 2 (verbose)
 	case "debug":
-		options.EnableDebug("stdout") // Default to stdout
+		buildOptions.EnableDebug("stdout") // Default to stdout
 	case "force":
-		options.EnableForce(true) // Default to overwrite enabled
+		buildOptions.EnableForce(true) // Default to overwrite enabled
 	}
 }

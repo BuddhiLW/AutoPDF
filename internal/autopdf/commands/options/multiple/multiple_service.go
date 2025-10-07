@@ -6,15 +6,13 @@ package multiple
 import (
 	"context"
 	"fmt"
-	"sync"
+	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
 	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
-	argsPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
-	configPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/config"
-	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
-	wiringPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -61,85 +59,61 @@ func executeMultipleProcess(ctx context.Context, args []string) error {
 	configFile := args[0]
 	templateFiles := args[1:]
 
-	// Load configuration once for all templates
-	configResolver := configPkg.NewConfigResolver()
-	cfg, err := configResolver.LoadConfigWithLogging(ctx, templateFiles[0], configFile)
+	// Create domain services
+	resultCollector := adapters.NewResultCollectorAdapter()
+	orchestrator := services.NewParallelExecutionOrchestrator()
+
+	// Create parallel compilation service
+	parallelService := services.NewParallelCompilationService(
+		orchestrator,
+		resultCollector,
+		nil, // strategies would be injected here
+	)
+
+	// Create parallel compilation request
+	request := parallel.ParallelCompilationRequest{
+		ConfigurationFile: configFile,
+		TemplateFiles:     templateFiles,
+		MaxConcurrency:    4,
+		Timeout:           30 * time.Second,
+	}
+
+	// Execute parallel compilation
+	result, err := parallelService.CompileTemplates(ctx, request)
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("parallel compilation failed: %w", err)
 	}
 
-	// Create wait group for parallel execution
-	var wg sync.WaitGroup
-	results := make(chan services.BuildResult, len(templateFiles))
-	errors := make(chan error, len(templateFiles))
-
-	// Compile each template in parallel
-	for _, templateFile := range templateFiles {
-		wg.Add(1)
-		go func(template string) {
-			defer wg.Done()
-
-			logger.InfoWithFields("Compiling template", "template", template)
-
-			// Build service for this template
-			serviceBuilder := wiringPkg.NewServiceBuilder()
-			svc := serviceBuilder.BuildDocumentService(cfg)
-
-			// Create build request for this template
-			buildArgs := &argsPkg.BuildArgs{
-				TemplateFile: template,
-				ConfigFile:   configFile,
-			}
-			req := serviceBuilder.BuildRequest(buildArgs, cfg)
-
-			// Execute build
-			result, err := svc.Build(ctx, req)
-			if err != nil {
-				errors <- fmt.Errorf("failed to build %s: %w", template, err)
-				return
-			}
-
-			results <- result
-			logger.InfoWithFields("Template compiled successfully", "template", template, "pdf", result.PDFPath)
-		}(templateFile)
-	}
-
-	// Wait for all goroutines to complete
-	wg.Wait()
-	close(results)
-	close(errors)
-
-	// Collect results
-	var buildResults []services.BuildResult
-	var buildErrors []error
-
-	for result := range results {
-		buildResults = append(buildResults, result)
-	}
-
-	for err := range errors {
-		buildErrors = append(buildErrors, err)
-	}
-
-	// Handle results
-	resultHandler := resultPkg.NewResultHandler()
+	// Log results
+	logger.InfoWithFields("Parallel compilation completed",
+		"success_count", result.SuccessCount,
+		"failure_count", result.FailureCount,
+		"total_duration", result.TotalDuration,
+	)
 
 	// Report successful builds
-	for _, result := range buildResults {
-		if err := resultHandler.HandleBuildResult(result); err != nil {
-			logger.WarnWithFields("Failed to handle result", "error", err)
-		}
+	for _, buildResult := range result.SuccessfulBuilds {
+		logger.InfoWithFields("Template compiled successfully",
+			"template", buildResult.TemplateFile,
+			"pdf", buildResult.PDFPath,
+			"duration", buildResult.Duration,
+		)
 	}
 
-	// Report errors
-	if len(buildErrors) > 0 {
-		logger.ErrorWithFields("Some templates failed to compile", "error_count", len(buildErrors))
-		for _, err := range buildErrors {
-			logger.ErrorWithFields("Build error", "error", err)
-		}
-		return fmt.Errorf("failed to compile %d templates", len(buildErrors))
+	// Report failures
+	for _, buildFailure := range result.FailedBuilds {
+		logger.ErrorWithFields("Template compilation failed",
+			"template", buildFailure.TemplateFile,
+			"error", buildFailure.Error,
+			"duration", buildFailure.Duration,
+		)
 	}
 
-	logger.InfoWithFields("All templates compiled successfully", "count", len(buildResults))
+	// Return error if any builds failed
+	if result.FailureCount > 0 {
+		return fmt.Errorf("failed to compile %d templates", result.FailureCount)
+	}
+
+	logger.InfoWithFields("All templates compiled successfully", "count", result.SuccessCount)
 	return nil
 }

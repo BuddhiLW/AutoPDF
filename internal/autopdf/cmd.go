@@ -11,6 +11,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/debug"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/force"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/verbose"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -54,6 +55,7 @@ about each command.
 		verbose.VerboseServiceCmd, // Use new service-based verbose command
 		debug.DebugServiceCmd,     // Use new service-based debug command
 		force.ForceServiceCmd,     // Use new service-based force command
+		watch.WatchServiceCmd,     // Use new service-based watch command
 	},
 	Def: help.Cmd,
 }
