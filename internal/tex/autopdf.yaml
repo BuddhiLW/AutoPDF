@@ -1,7 +1,0 @@
-template: ""
-output: ""
-variables: {}
-engine: pdflatex
-conversion:
-    enabled: false
-    formats: []
