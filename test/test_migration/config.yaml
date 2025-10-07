@@ -1,0 +1,9 @@
+template: ""
+output: "output.pdf"
+variables:
+  title: "Migration Test Document"
+  content: "This is a test of the new service-based build command."
+engine: "pdflatex"
+conversion:
+  enabled: false
+  formats: []

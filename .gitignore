@@ -4,5 +4,12 @@ go.work.sum
 dist
 autopdf
 main
+out/
+output.pdf
+output.png
+output.jpg
+output.tex
+output.aux
+output.log
 
 .auctex-auto

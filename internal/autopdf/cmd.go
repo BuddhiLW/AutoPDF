@@ -7,6 +7,7 @@ package autopdf
 import (
 	"fmt"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands"
 	"github.com/BuddhiLW/AutoPDF/internal/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/tex"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -19,7 +20,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  `autopdf`,
 	Alias: `apdf`,
-	Vers:  `v1.0.0`,
+	Vers:  `v1.2.0`,
 	Short: `generate pdfs from latex templates`,
 	Long: `
 The autopdf tool helps generate pdfs from latex templates. It simplifies common latex
@@ -45,7 +46,7 @@ about each command.
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
 		vars.Cmd,
-		tex.BuildCmd,
+		commands.BuildServiceCmd, // Use new service-based build command
 		tex.CleanCmd,
 		convertCmd,
 		tex.CompileCmd,
