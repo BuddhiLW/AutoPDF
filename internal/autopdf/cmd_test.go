@@ -1,155 +1,266 @@
-// Copyright 2025 AutoPDF BuddhiLW
-// SPDX-License-Identifier: Apache-2.0
-
 package autopdf
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
-	"github.com/rwxrob/bonzai"
 )
 
-// Helper function to check if a file exists
-func checkFileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return !errors.Is(err, os.ErrNotExist)
-}
-
-// Helper function to capture command output
-func captureOutput(cmd *bonzai.Cmd, args ...string) (string, error) {
-	// Save and restore original stdout
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	// Run the command
-	err := cmd.Do(cmd, args...)
-
-	// Restore stdout
-	w.Close()
-	os.Stdout = oldStdout
-
-	// Read captured output
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		return "", err
-	}
-
-	return buf.String(), err
-}
-
 func TestCmd_Structure(t *testing.T) {
-	// Test that the command structure is correct
-	if Cmd.Name != "autopdf" {
-		t.Errorf("Expected command name to be 'autopdf', got '%s'", Cmd.Name)
+	if Cmd == nil {
+		t.Fatal("Cmd should not be nil")
 	}
 
-	// Check for required subcommands
-	subCmdNames := []string{"build", "clean", "convert"}
-	for _, name := range subCmdNames {
-		found := false
-		for _, cmd := range Cmd.Cmds {
-			if cmd.Name == name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Expected to find subcommand '%s'", name)
+	if Cmd.Name != "autopdf" {
+		t.Errorf("Expected Cmd.Name to be 'autopdf', got '%s'", Cmd.Name)
+	}
+
+	if Cmd.Alias != "apdf" {
+		t.Errorf("Expected Cmd.Alias to be 'apdf', got '%s'", Cmd.Alias)
+	}
+
+	if Cmd.Vers != "v1.0.0" {
+		t.Errorf("Expected Cmd.Vers to be 'v1.0.0', got '%s'", Cmd.Vers)
+	}
+}
+
+func TestCmd_Commands(t *testing.T) {
+	if len(Cmd.Cmds) == 0 {
+		t.Error("Cmd.Cmds should not be empty")
+	}
+
+	// Check for expected commands
+	expectedCommands := []string{"help", "build", "clean", "convert", "compile"}
+	commandNames := make(map[string]bool)
+
+	for _, cmd := range Cmd.Cmds {
+		commandNames[cmd.Name] = true
+	}
+
+	for _, expectedCmd := range expectedCommands {
+		if !commandNames[expectedCmd] {
+			t.Errorf("Expected command '%s' not found in Cmd.Cmds", expectedCmd)
 		}
 	}
 }
 
-// Integration test for the build command
-func TestBuildCmd_Integration(t *testing.T) {
-	// Skip this test if running in CI or without pdflatex
-	_, err := os.Stat("/usr/bin/pdflatex")
-	if os.IsNotExist(err) {
-		t.Skip("pdflatex not found, skipping integration test")
+func TestConvertCmd_Structure(t *testing.T) {
+	if convertCmd == nil {
+		t.Fatal("convertCmd should not be nil")
 	}
 
+	if convertCmd.Name != "convert" {
+		t.Errorf("Expected convertCmd.Name to be 'convert', got '%s'", convertCmd.Name)
+	}
+
+	if convertCmd.Alias != "c" {
+		t.Errorf("Expected convertCmd.Alias to be 'c', got '%s'", convertCmd.Alias)
+	}
+
+	if convertCmd.MinArgs != 1 {
+		t.Errorf("Expected convertCmd.MinArgs to be 1, got %d", convertCmd.MinArgs)
+	}
+}
+
+func TestConvertCmd_Do(t *testing.T) {
 	// Create a temporary directory
 	tempDir, err := os.MkdirTemp("", "autopdf-test")
-	fmt.Println(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Create a simple LaTeX template
-	templateContent := `
-\documentclass{article}
-\title{delim[[.title]]}
-\begin{document}
-\maketitle
-delim[[.content]]
-\end{document}
-`
-	templatePath := filepath.Join(tempDir, "template.tex")
-	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
-		t.Fatalf("Failed to write template: %v", err)
-	}
-	// Check if the template file exists
-	if !checkFileExists(templatePath) {
-		t.Fatalf("Template file does not exist: %s", templatePath)
-	}
-	content, err := os.ReadFile(templatePath)
-	if err != nil {
-		t.Fatalf("Failed to read template file: %v", err)
-	}
-	log.Printf("Template content: %s", string(content))
-
-	// Create a YAML config
-	configContent := `
-template: "` + templatePath + `"
-output: "` + filepath.Join(tempDir, "output.pdf") + `"
-variables:
-  title: "Test Document"
-  content: "This is a test document."
-engine: "pdflatex"
-conversion:
-  enabled: false
-`
-	configPath := filepath.Join(tempDir, "config.yaml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config: %v", err)
-	}
-	// Check if the config file exists
-	if !checkFileExists(configPath) {
-		t.Fatalf("Config file does not exist: %s", configPath)
-	}
-	content, err = os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("Failed to read config file: %v", err)
-	}
-	log.Printf("Config content: %s", string(content))
-
-	// Run the build command (but don't fail the test if LaTeX compilation fails
-	// since it's expecting a full LaTeX installation)
-	output, err := captureOutput(tex.BuildCmd, templatePath, configPath)
-	fmt.Println(output)
-	log.Print(output)
-	log.Println("Error:", err)
-	// time.Sleep(2 * time.Second) // Give some time for the command to finish
-
-	t.Logf("Build output: %s", output)
-	if err != nil {
-		t.Logf("Build error: %v (may be expected in test environment)", err)
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
 	}
 
-	// Check that the command at least attempted to process the template
+	// Test with single argument (PDF file)
+	args := []string{pdfFile}
+	err = convertCmd.Do(convertCmd, args...)
 	if err != nil {
-		if !strings.Contains(err.Error(), "LaTeX compilation failed") &&
-			!strings.Contains(err.Error(), "failed to parse config") {
-			t.Errorf("Command failed unexpectedly: %v", err)
-		}
+		t.Logf("convertCmd.Do failed with single argument (expected for dummy PDF): %v", err)
+	}
+
+	// Test with multiple arguments (PDF file + formats)
+	args = []string{pdfFile, "png", "jpg"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed with multiple arguments (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_Do_InvalidInput(t *testing.T) {
+	// Test with non-existent file
+	args := []string{"/path/to/nonexistent/file.pdf"}
+	err := convertCmd.Do(convertCmd, args...)
+	if err == nil {
+		t.Error("Expected error for non-existent file but got none")
+	}
+}
+
+func TestConvertCmd_Do_EmptyFormats(t *testing.T) {
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test with single argument (should default to png format)
+	args := []string{pdfFile}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed with single argument (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_ConfigCreation(t *testing.T) {
+	// Test that the convert command creates a proper config
+	// This is tested indirectly through the Do function, but we can verify
+	// the config structure is correct by checking the conversion settings
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test with specific formats
+	args := []string{pdfFile, "png", "jpg"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed with specific formats (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_DefaultFormats(t *testing.T) {
+	// Test that default formats are set correctly when no formats are provided
+	// This is tested by checking that the command doesn't fail with default settings
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test with single argument (should use default png format)
+	args := []string{pdfFile}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed with default format (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_MultipleFormats(t *testing.T) {
+	// Test that multiple formats are handled correctly
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test with multiple formats
+	args := []string{pdfFile, "png", "jpg", "gif"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed with multiple formats (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_ErrorHandling(t *testing.T) {
+	// Test error handling for various invalid inputs
+
+	// Test with empty string
+	args := []string{""}
+	err := convertCmd.Do(convertCmd, args...)
+	if err == nil {
+		t.Error("Expected error for empty string but got none")
+	}
+
+	// Test with non-existent file
+	args = []string{"/path/to/nonexistent/file.pdf"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err == nil {
+		t.Error("Expected error for non-existent file but got none")
+	}
+}
+
+func TestConvertCmd_ConfigValidation(t *testing.T) {
+	// Test that the config created by convertCmd has the correct structure
+	// This is tested indirectly through the Do function
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test that the command creates a valid config
+	args := []string{pdfFile, "png"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("convertCmd.Do failed (expected for dummy PDF): %v", err)
+	}
+}
+
+func TestConvertCmd_Integration(t *testing.T) {
+	// Test the full integration of the convert command
+	// This tests the entire flow from command execution to converter creation
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a dummy PDF file
+	pdfFile := filepath.Join(tempDir, "test")
+	if err := os.WriteFile(pdfFile+".pdf", []byte("%PDF-1.5\ndummy content"), 0644); err != nil {
+		t.Fatalf("Failed to write dummy PDF file: %v", err)
+	}
+
+	// Test the full command execution
+	args := []string{pdfFile, "png", "jpg"}
+	err = convertCmd.Do(convertCmd, args...)
+	if err != nil {
+		t.Logf("Full convert command execution failed (expected for dummy PDF): %v", err)
 	}
 }

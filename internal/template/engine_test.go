@@ -181,3 +181,207 @@ func TestAddFunction(t *testing.T) {
 		t.Errorf("Custom function not applied correctly. Expected '%s', got '%s'", expectedOutput, result)
 	}
 }
+
+func TestNewEngine(t *testing.T) {
+	cfg := &config.Config{
+		Template: "test.tex",
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	if engine == nil {
+		t.Fatal("NewEngine returned nil")
+	}
+
+	if engine.Config != cfg {
+		t.Error("Engine.Config not set correctly")
+	}
+
+	if engine.FuncMap == nil {
+		t.Error("Engine.FuncMap should not be nil")
+	}
+
+	// Check that default functions are present
+	if _, exists := engine.FuncMap["upper"]; !exists {
+		t.Error("Default 'upper' function not found in FuncMap")
+	}
+}
+
+func TestEngine_Process_EmptyTemplatePath(t *testing.T) {
+	cfg := &config.Config{
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	_, err := engine.Process("")
+	if err == nil {
+		t.Error("Process with empty template path should return error")
+	}
+}
+
+func TestEngine_Process_NonExistentFile(t *testing.T) {
+	cfg := &config.Config{
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	_, err := engine.Process("/path/to/nonexistent/file.tex")
+	if err == nil {
+		t.Error("Process with non-existent file should return error")
+	}
+}
+
+func TestEngine_Process_InvalidTemplate(t *testing.T) {
+	// Create a temporary template file with invalid template syntax
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a template with invalid syntax
+	templateContent := `\title{delim[[.title | invalidFunction]]}`
+	templatePath := filepath.Join(tempDir, "invalid-template.tex")
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
+		t.Fatalf("Failed to write test template: %v", err)
+	}
+
+	cfg := &config.Config{
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	_, err = engine.Process(templatePath)
+	if err == nil {
+		t.Error("Process with invalid template should return error")
+	}
+}
+
+func TestEngine_ProcessToFile_EmptyOutputPath(t *testing.T) {
+	// Create a temporary template file
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	templateContent := `\title{delim[[.title]]}`
+	templatePath := filepath.Join(tempDir, "test-template.tex")
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
+		t.Fatalf("Failed to write test template: %v", err)
+	}
+
+	cfg := &config.Config{
+		Template: config.Template(templatePath),
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	err = engine.ProcessToFile(templatePath, "")
+	if err == nil {
+		t.Error("ProcessToFile with empty output path should return error")
+	}
+}
+
+func TestEngine_ProcessToFile_WithConfigOutput(t *testing.T) {
+	// Create a temporary template file
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	templateContent := `\title{delim[[.title]]}`
+	templatePath := filepath.Join(tempDir, "test-template.tex")
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
+		t.Fatalf("Failed to write test template: %v", err)
+	}
+
+	outputPath := filepath.Join(tempDir, "output.tex")
+	cfg := &config.Config{
+		Template: config.Template(templatePath),
+		Output:   config.Output(outputPath),
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	err = engine.ProcessToFile(templatePath, "")
+	if err != nil {
+		t.Fatalf("ProcessToFile failed: %v", err)
+	}
+
+	// Verify that the output file exists and contains the expected content
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		t.Errorf("Output file was not created at %s", outputPath)
+	}
+
+	outputContent, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("Failed to read output file: %v", err)
+	}
+
+	expectedContent := `\title{Test Document}`
+	if string(outputContent) != expectedContent {
+		t.Errorf("Output file content doesn't match. Expected '%s', got '%s'", expectedContent, string(outputContent))
+	}
+}
+
+func TestEngine_Process_WithConfigTemplate(t *testing.T) {
+	// Create a temporary template file
+	tempDir, err := os.MkdirTemp("", "autopdf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	templateContent := `\title{delim[[.title]]}`
+	templatePath := filepath.Join(tempDir, "test-template.tex")
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0644); err != nil {
+		t.Fatalf("Failed to write test template: %v", err)
+	}
+
+	cfg := &config.Config{
+		Template: config.Template(templatePath),
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	result, err := engine.Process("")
+	if err != nil {
+		t.Fatalf("Process with config template failed: %v", err)
+	}
+
+	expectedOutput := `\title{Test Document}`
+	if result != expectedOutput {
+		t.Errorf("Process result doesn't match. Expected '%s', got '%s'", expectedOutput, result)
+	}
+}
+
+func TestEngine_Process_WithConfigTemplate_EmptyConfigTemplate(t *testing.T) {
+	cfg := &config.Config{
+		Template: "",
+		Variables: map[string]string{
+			"title": "Test Document",
+		},
+	}
+
+	engine := NewEngine(cfg)
+	_, err := engine.Process("")
+	if err == nil {
+		t.Error("Process with empty config template should return error")
+	}
+}
