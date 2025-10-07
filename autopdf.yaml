@@ -1,0 +1,7 @@
+template: ./test/model_xelatex/main.tex
+output: ./test/model_xelatex/main.tex
+variables: {}
+engine: pdflatex
+conversion:
+    enabled: false
+    formats: []

@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/rwxrob/bonzai"
 )
 
 func TestCmd_Structure(t *testing.T) {
@@ -44,9 +46,20 @@ func TestCmd_Commands(t *testing.T) {
 	}
 }
 
+// getConvertCmd finds the convert command in the Cmd.Cmds slice
+func getConvertCmd() *bonzai.Cmd {
+	for _, cmd := range Cmd.Cmds {
+		if cmd.Name == "convert" {
+			return cmd
+		}
+	}
+	return nil
+}
+
 func TestConvertCmd_Structure(t *testing.T) {
+	convertCmd := getConvertCmd()
 	if convertCmd == nil {
-		t.Fatal("convertCmd should not be nil")
+		t.Fatal("convert command should be found in Cmd.Cmds")
 	}
 
 	if convertCmd.Name != "convert" {
@@ -63,6 +76,11 @@ func TestConvertCmd_Structure(t *testing.T) {
 }
 
 func TestConvertCmd_Do(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
+
 	// Create a temporary directory
 	tempDir, err := os.MkdirTemp("", "autopdf-test")
 	if err != nil {
@@ -92,6 +110,11 @@ func TestConvertCmd_Do(t *testing.T) {
 }
 
 func TestConvertCmd_Do_InvalidInput(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
+
 	// Test with non-existent file
 	args := []string{"/path/to/nonexistent/file.pdf"}
 	err := convertCmd.Do(convertCmd, args...)
@@ -101,6 +124,11 @@ func TestConvertCmd_Do_InvalidInput(t *testing.T) {
 }
 
 func TestConvertCmd_Do_EmptyFormats(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
+
 	// Create a temporary directory
 	tempDir, err := os.MkdirTemp("", "autopdf-test")
 	if err != nil {
@@ -123,6 +151,10 @@ func TestConvertCmd_Do_EmptyFormats(t *testing.T) {
 }
 
 func TestConvertCmd_ConfigCreation(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test that the convert command creates a proper config
 	// This is tested indirectly through the Do function, but we can verify
 	// the config structure is correct by checking the conversion settings
@@ -149,6 +181,10 @@ func TestConvertCmd_ConfigCreation(t *testing.T) {
 }
 
 func TestConvertCmd_DefaultFormats(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test that default formats are set correctly when no formats are provided
 	// This is tested by checking that the command doesn't fail with default settings
 
@@ -174,6 +210,10 @@ func TestConvertCmd_DefaultFormats(t *testing.T) {
 }
 
 func TestConvertCmd_MultipleFormats(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test that multiple formats are handled correctly
 
 	// Create a temporary directory
@@ -198,6 +238,10 @@ func TestConvertCmd_MultipleFormats(t *testing.T) {
 }
 
 func TestConvertCmd_ErrorHandling(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test error handling for various invalid inputs
 
 	// Test with empty string
@@ -216,6 +260,10 @@ func TestConvertCmd_ErrorHandling(t *testing.T) {
 }
 
 func TestConvertCmd_ConfigValidation(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test that the config created by convertCmd has the correct structure
 	// This is tested indirectly through the Do function
 
@@ -241,6 +289,10 @@ func TestConvertCmd_ConfigValidation(t *testing.T) {
 }
 
 func TestConvertCmd_Integration(t *testing.T) {
+	convertCmd := getConvertCmd()
+	if convertCmd == nil {
+		t.Fatal("convert command should be found in Cmd.Cmds")
+	}
 	// Test the full integration of the convert command
 	// This tests the entire flow from command execution to converter creation
 
