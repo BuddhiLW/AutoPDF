@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/result_collector"
+	parallelService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/parallel"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
 	"github.com/rwxrob/bonzai"
@@ -60,11 +60,11 @@ func executeMultipleProcess(ctx context.Context, args []string) error {
 	templateFiles := args[1:]
 
 	// Create domain services
-	resultCollector := adapters.NewResultCollectorAdapter()
-	orchestrator := services.NewParallelExecutionOrchestrator()
+	resultCollector := result_collector.NewResultCollectorAdapter()
+	orchestrator := parallelService.NewParallelExecutionOrchestrator()
 
 	// Create parallel compilation service
-	parallelService := services.NewParallelCompilationService(
+	parallelSvc := parallelService.NewParallelCompilationService(
 		orchestrator,
 		resultCollector,
 		nil, // strategies would be injected here
@@ -79,7 +79,7 @@ func executeMultipleProcess(ctx context.Context, args []string) error {
 	}
 
 	// Execute parallel compilation
-	result, err := parallelService.CompileTemplates(ctx, request)
+	result, err := parallelSvc.CompileTemplates(ctx, request)
 	if err != nil {
 		return fmt.Errorf("parallel compilation failed: %w", err)
 	}

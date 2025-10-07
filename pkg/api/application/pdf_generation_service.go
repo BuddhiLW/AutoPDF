@@ -7,23 +7,25 @@ import (
 	"context"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 )
 
 // PDFGenerationApplicationService orchestrates PDF generation using domain services
 type PDFGenerationApplicationService struct {
-	templateService  domain.TemplateProcessingService
-	variableResolver domain.VariableResolver
-	pdfValidator     domain.PDFValidator
-	externalService  domain.PDFGenerationService
+	templateService  generation.TemplateProcessingService
+	variableResolver generation.VariableResolver
+	pdfValidator     generation.PDFValidator
+	externalService  generation.PDFGenerationService
 }
 
 // NewPDFGenerationApplicationService creates a new application service
 func NewPDFGenerationApplicationService(
-	templateService domain.TemplateProcessingService,
-	variableResolver domain.VariableResolver,
-	pdfValidator domain.PDFValidator,
-	externalService domain.PDFGenerationService,
+	templateService generation.TemplateProcessingService,
+	variableResolver generation.VariableResolver,
+	pdfValidator generation.PDFValidator,
+	externalService generation.PDFGenerationService,
 ) *PDFGenerationApplicationService {
 	return &PDFGenerationApplicationService{
 		templateService:  templateService,
@@ -34,10 +36,10 @@ func NewPDFGenerationApplicationService(
 }
 
 // GeneratePDF orchestrates the complete PDF generation workflow
-func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req domain.PDFGenerationRequest) (domain.PDFGenerationResult, error) {
+func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req generation.PDFGenerationRequest) (generation.PDFGenerationResult, error) {
 	// Step 1: Validate the request
 	if err := s.validateRequest(req); err != nil {
-		return domain.PDFGenerationResult{
+		return generation.PDFGenerationResult{
 			Success: false,
 			Error:   err,
 		}, err
@@ -46,12 +48,13 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req d
 	// Step 2: Resolve complex variables to simple key-value pairs
 	simpleVariables, err := s.variableResolver.Resolve(req.Variables)
 	if err != nil {
-		return domain.PDFGenerationResult{
+		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.VariableResolutionError{
 				Code:    domain.ErrCodeVariableInvalid,
-				Message: "Failed to resolve variables",
-				Details: map[string]interface{}{"error": err.Error()},
+				Message: api.ErrVariableResolutionFailed,
+				Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
+					WithError(err),
 			},
 		}, err
 	}
@@ -64,18 +67,20 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req d
 	}
 	_, err = s.templateService.Process(ctx, req.TemplatePath, interfaceVars)
 	if err != nil {
-		return domain.PDFGenerationResult{
+		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.TemplateProcessingError{
 				Code:    domain.ErrCodeTemplateInvalid,
-				Message: "Failed to process template",
-				Details: map[string]interface{}{"template": req.TemplatePath, "error": err.Error()},
+				Message: api.ErrTemplateProcessingFailed,
+				Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+					WithTemplatePath(req.TemplatePath).
+					WithError(err),
 			},
 		}, err
 	}
 
 	// Step 4: Generate PDF using external service
-	generationReq := domain.PDFGenerationRequest{
+	generationReq := generation.PDFGenerationRequest{
 		TemplatePath: req.TemplatePath,
 		Variables:    req.Variables, // Use original complex variables
 		Engine:       req.Engine,
@@ -85,12 +90,13 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req d
 
 	result, err := s.externalService.Generate(ctx, generationReq)
 	if err != nil {
-		return domain.PDFGenerationResult{
+		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.PDFGenerationError{
 				Code:    domain.ErrCodePDFGenerationFailed,
-				Message: "PDF generation failed",
-				Details: map[string]interface{}{"error": err.Error()},
+				Message: api.ErrPDFGenerationFailed,
+				Details: api.NewErrorDetails(api.ErrorCategoryGeneration, api.ErrorSeverityHigh).
+					WithError(err),
 			},
 		}, err
 	}
@@ -98,12 +104,14 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req d
 	// Step 5: Validate the generated PDF
 	if result.Success && result.PDFPath != "" {
 		if err := s.pdfValidator.Validate(result.PDFPath); err != nil {
-			return domain.PDFGenerationResult{
+			return generation.PDFGenerationResult{
 				Success: false,
 				Error: domain.PDFGenerationError{
 					Code:    domain.ErrCodePDFValidationFailed,
-					Message: "Generated PDF validation failed",
-					Details: map[string]interface{}{"pdf_path": result.PDFPath, "error": err.Error()},
+					Message: api.ErrPDFValidationFailed,
+					Details: api.NewErrorDetails(api.ErrorCategoryPDF, api.ErrorSeverityHigh).
+						WithFilePath(result.PDFPath).
+						WithError(err),
 				},
 			}, err
 		}
@@ -112,7 +120,7 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req d
 		metadata, err := s.pdfValidator.GetMetadata(result.PDFPath)
 		if err != nil {
 			// Log warning but don't fail
-			metadata = domain.PDFMetadata{
+			metadata = generation.PDFMetadata{
 				GeneratedAt: time.Now(),
 				Engine:      req.Engine,
 				Template:    req.TemplatePath,
@@ -145,7 +153,7 @@ func (s *PDFGenerationApplicationService) GetSupportedFormats() []string {
 }
 
 // validateRequest validates the PDF generation request
-func (s *PDFGenerationApplicationService) validateRequest(req domain.PDFGenerationRequest) error {
+func (s *PDFGenerationApplicationService) validateRequest(req generation.PDFGenerationRequest) error {
 	if req.TemplatePath == "" {
 		return domain.PDFGenerationError{
 			Code:    domain.ErrCodeTemplateNotFound,
@@ -171,8 +179,10 @@ func (s *PDFGenerationApplicationService) validateRequest(req domain.PDFGenerati
 	if err := s.templateService.ValidateTemplate(req.TemplatePath); err != nil {
 		return domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
-			Message: "Template validation failed",
-			Details: map[string]interface{}{"template": req.TemplatePath, "error": err.Error()},
+			Message: api.ErrTemplateValidationFailed,
+			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+				WithTemplatePath(req.TemplatePath).
+				WithError(err),
 		}
 	}
 
@@ -180,8 +190,9 @@ func (s *PDFGenerationApplicationService) validateRequest(req domain.PDFGenerati
 	if err := s.variableResolver.Validate(req.Variables); err != nil {
 		return domain.VariableResolutionError{
 			Code:    domain.ErrCodeVariableInvalid,
-			Message: "Variable validation failed",
-			Details: map[string]interface{}{"error": err.Error()},
+			Message: api.ErrVariableValidationFailed,
+			Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
+				WithError(err),
 		}
 	}
 

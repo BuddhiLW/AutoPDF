@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 )
 
@@ -178,12 +178,12 @@ type contextKey string
 const loggerKey contextKey = "logger"
 
 // getLoggerFromContext extracts logger from context
-func getLoggerFromContext(ctx context.Context) *adapters.LoggerAdapter {
-	if logger, ok := ctx.Value(loggerKey).(*adapters.LoggerAdapter); ok {
-		return logger
+func getLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
+	if loggerAdapter, ok := ctx.Value(loggerKey).(*logger.LoggerAdapter); ok {
+		return loggerAdapter
 	}
 	// Fallback to default logger
-	return adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	return logger.NewLoggerAdapter(logger.Detailed, "stdout")
 }
 
 // isOption checks if an argument is an option (starts with known option names)

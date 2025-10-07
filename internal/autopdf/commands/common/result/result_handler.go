@@ -4,8 +4,8 @@
 package result
 
 import (
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 )
 
@@ -18,9 +18,9 @@ func NewResultHandler() *ResultHandler {
 }
 
 // HandleBuildResult processes and displays the build result
-func (rh *ResultHandler) HandleBuildResult(result services.BuildResult) error {
+func (rh *ResultHandler) HandleBuildResult(result documentService.BuildResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	logger.InfoWithFields("Successfully built PDF", "pdf_path", result.PDFPath)
 
 	if len(result.ImagePaths) > 0 {
@@ -45,7 +45,7 @@ func NewConvertResultHandler() *ResultHandler {
 // HandleConvertResult processes and displays the convert result
 func (rh *ResultHandler) HandleConvertResult(imageFiles []string) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	if len(imageFiles) > 0 {
 		logger.Info("Generated image files:")
 		for _, file := range imageFiles {
@@ -61,7 +61,7 @@ func (rh *ResultHandler) HandleConvertResult(imageFiles []string) error {
 // HandleCleanResult processes and displays the clean result
 func (rh *ResultHandler) HandleCleanResult(result *wiring.CleanResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	if result.FilesRemoved > 0 {
 		logger.InfoWithFields("Successfully cleaned auxiliary files",
 			"files_removed", result.FilesRemoved,
@@ -90,7 +90,7 @@ func (rh *ResultHandler) HandleCleanResult(result *wiring.CleanResult) error {
 // HandleVerboseResult processes and displays the verbose result
 func (rh *ResultHandler) HandleVerboseResult(result *wiring.VerboseResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	if result.Enabled {
 		logger.InfoWithFields("Verbose logging enabled",
 			"level", result.Level,
@@ -104,7 +104,7 @@ func (rh *ResultHandler) HandleVerboseResult(result *wiring.VerboseResult) error
 // HandleDebugResult processes and displays the debug result
 func (rh *ResultHandler) HandleDebugResult(result *wiring.DebugResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	if result.Enabled {
 		logger.InfoWithFields("Debug output enabled", "output", result.Output)
 	} else {
@@ -116,7 +116,7 @@ func (rh *ResultHandler) HandleDebugResult(result *wiring.DebugResult) error {
 // HandleForceResult processes and displays the force result
 func (rh *ResultHandler) HandleForceResult(result *wiring.ForceResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	if result.Enabled {
 		logger.Info("Force operations enabled - files will be overwritten if they exist")
 	} else {
@@ -128,7 +128,7 @@ func (rh *ResultHandler) HandleForceResult(result *wiring.ForceResult) error {
 // HandleConfigResult processes and displays the config result
 func (rh *ResultHandler) HandleConfigResult(result *wiring.ConfigResult) error {
 	// Create logger for user feedback
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	defer logger.Sync()
 
 	if result.Valid {

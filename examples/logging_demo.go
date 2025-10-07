@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 )
 
 func main() {
@@ -15,18 +15,18 @@ func main() {
 	fmt.Println("=================================")
 
 	// Demonstrate different logging levels
-	levels := []adapters.LogLevel{
-		adapters.Silent,
-		adapters.Basic,
-		adapters.Detailed,
-		adapters.Debug,
-		adapters.Maximum,
+	levels := []logger.LogLevel{
+		logger.Silent,
+		logger.Basic,
+		logger.Detailed,
+		logger.Debug,
+		logger.Maximum,
 	}
 
 	for _, level := range levels {
 		fmt.Printf("\n--- %s Level Logging ---\n", level.String())
 
-		logger := adapters.NewLoggerAdapter(level, "stdout")
+		logger := logger.NewLoggerAdapter(level, "stdout")
 		defer logger.Sync()
 
 		// Simulate AutoPDF flow with logging
@@ -34,7 +34,7 @@ func main() {
 	}
 }
 
-func simulateAutoPDFFlow(logger *adapters.LoggerAdapter) {
+func simulateAutoPDFFlow(logger *logger.LoggerAdapter) {
 	// Configuration building
 	configPath := "/path/to/autopdf.yaml"
 	variables := map[string]string{

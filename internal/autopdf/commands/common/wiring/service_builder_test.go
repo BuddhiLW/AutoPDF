@@ -7,16 +7,19 @@ import (
 	"testing"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 	builder := NewServiceBuilder()
+	variables := config.NewVariables()
+	variables.SetString("key", "value")
+
 	cfg := &config.Config{
 		Template:  config.Template("template.tex"),
-		Variables: config.Variables{"key": "value"},
+		Variables: *variables,
 		Engine:    config.Engine("pdflatex"),
 		Output:    config.Output("output"),
 		Conversion: config.Conversion{
@@ -36,9 +39,12 @@ func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 
 func TestServiceBuilder_BuildRequest(t *testing.T) {
 	builder := NewServiceBuilder()
+	variables := config.NewVariables()
+	variables.SetString("key", "value")
+
 	cfg := &config.Config{
 		Template:  config.Template("template.tex"),
-		Variables: config.Variables{"key": "value"},
+		Variables: *variables,
 		Engine:    config.Engine("pdflatex"),
 		Output:    config.Output("output"),
 		Conversion: config.Conversion{
@@ -49,8 +55,8 @@ func TestServiceBuilder_BuildRequest(t *testing.T) {
 	args := &args.BuildArgs{
 		TemplateFile: "template.tex",
 		ConfigFile:   "config.yaml",
-		Options: func() domain.BuildOptions {
-			opts := domain.NewBuildOptions()
+		Options: func() options.BuildOptions {
+			opts := options.NewBuildOptions()
 			opts.EnableClean(".")
 			return opts
 		}(),

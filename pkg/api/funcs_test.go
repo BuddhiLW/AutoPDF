@@ -29,14 +29,15 @@ delim[[.content]]
 	}
 
 	// Create test config
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title: API call")
+	variables.SetString("content", "Test Content: API call")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title":   "Test Title: API call",
-			"content": "Test Content: API call",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(tempDir, "output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(tempDir, "output.pdf")),
 	}
 
 	// Call the function
@@ -53,12 +54,13 @@ delim[[.content]]
 
 func TestGeneratePDF_InvalidTemplate(t *testing.T) {
 	// Create test config with non-existent template
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: config.Template("/path/to/nonexistent/template.tex"),
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
+		Template:  config.Template("/path/to/nonexistent/template.tex"),
+		Variables: *variables,
+		Engine:    "pdflatex",
 	}
 
 	// Call the function with non-existent template
@@ -70,12 +72,13 @@ func TestGeneratePDF_InvalidTemplate(t *testing.T) {
 
 func TestGeneratePDF_EmptyTemplate(t *testing.T) {
 	// Create test config with empty template
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: "",
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
+		Template:  "",
+		Variables: *variables,
+		Engine:    "pdflatex",
 	}
 
 	// Call the function with empty template
@@ -104,13 +107,14 @@ func TestGeneratePDF_InvalidLaTeX(t *testing.T) {
 	}
 
 	// Create test config
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(tempDir, "output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(tempDir, "output.pdf")),
 	}
 
 	// Call the function
@@ -145,15 +149,16 @@ delim[[.content]]
 	}
 
 	// Create test config with variables
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Document")
+	variables.SetString("author", "Test Author")
+	variables.SetString("content", "This is a test document with variables.")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title":   "Test Document",
-			"author":  "Test Author",
-			"content": "This is a test document with variables.",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(tempDir, "output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(tempDir, "output.pdf")),
 	}
 
 	// Call the function
@@ -187,13 +192,14 @@ Hello, World!
 	}
 
 	// Create test config with custom engine
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "xelatex", // Use xelatex instead of pdflatex
-		Output: config.Output(filepath.Join(tempDir, "output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "xelatex", // Use xelatex instead of pdflatex
+		Output:    config.Output(filepath.Join(tempDir, "output.pdf")),
 	}
 
 	// Call the function
@@ -233,13 +239,14 @@ Hello, World!
 	}
 
 	// Create test config with output path
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(outputDir, "custom_output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(outputDir, "custom_output.pdf")),
 	}
 
 	// Call the function
@@ -273,13 +280,14 @@ Hello, World!
 	}
 
 	// Create test config with conversion enabled
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(tempDir, "output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(tempDir, "output.pdf")),
 		Conversion: config.Conversion{
 			Enabled: true,
 			Formats: []string{"png"},
@@ -302,12 +310,13 @@ func TestGeneratePDF_ErrorHandling(t *testing.T) {
 	// Test various error conditions
 
 	// Test with empty template path
+	variables := config.NewVariables()
+	variables.SetString("title", "Test Title")
+
 	testCfg := &config.Config{
-		Template: "",
-		Variables: map[string]string{
-			"title": "Test Title",
-		},
-		Engine: "pdflatex",
+		Template:  "",
+		Variables: *variables,
+		Engine:    "pdflatex",
 	}
 
 	_, _, err := GeneratePDF(testCfg, config.Template(""))
@@ -341,15 +350,16 @@ delim[[.content]]
 	}
 
 	// Create test config
+	variables := config.NewVariables()
+	variables.SetString("title", "Integration Test Document")
+	variables.SetString("author", "Test Author")
+	variables.SetString("content", "This is an integration test for the GeneratePDF function.")
+
 	testCfg := &config.Config{
-		Template: config.Template(templatePath),
-		Variables: map[string]string{
-			"title":   "Integration Test Document",
-			"author":  "Test Author",
-			"content": "This is an integration test for the GeneratePDF function.",
-		},
-		Engine: "pdflatex",
-		Output: config.Output(filepath.Join(tempDir, "integration_output.pdf")),
+		Template:  config.Template(templatePath),
+		Variables: *variables,
+		Engine:    "pdflatex",
+		Output:    config.Output(filepath.Join(tempDir, "integration_output.pdf")),
 		Conversion: config.Conversion{
 			Enabled: false,
 			Formats: []string{},

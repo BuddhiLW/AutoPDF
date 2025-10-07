@@ -6,7 +6,7 @@ package result
 import (
 	"testing"
 
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,12 +15,12 @@ func TestResultHandler_HandleBuildResult(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		result   services.BuildResult
+		result   document.BuildResult
 		expected string
 	}{
 		{
 			name: "successful build with images",
-			result: services.BuildResult{
+			result: document.BuildResult{
 				PDFPath:    "output.pdf",
 				ImagePaths: []string{"output.jpeg", "output.png"},
 				Error:      nil,
@@ -29,7 +29,7 @@ func TestResultHandler_HandleBuildResult(t *testing.T) {
 		},
 		{
 			name: "successful build without images",
-			result: services.BuildResult{
+			result: document.BuildResult{
 				PDFPath:    "output.pdf",
 				ImagePaths: []string{},
 				Error:      nil,
@@ -38,7 +38,7 @@ func TestResultHandler_HandleBuildResult(t *testing.T) {
 		},
 		{
 			name: "build with warning",
-			result: services.BuildResult{
+			result: document.BuildResult{
 				PDFPath:    "output.pdf",
 				ImagePaths: []string{},
 				Error:      assert.AnError,

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/rwxrob/bonzai"
 )
 
@@ -82,21 +82,21 @@ func CreateCommandMap(commands ...*bonzai.Cmd) map[string]*bonzai.Cmd {
 }
 
 // CreateStandardLoggerContext creates a standardized logger context
-func CreateStandardLoggerContext() (context.Context, *adapters.LoggerAdapter) {
+func CreateStandardLoggerContext() (context.Context, *logger.LoggerAdapter) {
 	return configs.CreateLoggerContext()
 }
 
 // LogOperationStart logs the start of an operation
-func LogOperationStart(logger *adapters.LoggerAdapter, operation string, args []string) {
+func LogOperationStart(logger *logger.LoggerAdapter, operation string, args []string) {
 	logger.InfoWithFields("Starting operation", "operation", operation, "args", args)
 }
 
 // LogOperationSuccess logs the successful completion of an operation
-func LogOperationSuccess(logger *adapters.LoggerAdapter, operation string, result interface{}) {
+func LogOperationSuccess(logger *logger.LoggerAdapter, operation string, result interface{}) {
 	logger.InfoWithFields("Operation completed successfully", "operation", operation, "result", result)
 }
 
 // LogOperationError logs an operation error
-func LogOperationError(logger *adapters.LoggerAdapter, operation string, err error) {
+func LogOperationError(logger *logger.LoggerAdapter, operation string, err error) {
 	logger.ErrorWithFields("Operation failed", "operation", operation, "error", err)
 }

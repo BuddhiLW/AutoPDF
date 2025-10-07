@@ -6,22 +6,22 @@ package builders
 import (
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 // PDFGenerationRequestBuilder builds PDF generation requests using the Builder pattern
 type PDFGenerationRequestBuilder struct {
-	request domain.PDFGenerationRequest
+	request generation.PDFGenerationRequest
 }
 
 // NewPDFGenerationRequestBuilder creates a new builder
 func NewPDFGenerationRequestBuilder() *PDFGenerationRequestBuilder {
 	return &PDFGenerationRequestBuilder{
-		request: domain.PDFGenerationRequest{
+		request: generation.PDFGenerationRequest{
 			Variables: make(map[string]interface{}),
-			Options: domain.PDFGenerationOptions{
-				Conversion: domain.ConversionOptions{
+			Options: generation.PDFGenerationOptions{
+				Conversion: generation.ConversionOptions{
 					Enabled: false,
 					Formats: []string{},
 				},
@@ -122,20 +122,20 @@ func (b *PDFGenerationRequestBuilder) WithDebug(enabled bool) *PDFGenerationRequ
 }
 
 // Build constructs the final PDF generation request
-func (b *PDFGenerationRequestBuilder) Build() domain.PDFGenerationRequest {
+func (b *PDFGenerationRequestBuilder) Build() generation.PDFGenerationRequest {
 	return b.request
 }
 
 // PDFGenerationOptionsBuilder builds PDF generation options
 type PDFGenerationOptionsBuilder struct {
-	options domain.PDFGenerationOptions
+	options generation.PDFGenerationOptions
 }
 
 // NewPDFGenerationOptionsBuilder creates a new options builder
 func NewPDFGenerationOptionsBuilder() *PDFGenerationOptionsBuilder {
 	return &PDFGenerationOptionsBuilder{
-		options: domain.PDFGenerationOptions{
-			Conversion: domain.ConversionOptions{
+		options: generation.PDFGenerationOptions{
+			Conversion: generation.ConversionOptions{
 				Enabled: false,
 				Formats: []string{},
 			},
@@ -193,7 +193,7 @@ func (b *PDFGenerationOptionsBuilder) SetDebug(enabled bool) *PDFGenerationOptio
 }
 
 // Build constructs the final options
-func (b *PDFGenerationOptionsBuilder) Build() domain.PDFGenerationOptions {
+func (b *PDFGenerationOptionsBuilder) Build() generation.PDFGenerationOptions {
 	return b.options
 }
 

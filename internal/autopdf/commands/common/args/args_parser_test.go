@@ -6,7 +6,7 @@ package args
 import (
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +25,7 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			expected: &BuildArgs{
 				TemplateFile: "template.tex",
 				ConfigFile:   "",
-				Options:      domain.NewBuildOptions(),
+				Options:      options.NewBuildOptions(),
 			},
 			expectError: false,
 		},
@@ -35,7 +35,7 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			expected: &BuildArgs{
 				TemplateFile: "template.tex",
 				ConfigFile:   "config.yaml",
-				Options:      domain.NewBuildOptions(),
+				Options:      options.NewBuildOptions(),
 			},
 			expectError: false,
 		},
@@ -45,8 +45,8 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			expected: &BuildArgs{
 				TemplateFile: "template.tex",
 				ConfigFile:   "config.yaml",
-				Options: func() domain.BuildOptions {
-					opts := domain.NewBuildOptions()
+				Options: func() options.BuildOptions {
+					opts := options.NewBuildOptions()
 					opts.EnableClean(".")
 					return opts
 				}(),
@@ -59,8 +59,8 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			expected: &BuildArgs{
 				TemplateFile: "template.tex",
 				ConfigFile:   "",
-				Options: func() domain.BuildOptions {
-					opts := domain.NewBuildOptions()
+				Options: func() options.BuildOptions {
+					opts := options.NewBuildOptions()
 					opts.EnableClean(".")
 					return opts
 				}(),

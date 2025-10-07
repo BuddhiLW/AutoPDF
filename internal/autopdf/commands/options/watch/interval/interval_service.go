@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/debounce"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
@@ -56,9 +57,9 @@ Examples:
 }
 
 // executeIntervalProcess handles interval configuration
-func executeIntervalProcess(ctx context.Context, args []string, logger *adapters.LoggerAdapter) error {
+func executeIntervalProcess(ctx context.Context, args []string, logger *logger.LoggerAdapter) error {
 	// Create debounce strategy adapter
-	debounceStrategy := adapters.NewDebounceStrategyAdapter(500 * time.Millisecond)
+	debounceStrategy := debounce.NewDebounceStrategyAdapter(500 * time.Millisecond)
 
 	if len(args) == 0 {
 		// Show current interval

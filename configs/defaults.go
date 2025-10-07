@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 )
 
-var DefaultConfigName = "autopdf.yaml"
+// DefaultConfigName is now defined in constants.go
 
 // Standardized error types
 var (
@@ -34,17 +34,17 @@ type ContextKey string
 const LoggerKey ContextKey = "logger"
 
 // GetLoggerFromContext extracts logger from context with fallback
-func GetLoggerFromContext(ctx context.Context) *adapters.LoggerAdapter {
-	if logger, ok := ctx.Value(LoggerKey).(*adapters.LoggerAdapter); ok {
+func GetLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
+	if logger, ok := ctx.Value(LoggerKey).(*logger.LoggerAdapter); ok {
 		return logger
 	}
 	// Fallback to default logger
-	return adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	return logger.NewLoggerAdapter(logger.Detailed, "stdout")
 }
 
 // CreateLoggerContext creates a new context with logger
-func CreateLoggerContext() (context.Context, *adapters.LoggerAdapter) {
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
-	ctx := context.WithValue(context.Background(), LoggerKey, logger)
-	return ctx, logger
+func CreateLoggerContext() (context.Context, *logger.LoggerAdapter) {
+	loggerAdapter := logger.NewLoggerAdapter(logger.Detailed, "stdout")
+	ctx := context.WithValue(context.Background(), LoggerKey, loggerAdapter)
+	return ctx, loggerAdapter
 }

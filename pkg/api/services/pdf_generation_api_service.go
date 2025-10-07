@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -16,7 +17,7 @@ import (
 
 // PDFGenerationAPIService provides a clean API for PDF generation
 type PDFGenerationAPIService struct {
-	appService *services.PDFGenerationApplicationService
+	appService *application.PDFGenerationApplicationService
 	config     *config.Config
 }
 

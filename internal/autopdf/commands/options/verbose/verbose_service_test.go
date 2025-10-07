@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +48,7 @@ func TestVerboseServiceCmd_LoggingLevels(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test LogLevel string representation
-			logLevel := adapters.LogLevel(tt.level)
+			logLevel := logger.LogLevel(tt.level)
 			assert.Equal(t, tt.expected, logLevel.String())
 		})
 	}
@@ -57,34 +57,34 @@ func TestVerboseServiceCmd_LoggingLevels(t *testing.T) {
 func TestLoggerAdapter_Creation(t *testing.T) {
 	tests := []struct {
 		name   string
-		level  adapters.LogLevel
+		level  logger.LogLevel
 		output string
 	}{
 		{
 			name:   "Detailed level with stdout",
-			level:  adapters.Detailed,
+			level:  logger.Detailed,
 			output: "stdout",
 		},
 		{
 			name:   "Debug level with stderr",
-			level:  adapters.Debug,
+			level:  logger.Debug,
 			output: "stderr",
 		},
 		{
 			name:   "Maximum level with file",
-			level:  adapters.Maximum,
+			level:  logger.Maximum,
 			output: "file",
 		},
 		{
 			name:   "Silent level with both",
-			level:  adapters.Silent,
+			level:  logger.Silent,
 			output: "both",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := adapters.NewLoggerAdapter(tt.level, tt.output)
+			logger := logger.NewLoggerAdapter(tt.level, tt.output)
 			require.NotNil(t, logger)
 
 			// Test that logger can be used without errors
@@ -113,7 +113,7 @@ func TestLoggerAdapter_Creation(t *testing.T) {
 }
 
 func TestLoggerAdapter_AutoPDFFlowLogging(t *testing.T) {
-	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	require.NotNil(t, logger)
 	defer logger.Sync()
 

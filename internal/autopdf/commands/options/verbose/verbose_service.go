@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	persistentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/persistent"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 	"github.com/rwxrob/bonzai"
@@ -46,10 +46,10 @@ Examples:
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		// Create persistent service
-		persistentService := services.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService()
 
 		// Default to current level if no level specified
-		level := int(persistentService.GetVerboseLevel())
+		level := int(persistentSvc.GetVerboseLevel())
 
 		// Parse level from arguments if provided
 		if len(args) > 0 {
@@ -64,16 +64,16 @@ Examples:
 		}
 
 		// Create logger adapter with the specified level
-		loggerAdapter := adapters.NewLoggerAdapter(adapters.LogLevel(level), "stdout")
+		loggerAdapter := logger.NewLoggerAdapter(logger.LogLevel(level), "stdout")
 
 		// Log the verbose level change
 		loggerAdapter.InfoWithFields("Setting verbose logging level",
-			"level_name", adapters.LogLevel(level).String(),
+			"level_name", logger.LogLevel(level).String(),
 			"level", level,
 		)
 
 		// Persist the verbose level
-		if err := persistentService.SetVerboseLevel(adapters.LogLevel(level)); err != nil {
+		if err := persistentSvc.SetVerboseLevel(logger.LogLevel(level)); err != nil {
 			loggerAdapter.ErrorWithFields("Failed to persist verbose level",
 				"error", err,
 			)

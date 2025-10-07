@@ -10,9 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	appAdapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/cleaner"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/converter"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/latex"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/template"
+	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
 
 	// Legacy converter functionality now integrated into adapters
@@ -30,18 +34,18 @@ func NewServiceBuilder() *ServiceBuilder {
 }
 
 // BuildDocumentService constructs the DocumentService with all required adapters
-func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *services.DocumentService {
-	return &services.DocumentService{
-		TemplateProcessor: adapters.NewTemplateProcessorAdapter(cfg),
-		LaTeXCompiler:     adapters.NewLaTeXCompilerAdapter(cfg),
-		Converter:         adapters.NewConverterAdapter(cfg),
-		Cleaner:           adapters.NewCleanerAdapter(),
+func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentService.DocumentService {
+	return &documentService.DocumentService{
+		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
+		LaTeXCompiler:     latex.NewLaTeXCompilerAdapter(cfg),
+		Converter:         converter.NewConverterAdapter(cfg),
+		Cleaner:           cleaner.NewCleanerAdapter(),
 	}
 }
 
 // BuildRequest constructs a BuildRequest from the parsed arguments and config
-func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) services.BuildRequest {
-	return services.BuildRequest{
+func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) documentService.BuildRequest {
+	return documentService.BuildRequest{
 		TemplatePath: cfg.Template.String(),
 		ConfigPath:   args.ConfigFile,
 		Variables:    &cfg.Variables, // Use complex variables from pkg/
@@ -49,7 +53,7 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 		OutputPath:   cfg.Output.String(),
 		DoConvert:    cfg.Conversion.Enabled,
 		DoClean:      args.Options.Clean.Enabled,
-		Conversion: services.ConversionSettings{
+		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
 		},
@@ -62,7 +66,7 @@ func NewConvertServiceBuilder() *ServiceBuilder {
 }
 
 // BuildConverterService constructs the converter service
-func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *adapters.ConverterAdapter {
+func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *converter.ConverterAdapter {
 	// Create a config with the provided formats
 	cfg := &config.Config{
 		Conversion: config.Conversion{
@@ -71,7 +75,7 @@ func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *adapter
 		},
 	}
 
-	return adapters.NewConverterAdapter(cfg)
+	return converter.NewConverterAdapter(cfg)
 }
 
 // BuildCleanerService constructs the cleaner service
@@ -90,7 +94,7 @@ type CleanerService struct {
 func (cs *CleanerService) Clean() (*CleanResult, error) {
 	// Check if directory exists
 	if !futil.IsDir(cs.Directory) {
-		return nil, fmt.Errorf("directory does not exist: %s", cs.Directory)
+		return nil, fmt.Errorf(configs.ErrDirectoryNotExists, cs.Directory)
 	}
 
 	var cleanedFiles []string
@@ -142,11 +146,7 @@ type CleanResult struct {
 
 // isAuxFile checks if a file is a LaTeX auxiliary file
 func isAuxFile(filename string) bool {
-	auxiliaryExtensions := []string{
-		".aux", ".log", ".toc", ".lof", ".lot", ".out", ".nav", ".snm",
-		".synctex.gz", ".fls", ".fdb_latexmk", ".bbl", ".blg", ".run.xml",
-		".bcf", ".idx", ".ilg", ".ind", ".brf", ".vrb", ".xdv", ".dvi",
-	}
+	auxiliaryExtensions := configs.AuxiliaryExtensions
 
 	for _, ext := range auxiliaryExtensions {
 		if strings.HasSuffix(filename, ext) {
@@ -157,10 +157,10 @@ func isAuxFile(filename string) bool {
 }
 
 // BuildVerboseService constructs the verbose service
-func (sb *ServiceBuilder) BuildVerboseService(level int, logger *appAdapters.LoggerAdapter) *VerboseService {
+func (sb *ServiceBuilder) BuildVerboseService(level int, loggerAdapter *logger.LoggerAdapter) *VerboseService {
 	return &VerboseService{
 		Level:  level,
-		Logger: logger,
+		Logger: loggerAdapter,
 	}
 }
 
@@ -181,7 +181,7 @@ func (sb *ServiceBuilder) BuildForceService(enabled bool) *ForceService {
 // VerboseService handles verbose logging configuration
 type VerboseService struct {
 	Level  int
-	Logger *appAdapters.LoggerAdapter
+	Logger *logger.LoggerAdapter
 }
 
 // SetVerboseLevel sets the verbose logging level
@@ -194,13 +194,7 @@ func (vs *VerboseService) SetVerboseLevel() (*VerboseResult, error) {
 		)
 	}
 
-	levelDescriptions := map[int]string{
-		0: "Silent (only errors)",
-		1: "Basic information (warnings and above)",
-		2: "Detailed information (info and above)",
-		3: "Debug information (debug and above)",
-		4: "Maximum verbosity (all logs with full introspection)",
-	}
+	levelDescriptions := configs.VerboseLevelDescriptions
 
 	description := levelDescriptions[vs.Level]
 	if description == "" {

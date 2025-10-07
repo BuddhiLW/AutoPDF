@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	persistentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/persistent"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
 	"github.com/rwxrob/bonzai"
@@ -95,14 +95,14 @@ Examples:
   autopdf clean on
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := services.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService()
 
-		if err := persistentService.SetCleanEnabled(true); err != nil {
+		if err := persistentSvc.SetCleanEnabled(true); err != nil {
 			return fmt.Errorf("failed to enable persistent cleaning: %w", err)
 		}
 
 		// Create logger for user feedback
-		logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+		logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 		logger.Info("✅ Auto-cleaning enabled (persistent)")
 		logger.Info("LaTeX auxiliary files will be automatically cleaned after compilation.")
 		return nil
@@ -124,14 +124,14 @@ Examples:
   autopdf clean off
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := services.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService()
 
-		if err := persistentService.SetCleanEnabled(false); err != nil {
+		if err := persistentSvc.SetCleanEnabled(false); err != nil {
 			return fmt.Errorf("failed to disable persistent cleaning: %w", err)
 		}
 
 		// Create logger for user feedback
-		logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+		logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 		logger.Info("❌ Auto-cleaning disabled (persistent)")
 		logger.Info("LaTeX auxiliary files will not be automatically cleaned.")
 		return nil
@@ -153,15 +153,15 @@ Examples:
   autopdf clean switch
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := services.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService()
 
-		enabled, err := persistentService.ToggleClean()
+		enabled, err := persistentSvc.ToggleClean()
 		if err != nil {
 			return fmt.Errorf("failed to toggle persistent cleaning: %w", err)
 		}
 
 		// Create logger for user feedback
-		logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+		logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 		if enabled {
 			logger.Info("✅ Auto-cleaning enabled (persistent)")
 			logger.Info("LaTeX auxiliary files will be automatically cleaned after compilation.")
@@ -187,11 +187,11 @@ Examples:
   autopdf clean status
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentService := services.NewPersistentService()
-		status := persistentService.GetStatus()
+		persistentSvc := persistentService.NewPersistentService()
+		status := persistentSvc.GetStatus()
 
 		// Create logger for user feedback
-		logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+		logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 		logger.Info("🧹 AutoPDF Clean Settings")
 		logger.Info("=========================")
 
@@ -206,7 +206,7 @@ Examples:
 			logger.Info("   LaTeX auxiliary files will not be automatically cleaned.")
 		}
 
-		logger.InfoWithFields("📁 Config file", "path", persistentService.GetConfigPath())
+		logger.InfoWithFields("📁 Config file", "path", persistentSvc.GetConfigPath())
 
 		return nil
 	},

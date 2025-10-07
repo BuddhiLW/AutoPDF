@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/debounce"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/pattern_matcher"
+	watchService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/watch"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch/exclude"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch/interval"
@@ -86,15 +88,16 @@ func executeWatchProcess(ctx context.Context, args []string) error {
 	}
 
 	// Create domain services
-	patternMatcher := adapters.NewPatternMatcherAdapter()
-	debounceStrategy := adapters.NewDebounceStrategyAdapter(watchConfig.Interval)
+	patternMatcher := pattern_matcher.NewPatternMatcherAdapter()
+	debounceStrategy := debounce.NewDebounceStrategyAdapter(watchConfig.Interval)
 	changeProcessor := createFileChangeProcessor(ctx, logger)
 
 	// Create watch application service
-	watchService := services.NewWatchApplicationService(
+	watchSvc := watchService.NewWatchApplicationService(
 		patternMatcher,
 		debounceStrategy,
 		changeProcessor,
+		logger,
 	)
 
 	// Configure the service
@@ -107,10 +110,10 @@ func executeWatchProcess(ctx context.Context, args []string) error {
 	}
 
 	// Start watching
-	if err := watchService.StartWatching(domainConfig); err != nil {
+	if err := watchSvc.StartWatching(domainConfig); err != nil {
 		return fmt.Errorf("failed to start watching: %w", err)
 	}
-	defer watchService.StopWatching()
+	defer watchSvc.StopWatching()
 
 	logger.InfoWithFields("File watcher started successfully",
 		"template", watchConfig.TemplateFile,
@@ -123,7 +126,7 @@ func executeWatchProcess(ctx context.Context, args []string) error {
 }
 
 // createFileChangeProcessor creates a file change processor
-func createFileChangeProcessor(ctx context.Context, logger *adapters.LoggerAdapter) watch.FileChangeProcessor {
+func createFileChangeProcessor(ctx context.Context, logger *logger.LoggerAdapter) watch.FileChangeProcessor {
 	return &FileChangeProcessorImpl{
 		ctx:    ctx,
 		logger: logger,
@@ -133,7 +136,7 @@ func createFileChangeProcessor(ctx context.Context, logger *adapters.LoggerAdapt
 // FileChangeProcessorImpl implements the FileChangeProcessor interface
 type FileChangeProcessorImpl struct {
 	ctx    context.Context
-	logger *adapters.LoggerAdapter
+	logger *logger.LoggerAdapter
 }
 
 // ProcessChange processes a file change event

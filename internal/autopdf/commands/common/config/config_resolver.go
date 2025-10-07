@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 
 	// Legacy tex functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -147,10 +147,10 @@ type contextKey string
 const loggerKey contextKey = "logger"
 
 // getLoggerFromContext extracts logger from context
-func getLoggerFromContext(ctx context.Context) *adapters.LoggerAdapter {
-	if logger, ok := ctx.Value(loggerKey).(*adapters.LoggerAdapter); ok {
-		return logger
+func getLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
+	if loggerAdapter, ok := ctx.Value(loggerKey).(*logger.LoggerAdapter); ok {
+		return loggerAdapter
 	}
 	// Fallback to default logger
-	return adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	return logger.NewLoggerAdapter(logger.Detailed, "stdout")
 }

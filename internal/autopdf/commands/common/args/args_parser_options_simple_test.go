@@ -6,7 +6,7 @@ package args
 import (
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -184,12 +184,12 @@ func TestArgsParser_SetOption(t *testing.T) {
 	tests := []struct {
 		name     string
 		option   string
-		validate func(t *testing.T, options *domain.BuildOptions)
+		validate func(t *testing.T, options *options.BuildOptions)
 	}{
 		{
 			name:   "clean option",
 			option: "clean",
-			validate: func(t *testing.T, options *domain.BuildOptions) {
+			validate: func(t *testing.T, options *options.BuildOptions) {
 				assert.True(t, options.Clean.Enabled)
 				assert.Equal(t, ".", options.Clean.Target)
 			},
@@ -197,7 +197,7 @@ func TestArgsParser_SetOption(t *testing.T) {
 		{
 			name:   "verbose option",
 			option: "verbose",
-			validate: func(t *testing.T, options *domain.BuildOptions) {
+			validate: func(t *testing.T, options *options.BuildOptions) {
 				assert.True(t, options.Verbose.Enabled)
 				assert.Equal(t, 2, options.Verbose.Level)
 			},
@@ -205,7 +205,7 @@ func TestArgsParser_SetOption(t *testing.T) {
 		{
 			name:   "debug option",
 			option: "debug",
-			validate: func(t *testing.T, options *domain.BuildOptions) {
+			validate: func(t *testing.T, options *options.BuildOptions) {
 				assert.True(t, options.Debug.Enabled)
 				assert.Equal(t, "stdout", options.Debug.Output)
 			},
@@ -213,7 +213,7 @@ func TestArgsParser_SetOption(t *testing.T) {
 		{
 			name:   "force option",
 			option: "force",
-			validate: func(t *testing.T, options *domain.BuildOptions) {
+			validate: func(t *testing.T, options *options.BuildOptions) {
 				assert.True(t, options.Force.Enabled)
 				assert.True(t, options.Force.Overwrite)
 			},
@@ -222,7 +222,7 @@ func TestArgsParser_SetOption(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := domain.NewBuildOptions()
+			options := options.NewBuildOptions()
 			parser.setOption(&options, tt.option)
 			tt.validate(t, &options)
 		})
@@ -233,7 +233,7 @@ func TestArgsParser_SetOption_Multiple(t *testing.T) {
 	parser := NewArgsParser()
 
 	// Test setting multiple options
-	options := domain.NewBuildOptions()
+	options := options.NewBuildOptions()
 	parser.setOption(&options, "clean")
 	parser.setOption(&options, "verbose")
 	parser.setOption(&options, "debug")

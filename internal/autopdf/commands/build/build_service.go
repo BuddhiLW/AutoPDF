@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	argsPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
 	configPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/config"
@@ -103,7 +103,7 @@ func executeBuildProcess(ctx context.Context, args []string) error {
 }
 
 // handleDelegation manages subcommand delegation using the new flexible approach
-func handleDelegation(ctx context.Context, buildArgs *argsPkg.BuildArgs, result services.BuildResult) error {
+func handleDelegation(ctx context.Context, buildArgs *argsPkg.BuildArgs, result document.BuildResult) error {
 	remainingArgs := buildArgs.GetRemainingArgs()
 	if len(remainingArgs) == 0 {
 		return nil
