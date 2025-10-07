@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/rwxrob/bonzai/futil"
 	"gopkg.in/yaml.v3"
@@ -62,7 +62,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 	cleanerAdapter := adapters.NewCleanerAdapter()
 
 	// Create document service
-	docService := &application.DocumentService{
+	docService := &services.DocumentService{
 		TemplateProcessor: templateAdapter,
 		LaTeXCompiler:     latexAdapter,
 		Converter:         converterAdapter,
@@ -70,7 +70,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 	}
 
 	// Create build request
-	req := application.BuildRequest{
+	req := services.BuildRequest{
 		TemplatePath: cfg.Template.String(),
 		ConfigPath:   writer.Name(),
 		Variables:    &cfg.Variables,
@@ -78,7 +78,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 		OutputPath:   cfg.Output.String(),
 		DoConvert:    cfg.Conversion.Enabled,
 		DoClean:      false, // Don't clean for API usage
-		Conversion: application.ConversionSettings{
+		Conversion: services.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
 		},

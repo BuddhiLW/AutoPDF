@@ -5,7 +5,6 @@ package factories
 
 import (
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
@@ -23,7 +22,7 @@ func NewPDFGenerationServiceFactory(cfg *config.Config) *PDFGenerationServiceFac
 }
 
 // CreateApplicationService creates a PDF generation application service
-func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PDFGenerationApplicationService {
+func (f *PDFGenerationServiceFactory) CreateApplicationService() *services.PDFGenerationApplicationService {
 	// Create adapters
 	templateAdapter := adapters.NewTemplateProcessorAdapter(f.config)
 	variableResolver := adapters.NewVariableResolverAdapter(f.config)
@@ -31,7 +30,7 @@ func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PD
 	externalService := adapters.NewExternalPDFServiceAdapter(f.config)
 
 	// Create application service
-	return application.NewPDFGenerationApplicationService(
+	return services.NewPDFGenerationApplicationService(
 		templateAdapter,
 		variableResolver,
 		pdfValidator,
@@ -60,6 +59,6 @@ func (f *PDFGenerationServiceFactory) CreateExternalService() domain.PDFGenerati
 }
 
 // CreateCompleteService creates a complete service with all dependencies
-func (f *PDFGenerationServiceFactory) CreateCompleteService() *application.PDFGenerationApplicationService {
+func (f *PDFGenerationServiceFactory) CreateCompleteService() *services.PDFGenerationApplicationService {
 	return f.CreateApplicationService()
 }

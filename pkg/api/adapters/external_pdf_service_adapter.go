@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
@@ -38,7 +38,7 @@ func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req domain.
 		complexVars.SetString(key, fmt.Sprintf("%v", value))
 	}
 
-	appReq := application.BuildRequest{
+	appReq := services.BuildRequest{
 		TemplatePath: req.TemplatePath,
 		ConfigPath:   "", // Not needed for API usage
 		Variables:    complexVars,
@@ -46,7 +46,7 @@ func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req domain.
 		OutputPath:   req.OutputPath,
 		DoConvert:    req.Options.DoConvert,
 		DoClean:      req.Options.DoClean,
-		Conversion: application.ConversionSettings{
+		Conversion: services.ConversionSettings{
 			Enabled: req.Options.Conversion.Enabled,
 			Formats: req.Options.Conversion.Formats,
 		},
@@ -154,7 +154,7 @@ func (epsa *ExternalPDFServiceAdapter) GetSupportedFormats() []string {
 }
 
 // createDocumentService creates the internal document service
-func (epsa *ExternalPDFServiceAdapter) createDocumentService() *application.DocumentService {
+func (epsa *ExternalPDFServiceAdapter) createDocumentService() *services.DocumentService {
 	// Create adapters for internal application layer
 	templateAdapter := adapters.NewTemplateProcessorAdapter(epsa.config)
 	latexAdapter := adapters.NewLaTeXCompilerAdapter(epsa.config)
@@ -162,7 +162,7 @@ func (epsa *ExternalPDFServiceAdapter) createDocumentService() *application.Docu
 	cleanerAdapter := adapters.NewCleanerAdapter()
 
 	// Create document service
-	return &application.DocumentService{
+	return &services.DocumentService{
 		TemplateProcessor: templateAdapter,
 		LaTeXCompiler:     latexAdapter,
 		Converter:         converterAdapter,
