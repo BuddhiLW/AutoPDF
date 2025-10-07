@@ -7,7 +7,10 @@ package autopdf
 import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/build"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/convert"
-	"github.com/BuddhiLW/AutoPDF/internal/tex"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/clean"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/debug"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/force"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/verbose"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -31,9 +34,11 @@ operations and workflow management.
 
 # Commands:
 - build:    Process template and compile to PDF
-- clean:    Remove LaTeX auxiliary files
 - convert:  Convert PDF to images
-- compile:  Compile LaTeX to PDF
+- clean:    Remove LaTeX auxiliary files
+- verbose:  Set verbose logging level
+- debug:    Enable debug information output
+- force:    Enable force operations
 - vars:     View and set configuration variables
 
 Use 'autopdf help <command> <subcommand>...' for detailed information
@@ -45,8 +50,10 @@ about each command.
 		vars.Cmd,
 		build.BuildServiceCmd,     // Use new service-based build command
 		convert.ConvertServiceCmd, // Use new service-based convert command
-		tex.CleanCmd,
-		tex.CompileCmd,
+		clean.CleanServiceCmd,     // Use new service-based clean command
+		verbose.VerboseServiceCmd, // Use new service-based verbose command
+		debug.DebugServiceCmd,     // Use new service-based debug command
+		force.ForceServiceCmd,     // Use new service-based force command
 	},
 	Def: help.Cmd,
 }

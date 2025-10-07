@@ -1,6 +1,6 @@
 module github.com/BuddhiLW/AutoPDF
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/rwxrob/bonzai v0.56.6
@@ -9,6 +9,8 @@ require (
 	github.com/rwxrob/bonzai/futil v0.4.0
 	github.com/rwxrob/bonzai/persisters/inyaml v0.3.0
 	github.com/rwxrob/bonzai/vars v0.12.0
+	github.com/stretchr/testify v1.11.1
+	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -43,9 +45,9 @@ require (
 	github.com/rwxrob/bonzai/to v0.6.1 // indirect
 	github.com/rwxrob/bonzai/uniq v0.1.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.4 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect

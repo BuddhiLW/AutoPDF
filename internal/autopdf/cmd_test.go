@@ -32,7 +32,7 @@ func TestCmd_Commands(t *testing.T) {
 	}
 
 	// Check for expected commands
-	expectedCommands := []string{"help", "build", "clean", "convert", "compile"}
+	expectedCommands := []string{"help", "build", "clean", "convert", "verbose", "debug", "force"}
 	commandNames := make(map[string]bool)
 
 	for _, cmd := range Cmd.Cmds {
