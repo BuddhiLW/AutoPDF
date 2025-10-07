@@ -6,8 +6,8 @@ package convert
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	argsPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	wiringPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
@@ -40,29 +40,34 @@ Examples:
 		help.Cmd,
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		log.Println("Converting PDF to images using service...")
+		// Create standardized logger and context
+		ctx, logger := common.CreateStandardLoggerContext()
+		defer logger.Sync()
 
-		// Parse arguments
-		argsParser := argsPkg.NewConvertArgsParser()
-		convertArgs, err := argsParser.ParseConvertArgs(args)
-		if err != nil {
-			return err
-		}
-
-		// Build the converter service
-		serviceBuilder := wiringPkg.NewConvertServiceBuilder()
-		svc := serviceBuilder.BuildConverterService(convertArgs)
-
-		// Execute the conversion
-		ctx := context.Background()
-		imageFiles, err := svc.ConvertToImages(ctx, convertArgs.PDFFile, convertArgs.Formats)
-		if err != nil {
-			log.Printf("Error converting PDF: %s", err)
-			return fmt.Errorf("PDF to image conversion failed: %w", err)
-		}
-
-		// Handle the result
-		resultHandler := resultPkg.NewConvertResultHandler()
-		return resultHandler.HandleConvertResult(imageFiles)
+		// Execute the streamlined convert process
+		return executeConvertProcess(ctx, args)
 	},
+}
+
+// executeConvertProcess orchestrates the convert process with minimal logging overhead
+func executeConvertProcess(ctx context.Context, args []string) error {
+	// Parse arguments with logging
+	argsParser := argsPkg.NewArgsParser()
+	convertArgs, err := argsParser.ParseConvertArgsWithLogging(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	// Build and execute conversion with logging
+	serviceBuilder := wiringPkg.NewConvertServiceBuilder()
+	svc := serviceBuilder.BuildConverterService(convertArgs)
+
+	imageFiles, err := svc.ConvertToImages(ctx, convertArgs.PDFFile, convertArgs.Formats)
+	if err != nil {
+		return fmt.Errorf("PDF to image conversion failed: %w", err)
+	}
+
+	// Handle result
+	resultHandler := resultPkg.NewConvertResultHandler()
+	return resultHandler.HandleConvertResult(imageFiles)
 }

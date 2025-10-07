@@ -4,6 +4,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+
 	// Legacy tex functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
@@ -99,4 +102,55 @@ func (cr *ConfigResolver) LoadConfig(configFile string) (*config.Config, error) 
 	}
 
 	return cfg, nil
+}
+
+// LoadConfigWithLogging loads configuration with integrated logging
+func (cr *ConfigResolver) LoadConfigWithLogging(ctx context.Context, templateFile, providedConfigFile string) (*config.Config, error) {
+	logger := getLoggerFromContext(ctx)
+
+	// Log start
+	logger.InfoWithFields("Starting AutoPDF build process", "template_file", templateFile, "config_file", providedConfigFile)
+
+	// Resolve config file with logging
+	logger.Debug("Resolving configuration file")
+	configFile, err := cr.ResolveConfigFile(templateFile, providedConfigFile)
+	if err != nil {
+		logger.ErrorWithFields("Failed to resolve config file", "error", err)
+		return nil, err
+	}
+	logger.InfoWithFields("Configuration file resolved", "config_file", configFile)
+
+	// Load config with logging
+	logger.Debug("Loading configuration")
+	cfg, err := cr.LoadConfig(configFile)
+	if err != nil {
+		logger.ErrorWithFields("Failed to load configuration", "error", err)
+		return nil, err
+	}
+	logger.LogConfigBuilding(configFile, cfg.Variables.Flatten())
+
+	// Resolve template path with logging
+	logger.Debug("Resolving template path")
+	err = cr.ResolveTemplatePath(cfg, templateFile, configFile)
+	if err != nil {
+		logger.ErrorWithFields("Failed to resolve template path", "error", err)
+		return nil, err
+	}
+	logger.LogDataMapping(cfg.Template.String(), cfg.Variables.Flatten())
+
+	return cfg, nil
+}
+
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+const loggerKey contextKey = "logger"
+
+// getLoggerFromContext extracts logger from context
+func getLoggerFromContext(ctx context.Context) *adapters.LoggerAdapter {
+	if logger, ok := ctx.Value(loggerKey).(*adapters.LoggerAdapter); ok {
+		return logger
+	}
+	// Fallback to default logger
+	return adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
 }

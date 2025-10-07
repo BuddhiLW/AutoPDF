@@ -124,3 +124,23 @@ func (rh *ResultHandler) HandleForceResult(result *wiring.ForceResult) error {
 	}
 	return nil
 }
+
+// HandleConfigResult processes and displays the config result
+func (rh *ResultHandler) HandleConfigResult(result *wiring.ConfigResult) error {
+	// Create logger for user feedback
+	logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+	defer logger.Sync()
+
+	if result.Valid {
+		logger.InfoWithFields("Configuration operation completed successfully",
+			"config_file", result.ConfigFile,
+			"message", result.Message,
+		)
+	} else {
+		logger.WarnWithFields("Configuration operation completed with warnings",
+			"config_file", result.ConfigFile,
+			"message", result.Message,
+		)
+	}
+	return nil
+}

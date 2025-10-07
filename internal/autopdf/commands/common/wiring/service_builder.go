@@ -214,6 +214,32 @@ func (vs *VerboseService) SetVerboseLevel() (*VerboseResult, error) {
 	}, nil
 }
 
+// BuildConfigService creates a config service
+func (sb *ServiceBuilder) BuildConfigService() *ConfigService {
+	return &ConfigService{}
+}
+
+// ConfigService handles configuration operations
+type ConfigService struct{}
+
+// HandleConfig processes configuration operations
+func (cs *ConfigService) HandleConfig(args ...string) (*ConfigResult, error) {
+	// For now, just return a basic result
+	// Future: implement actual config operations
+	return &ConfigResult{
+		ConfigFile: "",
+		Valid:      true,
+		Message:    "Configuration handled successfully",
+	}, nil
+}
+
+// ConfigResult represents the result of config operations
+type ConfigResult struct {
+	ConfigFile string
+	Valid      bool
+	Message    string
+}
+
 // VerboseResult represents the result of setting verbose level
 type VerboseResult struct {
 	Level       int

@@ -7,11 +7,15 @@ import (
 	"context"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters"
+	services "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	argsPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
 	configPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/config"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	wiringPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/convert"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/config"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/multiple"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -48,92 +52,76 @@ Examples:
 	Comp: comp.Cmds,
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
+		convert.ConvertServiceCmd,
+		config.ConfigServiceCmd,
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		// Create logger adapter with default detailed level
-		logger := adapters.NewLoggerAdapter(adapters.Detailed, "stdout")
+		// Create standardized logger and context
+		ctx, logger := common.CreateStandardLoggerContext()
 		defer logger.Sync()
 
-		logger.InfoWithFields("Starting AutoPDF build process",
-			"args", args,
-		)
-
-		// Parse arguments
-		logger.Debug("Parsing command line arguments")
-		argsParser := argsPkg.NewArgsParser()
-		buildArgs, err := argsParser.ParseBuildArgs(args)
-		if err != nil {
-			logger.ErrorWithFields("Failed to parse arguments", "error", err)
-			return err
-		}
-		logger.InfoWithFields("Arguments parsed successfully",
-			"template_file", buildArgs.TemplateFile,
-			"config_file", buildArgs.ConfigFile,
-			"options", buildArgs.Options,
-		)
-
-		// Resolve config file
-		logger.Debug("Resolving configuration file")
-		configResolver := configPkg.NewConfigResolver()
-		configFile, err := configResolver.ResolveConfigFile(buildArgs.TemplateFile, buildArgs.ConfigFile)
-		if err != nil {
-			logger.ErrorWithFields("Failed to resolve config file", "error", err)
-			return err
-		}
-		logger.InfoWithFields("Configuration file resolved",
-			"config_file", configFile,
-		)
-
-		// Load and resolve config
-		logger.Debug("Loading configuration")
-		cfg, err := configResolver.LoadConfig(configFile)
-		if err != nil {
-			logger.ErrorWithFields("Failed to load configuration", "error", err)
-			return err
-		}
-		logger.LogConfigBuilding(configFile, cfg.Variables.Flatten())
-
-		// Resolve template path
-		logger.Debug("Resolving template path")
-		err = configResolver.ResolveTemplatePath(cfg, buildArgs.TemplateFile, configFile)
-		if err != nil {
-			logger.ErrorWithFields("Failed to resolve template path", "error", err)
-			return err
-		}
-		logger.LogDataMapping(cfg.Template.String(), cfg.Variables.Flatten())
-
-		// Build the application service
-		logger.Debug("Building application service")
-		serviceBuilder := wiringPkg.NewServiceBuilder()
-		svc := serviceBuilder.BuildDocumentService(cfg)
-
-		// Build the request
-		logger.Debug("Building service request")
-		req := serviceBuilder.BuildRequest(buildArgs, cfg)
-		logger.InfoWithFields("Service request built",
-			"template_path", req.TemplatePath,
-			"output_path", req.OutputPath,
-			"engine", req.Engine,
-			"do_convert", req.DoConvert,
-			"do_clean", req.DoClean,
-		)
-
-		// Execute the build
-		logger.Info("Executing PDF build process")
-		ctx := context.Background()
-		result, err := svc.Build(ctx, req)
-		if err != nil {
-			logger.ErrorWithFields("PDF build failed", "error", err)
-			return configs.BuildError
-		}
-
-		logger.InfoWithFields("PDF build completed successfully",
-			"pdf_path", result.PDFPath,
-			"image_paths", result.ImagePaths,
-		)
-
-		// Handle the result
-		resultHandler := resultPkg.NewResultHandler()
-		return resultHandler.HandleBuildResult(result)
+		// Execute the streamlined build process
+		return executeBuildProcess(ctx, args)
 	},
+}
+
+// executeBuildProcess orchestrates the entire build process with minimal logging overhead
+func executeBuildProcess(ctx context.Context, args []string) error {
+	// Parse arguments with logging
+	argsParser := argsPkg.NewArgsParser()
+	buildArgs, err := argsParser.ParseBuildArgsWithLogging(ctx, args)
+	if err != nil {
+		return err
+	}
+
+	// Resolve and load configuration with logging
+	configResolver := configPkg.NewConfigResolver()
+	cfg, err := configResolver.LoadConfigWithLogging(ctx, buildArgs.TemplateFile, buildArgs.ConfigFile)
+	if err != nil {
+		return err
+	}
+
+	// Build and execute with logging
+	serviceBuilder := wiringPkg.NewServiceBuilder()
+	svc := serviceBuilder.BuildDocumentService(cfg)
+	req := serviceBuilder.BuildRequest(buildArgs, cfg)
+
+	result, err := svc.Build(ctx, req)
+	if err != nil {
+		return configs.BuildError
+	}
+
+	// Handle result and delegation
+	resultHandler := resultPkg.NewResultHandler()
+	if err := resultHandler.HandleBuildResult(result); err != nil {
+		return err
+	}
+
+	// Handle delegation if needed
+	return handleDelegation(ctx, buildArgs, result)
+}
+
+// handleDelegation manages subcommand delegation using the new flexible approach
+func handleDelegation(ctx context.Context, buildArgs *argsPkg.BuildArgs, result services.BuildResult) error {
+	remainingArgs := buildArgs.GetRemainingArgs()
+	if len(remainingArgs) == 0 {
+		return nil
+	}
+
+	subcommand := remainingArgs[0]
+
+	// Special handling for convert command - replace subcommand with PDF path
+	if subcommand == "convert" {
+		remainingArgs[0] = result.PDFPath
+	}
+
+	// Create command map for delegation
+	availableCommands := common.CreateCommandMap(
+		convert.ConvertServiceCmd,
+		config.ConfigServiceCmd,
+		multiple.MultipleServiceCmd,
+	)
+
+	// Delegate using the flexible approach
+	return common.HandleSubcommandDelegation(ctx, subcommand, remainingArgs, availableCommands)
 }

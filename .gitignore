@@ -16,5 +16,6 @@ output.log
 *.jpg
 *.aux
 *.log
+*.jpeg
 
 .auctex-auto
