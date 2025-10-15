@@ -108,6 +108,11 @@ func (vra *VariableResolverAdapter) resolveValue(value interface{}) (string, err
 		return "", nil
 	}
 
+	// Check if value has ToAutoPDFFormat() method (OCP compliance)
+	if formatter, ok := value.(interface{ ToAutoPDFFormat() string }); ok {
+		return formatter.ToAutoPDFFormat(), nil
+	}
+
 	switch v := value.(type) {
 	case string:
 		return v, nil

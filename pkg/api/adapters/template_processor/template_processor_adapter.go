@@ -161,11 +161,16 @@ func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables m
 
 // resolveVariableValue resolves a variable value from the variables map
 func (tpa *TemplateProcessorAdapter) resolveVariableValue(variableName string, variables map[string]interface{}) string {
-	// Handle dot notation (e.g., "foo.bar")
+	// Handle dot notation (e.g., "foo.bar" or ".foo")
 	parts := strings.Split(variableName, ".")
 
 	var current interface{} = variables
 	for _, part := range parts {
+		// Skip empty parts (e.g., from ".foo" -> ["", "foo"])
+		if part == "" {
+			continue
+		}
+
 		// Handle array access (e.g., "foo[0]")
 		if strings.Contains(part, "[") && strings.Contains(part, "]") {
 			// Extract array name and index
@@ -199,6 +204,15 @@ func (tpa *TemplateProcessorAdapter) resolveVariableValue(variableName string, v
 
 	// Convert final value to string
 	return fmt.Sprintf("%v", current)
+}
+
+// getMapKeys returns the keys of a map for debugging
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // validateLaTeXContent performs basic LaTeX validation

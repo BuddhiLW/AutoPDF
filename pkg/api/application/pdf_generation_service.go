@@ -5,6 +5,8 @@ package application
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
@@ -65,7 +67,11 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 	for k, v := range simpleVariables {
 		interfaceVars[k] = v
 	}
-	_, err = s.templateService.Process(ctx, req.TemplatePath, interfaceVars)
+
+	// Debug: Log variables being processed
+	fmt.Printf("DEBUG: Processing template with variables: %+v\n", interfaceVars)
+
+	processedContent, err := s.templateService.Process(ctx, req.TemplatePath, interfaceVars)
 	if err != nil {
 		return generation.PDFGenerationResult{
 			Success: false,
@@ -79,10 +85,52 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 		}, err
 	}
 
-	// Step 4: Generate PDF using external service
+	// Write processed template to a temporary file
+	// This ensures the LaTeX engine uses the processed content with variables replaced
+	tempFile, err := os.CreateTemp("", "autopdf-processed-*.tex")
+	if err != nil {
+		return generation.PDFGenerationResult{
+			Success: false,
+			Error: domain.TemplateProcessingError{
+				Code:    domain.ErrCodeTemplateInvalid,
+				Message: "Failed to create temporary file for processed template",
+				Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+					WithTemplatePath(req.TemplatePath).
+					WithError(err),
+			},
+		}, err
+	}
+	defer os.Remove(tempFile.Name()) // Clean up temporary file after generation
+
+	// Debug: Log processed content
+	contentLen := len(processedContent)
+	if contentLen > 500 {
+		contentLen = 500
+	}
+	fmt.Printf("DEBUG: Processed template content (first %d chars): %s\n", contentLen, processedContent[:contentLen])
+
+	if _, err := tempFile.WriteString(processedContent); err != nil {
+		tempFile.Close()
+		return generation.PDFGenerationResult{
+			Success: false,
+			Error: domain.TemplateProcessingError{
+				Code:    domain.ErrCodeTemplateInvalid,
+				Message: "Failed to write processed template to temporary file",
+				Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+					WithTemplatePath(req.TemplatePath).
+					WithError(err),
+			},
+		}, err
+	}
+	tempFile.Close()
+
+	// Debug: Log temporary file path
+	fmt.Printf("DEBUG: Using temporary template file: %s\n", tempFile.Name())
+
+	// Step 4: Generate PDF using external service with processed template
 	generationReq := generation.PDFGenerationRequest{
-		TemplatePath: req.TemplatePath,
-		Variables:    req.Variables, // Use original complex variables
+		TemplatePath: tempFile.Name(), // Use processed template file
+		Variables:    req.Variables,   // Keep original variables for metadata
 		Engine:       req.Engine,
 		OutputPath:   req.OutputPath,
 		Options:      req.Options,
