@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -19,17 +20,25 @@ import (
 // TemplateProcessorAdapter implements domain.TemplateProcessingService
 type TemplateProcessorAdapter struct {
 	config *config.Config
+	logger *logger.LoggerAdapter
 }
 
 // NewTemplateProcessorAdapter creates a new template processor adapter
-func NewTemplateProcessorAdapter(cfg *config.Config) *TemplateProcessorAdapter {
+func NewTemplateProcessorAdapter(cfg *config.Config, logger *logger.LoggerAdapter) *TemplateProcessorAdapter {
 	return &TemplateProcessorAdapter{
 		config: cfg,
+		logger: logger,
 	}
 }
 
 // Process processes a template with variables
 func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath string, variables map[string]interface{}) (string, error) {
+	tpa.logger.DebugWithFields("Starting template processing",
+		"template_path", templatePath,
+		"variable_count", len(variables),
+		"variable_keys", getMapKeys(variables),
+	)
+
 	if templatePath == "" {
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
@@ -41,6 +50,10 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 	// Read template file
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
+		tpa.logger.ErrorWithFields("Failed to read template file",
+			"template_path", templatePath,
+			"error", err,
+		)
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
 			Message: api.ErrTemplateFileNotReadable,
@@ -50,9 +63,18 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 		}
 	}
 
+	tpa.logger.DebugWithFields("Template file read successfully",
+		"template_path", templatePath,
+		"content_length", len(content),
+	)
+
 	// Process template with variables
 	processedContent, err := tpa.processTemplate(string(content), variables)
 	if err != nil {
+		tpa.logger.ErrorWithFields("Failed to process template",
+			"template_path", templatePath,
+			"error", err,
+		)
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
 			Message: api.ErrTemplateProcessingFailed,
@@ -61,6 +83,12 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 				WithError(err),
 		}
 	}
+
+	tpa.logger.InfoWithFields("Template processing completed",
+		"template_path", templatePath,
+		"original_length", len(content),
+		"processed_length", len(processedContent),
+	)
 
 	return processedContent, nil
 }

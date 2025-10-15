@@ -26,8 +26,10 @@ func NewPDFGenerationRequestBuilder() *PDFGenerationRequestBuilder {
 					Formats: []string{},
 				},
 				Timeout: 30 * time.Second,
-				Verbose: false,
-				Debug:   false,
+				Verbose: 0,
+				Debug: generation.DebugOptions{
+					Enabled: false,
+				},
 			},
 		},
 	}
@@ -110,14 +112,14 @@ func (b *PDFGenerationRequestBuilder) WithTimeout(timeout time.Duration) *PDFGen
 }
 
 // WithVerbose enables verbose logging
-func (b *PDFGenerationRequestBuilder) WithVerbose(enabled bool) *PDFGenerationRequestBuilder {
-	b.request.Options.Verbose = enabled
+func (b *PDFGenerationRequestBuilder) WithVerbose(level int) *PDFGenerationRequestBuilder {
+	b.request.Options.Verbose = level
 	return b
 }
 
 // WithDebug enables debug logging
-func (b *PDFGenerationRequestBuilder) WithDebug(enabled bool) *PDFGenerationRequestBuilder {
-	b.request.Options.Debug = enabled
+func (b *PDFGenerationRequestBuilder) WithDebug(debugOptions generation.DebugOptions) *PDFGenerationRequestBuilder {
+	b.request.Options.Debug = debugOptions
 	return b
 }
 
@@ -140,8 +142,10 @@ func NewPDFGenerationOptionsBuilder() *PDFGenerationOptionsBuilder {
 				Formats: []string{},
 			},
 			Timeout: 30 * time.Second,
-			Verbose: false,
-			Debug:   false,
+			Verbose: 0,
+			Debug: generation.DebugOptions{
+				Enabled: false,
+			},
 		},
 	}
 }
@@ -181,14 +185,14 @@ func (b *PDFGenerationOptionsBuilder) SetTimeout(timeout time.Duration) *PDFGene
 }
 
 // SetVerbose sets verbose logging
-func (b *PDFGenerationOptionsBuilder) SetVerbose(enabled bool) *PDFGenerationOptionsBuilder {
-	b.options.Verbose = enabled
+func (b *PDFGenerationOptionsBuilder) SetVerbose(level int) *PDFGenerationOptionsBuilder {
+	b.options.Verbose = level
 	return b
 }
 
 // SetDebug sets debug logging
-func (b *PDFGenerationOptionsBuilder) SetDebug(enabled bool) *PDFGenerationOptionsBuilder {
-	b.options.Debug = enabled
+func (b *PDFGenerationOptionsBuilder) SetDebug(debugOptions generation.DebugOptions) *PDFGenerationOptionsBuilder {
+	b.options.Debug = debugOptions
 	return b
 }
 

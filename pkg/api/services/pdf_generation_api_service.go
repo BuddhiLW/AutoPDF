@@ -9,8 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
+	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
@@ -22,9 +24,9 @@ type PDFGenerationAPIService struct {
 }
 
 // NewPDFGenerationAPIService creates a new API service
-func NewPDFGenerationAPIService(cfg *config.Config) *PDFGenerationAPIService {
+func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter) *PDFGenerationAPIService {
 	// Create factory
-	factory := factories.NewPDFGenerationServiceFactory(cfg)
+	factory := factories.NewPDFGenerationServiceFactory(cfg, logger)
 
 	// Create application service
 	appService := factory.CreateApplicationService()
@@ -76,6 +78,15 @@ func (s *PDFGenerationAPIService) GeneratePDF(ctx context.Context, templatePath 
 // GeneratePDFWithOptions generates a PDF with custom options
 func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, options PDFGenerationOptions) ([]byte, map[string]string, error) {
 	// Build request with custom options
+	verboseLevel := 0
+	if options.Verbose {
+		verboseLevel = 1
+	}
+
+	debugOptions := generation.DebugOptions{
+		Enabled: options.Debug,
+	}
+
 	request := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(options.TemplatePath).
 		WithOutput(options.OutputPath).
@@ -84,8 +95,8 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 		WithConversion(options.Conversion.Enabled, options.Conversion.Formats...).
 		WithCleanup(options.Cleanup).
 		WithTimeout(options.Timeout).
-		WithVerbose(options.Verbose).
-		WithDebug(options.Debug).
+		WithVerbose(verboseLevel).
+		WithDebug(debugOptions).
 		Build()
 
 	// Generate PDF

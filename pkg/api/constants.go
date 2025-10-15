@@ -119,13 +119,14 @@ const (
 
 // Error Categories
 const (
-	ErrorCategoryPDF        = "pdf_validation"
-	ErrorCategoryTemplate   = "template_processing"
-	ErrorCategoryVariable   = "variable_resolution"
-	ErrorCategoryGeneration = "pdf_generation"
-	ErrorCategorySystem     = "system"
-	ErrorCategoryNetwork    = "network"
-	ErrorCategoryFileSystem = "file_system"
+	ErrorCategoryPDF           = "pdf_validation"
+	ErrorCategoryTemplate      = "template_processing"
+	ErrorCategoryVariable      = "variable_resolution"
+	ErrorCategoryGeneration    = "pdf_generation"
+	ErrorCategoryConfiguration = "configuration"
+	ErrorCategorySystem        = "system"
+	ErrorCategoryNetwork       = "network"
+	ErrorCategoryFileSystem    = "file_system"
 )
 
 // Error Severity Levels

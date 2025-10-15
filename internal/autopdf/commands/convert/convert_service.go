@@ -51,9 +51,15 @@ Examples:
 
 // executeConvertProcess orchestrates the convert process with minimal logging overhead
 func executeConvertProcess(ctx context.Context, args []string) error {
-	// Parse arguments with logging
+	// Extract options first (they're ignored by convert but prevent errors)
 	argsParser := argsPkg.NewArgsParser()
-	convertArgs, err := argsParser.ParseConvertArgsWithLogging(ctx, args)
+	cleanArgs, _, err := argsParser.ParseArgsWithOptions(args)
+	if err != nil {
+		return err
+	}
+
+	// Parse convert-specific args from cleaned args
+	convertArgs, err := argsParser.ParseConvertArgsWithLogging(ctx, cleanArgs)
 	if err != nil {
 		return err
 	}

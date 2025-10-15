@@ -75,6 +75,17 @@ func executeBuildProcess(ctx context.Context, args []string) error {
 		return err
 	}
 
+	// If watch is enabled, delegate to watch mode
+	if buildArgs.Options.Watch.Enabled {
+		return executeWatchedBuild(ctx, buildArgs)
+	}
+
+	// Normal build flow
+	return executeSingleBuild(ctx, buildArgs)
+}
+
+// executeSingleBuild performs a single build operation
+func executeSingleBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error {
 	// Resolve and load configuration with logging
 	configResolver := configPkg.NewConfigResolver()
 	cfg, err := configResolver.LoadConfigWithLogging(ctx, buildArgs.TemplateFile, buildArgs.ConfigFile)
@@ -100,6 +111,34 @@ func executeBuildProcess(ctx context.Context, args []string) error {
 
 	// Handle delegation if needed
 	return handleDelegation(ctx, buildArgs, result)
+}
+
+// executeWatchedBuild performs build in watch mode
+func executeWatchedBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error {
+	logger := configs.GetLoggerFromContext(ctx)
+	logger.InfoWithFields("Starting watched build mode",
+		"template", buildArgs.TemplateFile,
+		"config", buildArgs.ConfigFile,
+		"interval", buildArgs.Options.Watch.Interval,
+	)
+
+	// For now, delegate to the standalone watch command
+	// This maintains compatibility while we could enhance it later
+	watchArgs := []string{buildArgs.TemplateFile}
+	if buildArgs.ConfigFile != "" {
+		watchArgs = append(watchArgs, buildArgs.ConfigFile)
+	}
+
+	// Add any other options that make sense for watch mode
+	if buildArgs.Options.Verbose.Enabled {
+		watchArgs = append(watchArgs, "verbose")
+	}
+	if buildArgs.Options.Debug.Enabled {
+		watchArgs = append(watchArgs, "debug")
+	}
+
+	// Delegate to watch service
+	return watch.ExecuteWatchProcess(ctx, watchArgs)
 }
 
 // handleDelegation manages subcommand delegation using the new flexible approach

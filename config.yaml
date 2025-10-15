@@ -1,0 +1,10 @@
+template: "test_template.tex"
+variables:
+  title: "My Document"
+  author: "AutoPDF User"
+  date: "2025-10-15"
+engine: "pdflatex"
+output: ""
+conversion:
+  enabled: false
+  formats: ["png"]

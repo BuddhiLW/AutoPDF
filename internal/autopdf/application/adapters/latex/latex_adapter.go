@@ -28,7 +28,7 @@ func NewLaTeXCompilerAdapter(cfg *config.Config) *LaTeXCompilerAdapter {
 }
 
 // Compile compiles LaTeX content to PDF
-func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, engine string, outputPath string) (string, error) {
+func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, engine string, outputPath string, debugEnabled bool) (string, error) {
 	if content == "" {
 		return "", errors.New("no LaTeX content provided")
 	}
@@ -49,21 +49,34 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 		return "", err
 	}
 
-	// Generate a temp file name
-	tempFileName := "autopdf_temp.tex"
-	if outputPath != "" {
-		baseName := filepath.Base(outputPath)
-		tempFileName = "autopdf_" + strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".tex"
+	// Generate a concrete file name
+	var concreteFileName string
+	if debugEnabled {
+		// In debug mode, create a persistent concrete file with a memorable name
+		concreteFileName = "autopdf-concrete.tex"
+		if outputPath != "" {
+			baseName := filepath.Base(outputPath)
+			concreteFileName = "autopdf-concrete-" + strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".tex"
+		}
+	} else {
+		// Normal mode: use temporary file
+		concreteFileName = "autopdf_temp.tex"
+		if outputPath != "" {
+			baseName := filepath.Base(outputPath)
+			concreteFileName = "autopdf_" + strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".tex"
+		}
 	}
-	tempFile := filepath.Join(tempDir, tempFileName)
+	concreteFile := filepath.Join(tempDir, concreteFileName)
 
-	// Write the content to the temp file
-	if err := os.WriteFile(tempFile, []byte(content), 0644); err != nil {
+	// Write the content to the concrete file
+	if err := os.WriteFile(concreteFile, []byte(content), 0644); err != nil {
 		return "", err
 	}
 
-	// Ensure temp file is cleaned up
-	defer os.Remove(tempFile)
+	// Only clean up temp file if not in debug mode
+	if !debugEnabled {
+		defer os.Remove(concreteFile)
+	}
 
 	// Determine output PDF path
 	var pdfPath string
@@ -74,7 +87,7 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 		}
 	} else {
 		// Default output path
-		baseName := strings.TrimSuffix(filepath.Base(tempFile), ".tex")
+		baseName := strings.TrimSuffix(filepath.Base(concreteFile), ".tex")
 		pdfPath = filepath.Join(tempDir, baseName+".pdf")
 	}
 
@@ -90,10 +103,10 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	// Create command to run LaTeX
 	var cmd *exec.Cmd
 	if outputDir == "." {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseName, tempFile)
+		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseName, concreteFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 	} else {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseName, outputDir, tempFile)
+		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseName, outputDir, concreteFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 	}
 

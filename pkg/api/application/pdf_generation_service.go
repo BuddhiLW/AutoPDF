@@ -5,10 +5,10 @@ package application
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
@@ -20,6 +20,7 @@ type PDFGenerationApplicationService struct {
 	variableResolver generation.VariableResolver
 	pdfValidator     generation.PDFValidator
 	externalService  generation.PDFGenerationService
+	logger           *logger.LoggerAdapter
 }
 
 // NewPDFGenerationApplicationService creates a new application service
@@ -28,17 +29,27 @@ func NewPDFGenerationApplicationService(
 	variableResolver generation.VariableResolver,
 	pdfValidator generation.PDFValidator,
 	externalService generation.PDFGenerationService,
+	logger *logger.LoggerAdapter,
 ) *PDFGenerationApplicationService {
 	return &PDFGenerationApplicationService{
 		templateService:  templateService,
 		variableResolver: variableResolver,
 		pdfValidator:     pdfValidator,
 		externalService:  externalService,
+		logger:           logger,
 	}
 }
 
 // GeneratePDF orchestrates the complete PDF generation workflow
 func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req generation.PDFGenerationRequest) (generation.PDFGenerationResult, error) {
+	s.logger.InfoWithFields("Starting PDF generation",
+		"template_path", req.TemplatePath,
+		"engine", req.Engine,
+		"output_path", req.OutputPath,
+		"variable_count", len(req.Variables),
+		"debug_enabled", req.Options.Debug.Enabled,
+	)
+
 	// Step 1: Validate the request
 	if err := s.validateRequest(req); err != nil {
 		return generation.PDFGenerationResult{
@@ -48,6 +59,10 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 	}
 
 	// Step 2: Resolve complex variables to simple key-value pairs
+	s.logger.DebugWithFields("Starting variable resolution",
+		"input_variable_count", len(req.Variables),
+	)
+
 	simpleVariables, err := s.variableResolver.Resolve(req.Variables)
 	if err != nil {
 		return generation.PDFGenerationResult{
@@ -61,6 +76,10 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 		}, err
 	}
 
+	s.logger.DebugWithFields("Variable resolution completed",
+		"resolved_variable_count", len(simpleVariables),
+	)
+
 	// Step 3: Process template with resolved variables
 	// Convert simple variables to interface{} map for template processing
 	interfaceVars := make(map[string]interface{})
@@ -68,8 +87,11 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 		interfaceVars[k] = v
 	}
 
-	// Debug: Log variables being processed
-	fmt.Printf("DEBUG: Processing template with variables: %+v\n", interfaceVars)
+	// Log variables being processed
+	s.logger.DebugWithFields("Processing template with variables",
+		"variables", interfaceVars,
+		"variable_count", len(interfaceVars),
+	)
 
 	processedContent, err := s.templateService.Process(ctx, req.TemplatePath, interfaceVars)
 	if err != nil {
@@ -102,12 +124,17 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 	}
 	defer os.Remove(tempFile.Name()) // Clean up temporary file after generation
 
-	// Debug: Log processed content
+	// Log processed content
 	contentLen := len(processedContent)
-	if contentLen > 500 {
-		contentLen = 500
+	previewLen := contentLen
+	if previewLen > 500 {
+		previewLen = 500
 	}
-	fmt.Printf("DEBUG: Processed template content (first %d chars): %s\n", contentLen, processedContent[:contentLen])
+	s.logger.DebugWithFields("Processed template content",
+		"content_length", contentLen,
+		"preview_length", previewLen,
+		"preview", processedContent[:previewLen],
+	)
 
 	if _, err := tempFile.WriteString(processedContent); err != nil {
 		tempFile.Close()
@@ -124,8 +151,10 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 	}
 	tempFile.Close()
 
-	// Debug: Log temporary file path
-	fmt.Printf("DEBUG: Using temporary template file: %s\n", tempFile.Name())
+	// Log temporary file path
+	s.logger.InfoWithFields("Using temporary template file",
+		"temp_file", tempFile.Name(),
+	)
 
 	// Step 4: Generate PDF using external service with processed template
 	generationReq := generation.PDFGenerationRequest{
@@ -176,6 +205,12 @@ func (s *PDFGenerationApplicationService) GeneratePDF(ctx context.Context, req g
 		}
 		result.Metadata = metadata
 	}
+
+	s.logger.InfoWithFields("PDF generation completed",
+		"success", result.Success,
+		"pdf_path", result.PDFPath,
+		"image_count", len(result.ImagePaths),
+	)
 
 	return result, nil
 }

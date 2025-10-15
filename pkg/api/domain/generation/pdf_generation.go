@@ -23,8 +23,19 @@ type PDFGenerationOptions struct {
 	DoClean    bool
 	Conversion ConversionOptions
 	Timeout    time.Duration
-	Verbose    bool
-	Debug      bool
+	Verbose    int
+	Debug      DebugOptions
+	Force      bool
+	RequestID  string // For unique file naming
+}
+
+// DebugOptions contains debug-specific settings
+type DebugOptions struct {
+	Enabled            bool
+	LogToFile          bool
+	LogFilePath        string
+	CreateConcreteFile bool
+	RequestID          string
 }
 
 // ConversionOptions contains settings for PDF to image conversion

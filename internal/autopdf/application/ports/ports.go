@@ -14,7 +14,7 @@ type TemplateProcessor interface {
 // LaTeXCompiler compiles LaTeX content to PDF
 // Pure transport types - no domain dependencies
 type LaTeXCompiler interface {
-	Compile(ctx context.Context, content string, engine string, outputPath string) (string, error)
+	Compile(ctx context.Context, content string, engine string, outputPath string, debugEnabled bool) (string, error)
 }
 
 // Converter converts PDFs to images

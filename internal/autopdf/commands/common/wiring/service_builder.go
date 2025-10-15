@@ -53,6 +53,7 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 		OutputPath:   cfg.Output.String(),
 		DoConvert:    cfg.Conversion.Enabled,
 		DoClean:      args.Options.Clean.Enabled,
+		DebugEnabled: args.Options.Debug.Enabled, // Pass debug option for persistent concrete files
 		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,

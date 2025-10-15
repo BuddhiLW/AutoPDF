@@ -9,30 +9,55 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/converter"
 )
 
 // VariableResolverAdapter implements domain.VariableResolver
 type VariableResolverAdapter struct {
-	config *config.Config
+	config    *config.Config
+	logger    *logger.LoggerAdapter
+	converter *converter.StructConverter
 }
 
 // NewVariableResolverAdapter creates a new variable resolver adapter
-func NewVariableResolverAdapter(cfg *config.Config) *VariableResolverAdapter {
+func NewVariableResolverAdapter(cfg *config.Config, logger *logger.LoggerAdapter) *VariableResolverAdapter {
 	return &VariableResolverAdapter{
-		config: cfg,
+		config:    cfg,
+		logger:    logger,
+		converter: converter.BuildWithDefaults(),
+	}
+}
+
+// NewVariableResolverAdapterWithConverter creates a new variable resolver adapter with custom converter
+func NewVariableResolverAdapterWithConverter(cfg *config.Config, logger *logger.LoggerAdapter, conv *converter.StructConverter) *VariableResolverAdapter {
+	return &VariableResolverAdapter{
+		config:    cfg,
+		logger:    logger,
+		converter: conv,
 	}
 }
 
 // Resolve resolves complex variables to simple key-value pairs
 func (vra *VariableResolverAdapter) Resolve(variables map[string]interface{}) (map[string]string, error) {
+	vra.logger.DebugWithFields("Starting variable resolution",
+		"variable_count", len(variables),
+		"variable_keys", vra.getMapKeys(variables),
+	)
+
 	result := make(map[string]string)
 
 	for key, value := range variables {
 		resolved, err := vra.resolveValue(value)
 		if err != nil {
+			vra.logger.ErrorWithFields("Failed to resolve variable",
+				"key", key,
+				"value_type", fmt.Sprintf("%T", value),
+				"error", err,
+			)
 			return nil, domain.VariableResolutionError{
 				Code:    domain.ErrCodeVariableInvalid,
 				Message: api.ErrVariableResolutionFailed,
@@ -41,10 +66,31 @@ func (vra *VariableResolverAdapter) Resolve(variables map[string]interface{}) (m
 					WithError(err),
 			}
 		}
+
+		vra.logger.DebugWithFields("Resolved variable",
+			"key", key,
+			"original_type", fmt.Sprintf("%T", value),
+			"resolved_value", resolved,
+		)
+
 		result[key] = resolved
 	}
 
+	vra.logger.InfoWithFields("Variable resolution complete",
+		"input_count", len(variables),
+		"output_count", len(result),
+	)
+
 	return result, nil
+}
+
+// getMapKeys returns the keys of a map as a slice
+func (vra *VariableResolverAdapter) getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // Flatten flattens nested variables into dot-notation paths
@@ -230,6 +276,77 @@ func (vra *VariableResolverAdapter) isValidKey(key string) bool {
 	}
 
 	return true
+}
+
+// ConvertStruct converts a Go struct to map[string]interface{} using the struct converter
+func (vra *VariableResolverAdapter) ConvertStruct(v interface{}) (map[string]interface{}, error) {
+	vra.logger.DebugWithFields("Starting struct conversion",
+		"struct_type", fmt.Sprintf("%T", v),
+	)
+
+	// Convert struct to Variables using the converter
+	variables, err := vra.converter.ConvertStruct(v)
+	if err != nil {
+		vra.logger.ErrorWithFields("Failed to convert struct",
+			"struct_type", fmt.Sprintf("%T", v),
+			"error", err,
+		)
+		return nil, domain.VariableResolutionError{
+			Code:    domain.ErrCodeVariableInvalid,
+			Message: api.ErrVariableResolutionFailed,
+			Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
+				AddContext("struct_type", fmt.Sprintf("%T", v)).
+				WithError(err),
+		}
+	}
+
+	// Convert Variables to map[string]interface{} for existing pipeline
+	result := vra.variablesToMap(variables)
+
+	vra.logger.InfoWithFields("Struct conversion complete",
+		"struct_type", fmt.Sprintf("%T", v),
+		"output_count", len(result),
+	)
+
+	return result, nil
+}
+
+// variablesToMap converts config.Variables to map[string]interface{}
+func (vra *VariableResolverAdapter) variablesToMap(variables *config.Variables) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	variables.Range(func(name string, value config.Variable) bool {
+		result[name] = vra.variableToInterface(value)
+		return true
+	})
+
+	return result
+}
+
+// variableToInterface converts a config.Variable to interface{}
+func (vra *VariableResolverAdapter) variableToInterface(variable config.Variable) interface{} {
+	switch v := variable.(type) {
+	case *config.StringVariable:
+		return v.Value
+	case *config.NumberVariable:
+		return v.Value
+	case *config.BoolVariable:
+		return v.Value
+	case *config.MapVariable:
+		result := make(map[string]interface{})
+		for key, val := range v.Values {
+			result[key] = vra.variableToInterface(val)
+		}
+		return result
+	case *config.SliceVariable:
+		result := make([]interface{}, len(v.Values))
+		for i, val := range v.Values {
+			result[i] = vra.variableToInterface(val)
+		}
+		return result
+	default:
+		return variable.String()
+	}
 }
 
 // isSupportedType checks if a type is supported for variable resolution
