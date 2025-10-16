@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
@@ -163,29 +164,90 @@ func (tpa *TemplateProcessorAdapter) GetTemplateVariables(templatePath string) (
 	return variables, nil
 }
 
-// processTemplate processes template content with variables
+// processTemplate processes template content with variables using Go's text/template
 func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]string) (string, error) {
-	// Use custom delimiters to avoid conflicts with LaTeX
-	delimStart := "delim[["
-	delimEnd := "]]"
+	// Import text/template at the top of the file
+	// We need to use Go's text/template to support conditionals, loops, and dot notation
 
-	// Find all template variables
-	pattern := regexp.MustCompile(regexp.QuoteMeta(delimStart) + `([^` + regexp.QuoteMeta(delimEnd) + `]+)` + regexp.QuoteMeta(delimEnd))
+	// Convert flattened variables back to nested structure for template execution
+	templateData := tpa.reconstructNestedStructure(variables)
 
-	result := pattern.ReplaceAllStringFunc(content, func(match string) string {
-		// Extract variable name
-		variableName := strings.TrimPrefix(match, delimStart)
-		variableName = strings.TrimSuffix(variableName, delimEnd)
-		variableName = strings.TrimSpace(variableName)
+	// Create template with custom delimiters
+	tmpl, err := tpa.createTemplate(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
+	}
 
-		// Simple variable lookup
-		if value, exists := variables[variableName]; exists {
-			return value
-		}
-		return "" // Variable not found
-	})
+	// Execute template
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
 
-	return result, nil
+	return buf.String(), nil
+}
+
+// createTemplate creates a Go template with custom delimiters
+func (tpa *TemplateProcessorAdapter) createTemplate(content string) (*template.Template, error) {
+	// Create function map for template functions
+	funcMap := template.FuncMap{
+		"eq": func(a, b interface{}) bool {
+			return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+		},
+	}
+
+	// Create template with custom delimiters to avoid conflicts with LaTeX
+	tmpl, err := template.New("latex").
+		Funcs(funcMap).
+		Delims("delim[[", "]]").
+		Parse(content)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tmpl, nil
+}
+
+// reconstructNestedStructure converts flattened variables back to nested structure
+// Handles flattened dot-notation keys from Flatten() method
+func (tpa *TemplateProcessorAdapter) reconstructNestedStructure(variables map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range variables {
+		// Handle flattened dot-notation keys (e.g., "velorio.dia", "velorio.periodo.inicio")
+		parts := splitKey(key)
+		tpa.setNestedValue(result, parts, value)
+	}
+
+	return result
+}
+
+// splitKey splits a dot-notation key into parts
+func splitKey(key string) []string {
+	return strings.Split(key, ".")
+}
+
+// setNestedValue sets a value in a nested map structure
+func (tpa *TemplateProcessorAdapter) setNestedValue(data map[string]interface{}, parts []string, value string) {
+	if len(parts) == 0 {
+		return
+	}
+
+	if len(parts) == 1 {
+		data[parts[0]] = value
+		return
+	}
+
+	// Create nested map if it doesn't exist
+	if _, exists := data[parts[0]]; !exists {
+		data[parts[0]] = make(map[string]interface{})
+	}
+
+	// Ensure it's a map
+	if nested, ok := data[parts[0]].(map[string]interface{}); ok {
+		tpa.setNestedValue(nested, parts[1:], value)
+	}
 }
 
 // getStringMapKeys returns the keys of a string map for debugging
