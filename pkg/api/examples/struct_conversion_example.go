@@ -327,10 +327,13 @@ func ExampleIntegrationWithAutoPDF() {
 		return true
 	})
 
+	// Convert to TemplateVariables for API usage
+	templateVars := generation.NewTemplateVariables(variables)
+
 	// Use with AutoPDF API
 	request := generation.PDFGenerationRequest{
 		TemplatePath: "template.tex",
-		Variables:    variablesMap,
+		Variables:    templateVars,
 		Engine:       "pdflatex",
 		OutputPath:   "output.pdf",
 		Options: generation.PDFGenerationOptions{

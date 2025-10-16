@@ -44,12 +44,13 @@ func (e VariableResolutionError) Error() string {
 
 // Constants for error codes
 const (
-	ErrCodeTemplateNotFound    = "TEMPLATE_NOT_FOUND"
-	ErrCodeTemplateInvalid     = "TEMPLATE_INVALID"
-	ErrCodeEngineNotFound      = "ENGINE_NOT_FOUND"
-	ErrCodeOutputPathInvalid   = "OUTPUT_PATH_INVALID"
-	ErrCodeVariableInvalid     = "VARIABLE_INVALID"
-	ErrCodePDFGenerationFailed = "PDF_GENERATION_FAILED"
-	ErrCodePDFValidationFailed = "PDF_VALIDATION_FAILED"
-	ErrCodeTimeoutExceeded     = "TIMEOUT_EXCEEDED"
+	ErrCodeTemplateNotFound        = "TEMPLATE_NOT_FOUND"
+	ErrCodeTemplateInvalid         = "TEMPLATE_INVALID"
+	ErrCodeEngineNotFound          = "ENGINE_NOT_FOUND"
+	ErrCodeOutputPathInvalid       = "OUTPUT_PATH_INVALID"
+	ErrCodeVariableInvalid         = "VARIABLE_INVALID"
+	ErrCodePDFGenerationFailed     = "PDF_GENERATION_FAILED"
+	ErrCodePDFValidationFailed     = "PDF_VALIDATION_FAILED"
+	ErrCodeTimeoutExceeded         = "TIMEOUT_EXCEEDED"
+	ErrCodeWatchServiceUnavailable = "WATCH_SERVICE_UNAVAILABLE"
 )

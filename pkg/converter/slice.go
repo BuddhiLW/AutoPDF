@@ -272,3 +272,4 @@ func (fsc *FloatSliceConverter) CanConvert(value interface{}) bool {
 	_, ok := value.([]float64)
 	return ok
 }
+

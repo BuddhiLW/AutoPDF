@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/api/rest"
+	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/BuddhiLW/AutoPDF/pkg/converter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -376,8 +377,8 @@ func convertExampleHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to map for JSON response
 	result := make(map[string]interface{})
-	variables.Range(func(name string, value interface{}) bool {
-		result[name] = value
+	variables.Range(func(name string, value config.Variable) bool {
+		result[name] = value.String()
 		return true
 	})
 

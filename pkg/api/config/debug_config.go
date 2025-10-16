@@ -11,6 +11,7 @@ type APIDebugConfig struct {
 	LogDirectory    string // AUTOPDF_API_LOG_DIR=/var/log/autopdf
 	ConcreteFileDir string // AUTOPDF_API_CONCRETE_DIR=/tmp/autopdf
 	DefaultVerbose  int    // AUTOPDF_API_DEFAULT_VERBOSE=1
+	WatchMode       bool   // AUTOPDF_API_WATCH_MODE=true
 }
 
 // LoadDebugConfigFromEnv loads debug configuration from environment variables
@@ -20,6 +21,7 @@ func LoadDebugConfigFromEnv() *APIDebugConfig {
 		LogDirectory:    getEnvOrDefault("AUTOPDF_API_LOG_DIR", "/tmp/autopdf/logs"),
 		ConcreteFileDir: getEnvOrDefault("AUTOPDF_API_CONCRETE_DIR", "/tmp/autopdf/concrete"),
 		DefaultVerbose:  getEnvInt("AUTOPDF_API_DEFAULT_VERBOSE", 1),
+		WatchMode:       getEnvBool("AUTOPDF_API_WATCH_MODE", false),
 	}
 }
 
@@ -36,6 +38,11 @@ func (c *APIDebugConfig) GetLogDirectory() string {
 // GetConcreteFileDirectory returns the configured concrete file directory
 func (c *APIDebugConfig) GetConcreteFileDirectory() string {
 	return c.ConcreteFileDir
+}
+
+// IsWatchModeEnabled returns true if watch mode is enabled
+func (c *APIDebugConfig) IsWatchModeEnabled() bool {
+	return c.WatchMode
 }
 
 // getEnvOrDefault returns the environment variable value or a default

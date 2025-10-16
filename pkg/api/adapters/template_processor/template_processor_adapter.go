@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
@@ -32,11 +31,11 @@ func NewTemplateProcessorAdapter(cfg *config.Config, logger *logger.LoggerAdapte
 }
 
 // Process processes a template with variables
-func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath string, variables map[string]interface{}) (string, error) {
+func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath string, variables map[string]string) (string, error) {
 	tpa.logger.DebugWithFields("Starting template processing",
 		"template_path", templatePath,
 		"variable_count", len(variables),
-		"variable_keys", getMapKeys(variables),
+		"variable_keys", getStringMapKeys(variables),
 	)
 
 	if templatePath == "" {
@@ -165,7 +164,7 @@ func (tpa *TemplateProcessorAdapter) GetTemplateVariables(templatePath string) (
 }
 
 // processTemplate processes template content with variables
-func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]interface{}) (string, error) {
+func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]string) (string, error) {
 	// Use custom delimiters to avoid conflicts with LaTeX
 	delimStart := "delim[["
 	delimEnd := "]]"
@@ -179,63 +178,18 @@ func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables m
 		variableName = strings.TrimSuffix(variableName, delimEnd)
 		variableName = strings.TrimSpace(variableName)
 
-		// Handle dot notation and array access
-		value := tpa.resolveVariableValue(variableName, variables)
-		return value
+		// Simple variable lookup
+		if value, exists := variables[variableName]; exists {
+			return value
+		}
+		return "" // Variable not found
 	})
 
 	return result, nil
 }
 
-// resolveVariableValue resolves a variable value from the variables map
-func (tpa *TemplateProcessorAdapter) resolveVariableValue(variableName string, variables map[string]interface{}) string {
-	// Handle dot notation (e.g., "foo.bar" or ".foo")
-	parts := strings.Split(variableName, ".")
-
-	var current interface{} = variables
-	for _, part := range parts {
-		// Skip empty parts (e.g., from ".foo" -> ["", "foo"])
-		if part == "" {
-			continue
-		}
-
-		// Handle array access (e.g., "foo[0]")
-		if strings.Contains(part, "[") && strings.Contains(part, "]") {
-			// Extract array name and index
-			arrayName := strings.Split(part, "[")[0]
-			indexStr := strings.TrimSuffix(strings.Split(part, "[")[1], "]")
-
-			if currentMap, ok := current.(map[string]interface{}); ok {
-				if array, exists := currentMap[arrayName]; exists {
-					if arraySlice, ok := array.([]interface{}); ok {
-						if index, err := strconv.Atoi(indexStr); err == nil && index >= 0 && index < len(arraySlice) {
-							current = arraySlice[index]
-							continue
-						}
-					}
-				}
-			}
-			return "" // Variable not found
-		}
-
-		// Handle regular map access
-		if currentMap, ok := current.(map[string]interface{}); ok {
-			if val, exists := currentMap[part]; exists {
-				current = val
-			} else {
-				return "" // Variable not found
-			}
-		} else {
-			return "" // Cannot traverse further
-		}
-	}
-
-	// Convert final value to string
-	return fmt.Sprintf("%v", current)
-}
-
-// getMapKeys returns the keys of a map for debugging
-func getMapKeys(m map[string]interface{}) []string {
+// getStringMapKeys returns the keys of a string map for debugging
+func getStringMapKeys(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

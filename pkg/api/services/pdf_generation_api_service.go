@@ -124,6 +124,44 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 	return pdfBytes, imagePaths, nil
 }
 
+// GeneratePDFFromStruct generates a PDF from a struct (converts struct to variables automatically)
+func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, templatePath string, outputPath string, data interface{}) ([]byte, map[string]string, error) {
+	// Build request using builder pattern with struct conversion
+	request := builders.NewPDFGenerationRequestBuilder().
+		WithTemplate(templatePath).
+		WithOutput(outputPath).
+		WithEngine(s.config.Engine.String()).
+		WithVariablesFromStruct(data). // Convert struct to TemplateVariables
+		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
+		WithCleanup(false). // Don't clean for API usage
+		WithTimeout(30 * time.Second).
+		Build()
+
+	// Generate PDF
+	result, err := s.appService.GeneratePDF(ctx, request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !result.Success {
+		return nil, nil, result.Error
+	}
+
+	// Read PDF bytes
+	pdfBytes, err := os.ReadFile(result.PDFPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
+	}
+
+	// Create image paths map
+	imagePaths := make(map[string]string)
+	for i, imagePath := range result.ImagePaths {
+		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
+	}
+
+	return pdfBytes, imagePaths, nil
+}
+
 // ValidateTemplate validates a template file
 func (s *PDFGenerationAPIService) ValidateTemplate(templatePath string) error {
 	return s.appService.ValidateTemplate(templatePath)

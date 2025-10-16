@@ -144,7 +144,11 @@ func (client *RESTAPIClient) ConvertStruct(data interface{}, options *Conversion
 		},
 	}
 
-	return client.makeRequest("POST", "/convert", req, &ConvertStructResponse{})
+	result, err := client.makeRequest("POST", "/convert", req, &ConvertStructResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConvertStructResponse), nil
 }
 
 // ConvertStructFlattened converts a struct to flattened variables
@@ -158,7 +162,11 @@ func (client *RESTAPIClient) ConvertStructFlattened(data interface{}, options *C
 		},
 	}
 
-	return client.makeRequest("POST", "/convert/flattened", req, &ConvertStructResponse{})
+	result, err := client.makeRequest("POST", "/convert/flattened", req, &ConvertStructResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConvertStructResponse), nil
 }
 
 // ConvertStructForTemplate converts a struct optimized for templates
@@ -172,18 +180,30 @@ func (client *RESTAPIClient) ConvertStructForTemplate(data interface{}, options 
 		},
 	}
 
-	return client.makeRequest("POST", "/convert/template", req, &ConvertStructResponse{})
+	result, err := client.makeRequest("POST", "/convert/template", req, &ConvertStructResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConvertStructResponse), nil
 }
 
 // GetConverterConfig retrieves the current converter configuration
 func (client *RESTAPIClient) GetConverterConfig() (*ConverterConfigResponse, error) {
-	return client.makeRequest("GET", "/config", nil, &ConverterConfigResponse{})
+	result, err := client.makeRequest("GET", "/config", nil, &ConverterConfigResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ConverterConfigResponse), nil
 }
 
 // ValidateStruct validates a struct for conversion
 func (client *RESTAPIClient) ValidateStruct(data interface{}) (*ValidationResponse, error) {
 	req := ValidationRequest{Data: data}
-	return client.makeRequest("POST", "/validate", req, &ValidationResponse{})
+	result, err := client.makeRequest("POST", "/validate", req, &ValidationResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ValidationResponse), nil
 }
 
 // PreviewConversion provides a preview of struct conversion
@@ -194,30 +214,38 @@ func (client *RESTAPIClient) PreviewConversion(data interface{}, options *Conver
 		Limit:   limit,
 	}
 
-	return client.makeRequest("POST", "/preview", req, &PreviewResponse{})
+	result, err := client.makeRequest("POST", "/preview", req, &PreviewResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*PreviewResponse), nil
 }
 
 // HealthCheck checks the health of the API
 func (client *RESTAPIClient) HealthCheck() (*HealthResponse, error) {
-	return client.makeRequest("GET", "/health", nil, &HealthResponse{})
+	result, err := client.makeRequest("GET", "/health", nil, &HealthResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*HealthResponse), nil
 }
 
 // makeRequest makes an HTTP request to the API
-func (client *RESTAPIClient) makeRequest(method, endpoint string, body interface{}, result interface{}) error {
+func (client *RESTAPIClient) makeRequest(method, endpoint string, body interface{}, result interface{}) (interface{}, error) {
 	url := client.BaseURL + "/api/v1/struct-converter" + endpoint
 
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("failed to marshal request body: %w", err)
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
 	req, err := http.NewRequest(method, url, reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -225,24 +253,24 @@ func (client *RESTAPIClient) makeRequest(method, endpoint string, body interface
 
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to make request: %w", err)
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	if err := json.Unmarshal(respBody, result); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	return nil
+	return result, nil
 }
 
 // ExampleRESTAPIUsage demonstrates how to use the REST API
@@ -435,7 +463,6 @@ func ExampleRESTAPIWithPDFGeneration() {
 	client := NewRESTAPIClient("http://localhost:8080")
 
 	// Create document data
-	docURL, _ := url.Parse("https://example.com/report/2025-001")
 	now := time.Now()
 
 	reportData := struct {

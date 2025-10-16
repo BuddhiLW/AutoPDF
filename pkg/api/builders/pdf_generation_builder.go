@@ -4,10 +4,12 @@
 package builders
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/pkg/converter"
 )
 
 // PDFGenerationRequestBuilder builds PDF generation requests using the Builder pattern
@@ -19,7 +21,7 @@ type PDFGenerationRequestBuilder struct {
 func NewPDFGenerationRequestBuilder() *PDFGenerationRequestBuilder {
 	return &PDFGenerationRequestBuilder{
 		request: generation.PDFGenerationRequest{
-			Variables: make(map[string]interface{}),
+			Variables: generation.NewTemplateVariables(nil),
 			Options: generation.PDFGenerationOptions{
 				Conversion: generation.ConversionOptions{
 					Enabled: false,
@@ -56,38 +58,95 @@ func (b *PDFGenerationRequestBuilder) WithOutput(outputPath string) *PDFGenerati
 // WithVariable sets a simple variable
 func (b *PDFGenerationRequestBuilder) WithVariable(key string, value interface{}) *PDFGenerationRequestBuilder {
 	if b.request.Variables == nil {
-		b.request.Variables = make(map[string]interface{})
+		b.request.Variables = generation.NewTemplateVariables(nil)
 	}
-	b.request.Variables[key] = value
+	// Convert value to config.Variable
+	var variable config.Variable
+	switch v := value.(type) {
+	case string:
+		variable = &config.StringVariable{Value: v}
+	case int:
+		variable = &config.NumberVariable{Value: float64(v)}
+	case float64:
+		variable = &config.NumberVariable{Value: v}
+	case bool:
+		variable = &config.BoolVariable{Value: v}
+	default:
+		// Fallback to string representation
+		variable = &config.StringVariable{Value: fmt.Sprintf("%v", value)}
+	}
+	b.request.Variables.Set(key, variable)
 	return b
 }
 
-// WithVariables sets multiple variables
+// WithVariables sets multiple variables from a map
+// For backward compatibility - converts map[string]interface{} to TemplateVariables
 func (b *PDFGenerationRequestBuilder) WithVariables(variables map[string]interface{}) *PDFGenerationRequestBuilder {
-	if b.request.Variables == nil {
-		b.request.Variables = make(map[string]interface{})
+	templateVars, err := generation.NewTemplateVariablesFromMap(variables)
+	if err != nil {
+		// Log error but don't fail - set empty variables
+		b.request.Variables = generation.NewTemplateVariables(nil)
+		return b
 	}
-	for key, value := range variables {
-		b.request.Variables[key] = value
+	b.request.Variables = templateVars
+	return b
+}
+
+// WithTemplateVariables sets variables using TemplateVariables Value Object
+func (b *PDFGenerationRequestBuilder) WithTemplateVariables(variables *generation.TemplateVariables) *PDFGenerationRequestBuilder {
+	if variables == nil {
+		b.request.Variables = generation.NewTemplateVariables(nil)
+	} else {
+		b.request.Variables = variables
 	}
+	return b
+}
+
+// WithVariablesFromStruct sets variables by converting a struct using StructConverter
+func (b *PDFGenerationRequestBuilder) WithVariablesFromStruct(s interface{}) *PDFGenerationRequestBuilder {
+	// Create converter with defaults
+	conv := converter.BuildWithDefaults()
+
+	templateVars, err := generation.NewTemplateVariablesFromStruct(s, conv)
+	if err != nil {
+		// Log error but don't fail - set empty variables
+		b.request.Variables = generation.NewTemplateVariables(nil)
+		return b
+	}
+
+	b.request.Variables = templateVars
 	return b
 }
 
 // WithComplexVariable sets a complex nested variable
+// Deprecated: Use WithVariables or WithVariablesFromStruct instead
 func (b *PDFGenerationRequestBuilder) WithComplexVariable(key string, value map[string]interface{}) *PDFGenerationRequestBuilder {
 	if b.request.Variables == nil {
-		b.request.Variables = make(map[string]interface{})
+		b.request.Variables = generation.NewTemplateVariables(nil)
 	}
-	b.request.Variables[key] = value
+	// Convert nested map to Variables and set
+	nestedVars, err := generation.NewTemplateVariablesFromMap(value)
+	if err == nil {
+		// Set as nested value - for now just merge
+		b.request.Variables.Merge(nestedVars)
+	}
 	return b
 }
 
 // WithArrayVariable sets an array variable
+// Deprecated: Use WithVariables or WithVariablesFromStruct instead
 func (b *PDFGenerationRequestBuilder) WithArrayVariable(key string, values []interface{}) *PDFGenerationRequestBuilder {
 	if b.request.Variables == nil {
-		b.request.Variables = make(map[string]interface{})
+		b.request.Variables = generation.NewTemplateVariables(nil)
 	}
-	b.request.Variables[key] = values
+	// Convert array to Variables
+	sliceVar := config.NewSliceVariable()
+	for _, val := range values {
+		// Simple conversion
+		strVal := fmt.Sprintf("%v", val)
+		sliceVar.Values = append(sliceVar.Values, &config.StringVariable{Value: strVal})
+	}
+	b.request.Variables.Set(key, sliceVar)
 	return b
 }
 
@@ -120,6 +179,12 @@ func (b *PDFGenerationRequestBuilder) WithVerbose(level int) *PDFGenerationReque
 // WithDebug enables debug logging
 func (b *PDFGenerationRequestBuilder) WithDebug(debugOptions generation.DebugOptions) *PDFGenerationRequestBuilder {
 	b.request.Options.Debug = debugOptions
+	return b
+}
+
+// WithWatchMode enables file watching for automatic rebuilds
+func (b *PDFGenerationRequestBuilder) WithWatchMode(enabled bool) *PDFGenerationRequestBuilder {
+	b.request.Options.WatchMode = enabled
 	return b
 }
 
@@ -193,6 +258,12 @@ func (b *PDFGenerationOptionsBuilder) SetVerbose(level int) *PDFGenerationOption
 // SetDebug sets debug logging
 func (b *PDFGenerationOptionsBuilder) SetDebug(debugOptions generation.DebugOptions) *PDFGenerationOptionsBuilder {
 	b.options.Debug = debugOptions
+	return b
+}
+
+// SetWatchMode sets file watching mode
+func (b *PDFGenerationOptionsBuilder) SetWatchMode(enabled bool) *PDFGenerationOptionsBuilder {
+	b.options.WatchMode = enabled
 	return b
 }
 

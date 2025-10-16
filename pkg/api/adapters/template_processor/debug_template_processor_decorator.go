@@ -38,7 +38,7 @@ func NewDebugTemplateProcessorDecorator(
 func (d *DebugTemplateProcessorDecorator) Process(
 	ctx context.Context,
 	templatePath string,
-	variables map[string]interface{},
+	variables map[string]string,
 ) (string, error) {
 	// Delegate to wrapped processor
 	content, err := d.wrapped.Process(ctx, templatePath, variables)
