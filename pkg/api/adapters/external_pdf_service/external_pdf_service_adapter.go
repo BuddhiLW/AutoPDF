@@ -5,7 +5,6 @@ package adapters
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -159,9 +158,13 @@ func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PD
 		Variables: *config.NewVariables(),
 	}
 
-	// Set variables from request
-	for key, value := range req.Variables {
-		cfg.Variables.SetString(key, fmt.Sprintf("%v", value))
+	// Set variables from request (now using TemplateVariables)
+	if req.Variables != nil {
+		// Convert TemplateVariables to flattened map
+		flattened := req.Variables.Flatten()
+		for key, value := range flattened {
+			cfg.Variables.SetString(key, value)
+		}
 	}
 
 	return cfg

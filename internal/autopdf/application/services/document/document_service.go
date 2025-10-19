@@ -29,6 +29,7 @@ type BuildRequest struct {
 	OutputPath   string
 	DoConvert    bool
 	DoClean      bool
+	DebugEnabled bool // Enable debug mode for persistent concrete files
 	Conversion   ConversionSettings
 }
 
@@ -69,7 +70,7 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	}
 
 	// Step 3: Compile LaTeX to PDF
-	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, req.Engine, req.OutputPath)
+	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, req.Engine, req.OutputPath, req.DebugEnabled)
 	if err != nil {
 		return BuildResult{
 			Success: false,

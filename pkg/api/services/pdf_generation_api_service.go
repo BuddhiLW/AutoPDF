@@ -9,8 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
+	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
@@ -22,9 +24,9 @@ type PDFGenerationAPIService struct {
 }
 
 // NewPDFGenerationAPIService creates a new API service
-func NewPDFGenerationAPIService(cfg *config.Config) *PDFGenerationAPIService {
+func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter) *PDFGenerationAPIService {
 	// Create factory
-	factory := factories.NewPDFGenerationServiceFactory(cfg)
+	factory := factories.NewPDFGenerationServiceFactory(cfg, logger)
 
 	// Create application service
 	appService := factory.CreateApplicationService()
@@ -76,6 +78,15 @@ func (s *PDFGenerationAPIService) GeneratePDF(ctx context.Context, templatePath 
 // GeneratePDFWithOptions generates a PDF with custom options
 func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, options PDFGenerationOptions) ([]byte, map[string]string, error) {
 	// Build request with custom options
+	verboseLevel := 0
+	if options.Verbose {
+		verboseLevel = 1
+	}
+
+	debugOptions := generation.DebugOptions{
+		Enabled: options.Debug,
+	}
+
 	request := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(options.TemplatePath).
 		WithOutput(options.OutputPath).
@@ -84,8 +95,46 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 		WithConversion(options.Conversion.Enabled, options.Conversion.Formats...).
 		WithCleanup(options.Cleanup).
 		WithTimeout(options.Timeout).
-		WithVerbose(options.Verbose).
-		WithDebug(options.Debug).
+		WithVerbose(verboseLevel).
+		WithDebug(debugOptions).
+		Build()
+
+	// Generate PDF
+	result, err := s.appService.GeneratePDF(ctx, request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !result.Success {
+		return nil, nil, result.Error
+	}
+
+	// Read PDF bytes
+	pdfBytes, err := os.ReadFile(result.PDFPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
+	}
+
+	// Create image paths map
+	imagePaths := make(map[string]string)
+	for i, imagePath := range result.ImagePaths {
+		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
+	}
+
+	return pdfBytes, imagePaths, nil
+}
+
+// GeneratePDFFromStruct generates a PDF from a struct (converts struct to variables automatically)
+func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, templatePath string, outputPath string, data interface{}) ([]byte, map[string]string, error) {
+	// Build request using builder pattern with struct conversion
+	request := builders.NewPDFGenerationRequestBuilder().
+		WithTemplate(templatePath).
+		WithOutput(outputPath).
+		WithEngine(s.config.Engine.String()).
+		WithVariablesFromStruct(data). // Convert struct to TemplateVariables
+		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
+		WithCleanup(false). // Don't clean for API usage
+		WithTimeout(30 * time.Second).
 		Build()
 
 	// Generate PDF

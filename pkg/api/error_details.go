@@ -5,6 +5,8 @@ package api
 
 import (
 	"time"
+
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 )
 
 // ErrorDetails represents structured error information
@@ -200,4 +202,77 @@ func (ed *ErrorDetails) ToMap() map[string]interface{} {
 	}
 
 	return result
+}
+
+// LogError logs the error details using structured logging
+func (ed *ErrorDetails) LogError(logger *logger.LoggerAdapter) *ErrorDetails {
+	fields := []interface{}{
+		"category", ed.Category,
+		"severity", ed.Severity,
+		"timestamp", ed.Timestamp,
+	}
+
+	if ed.FilePath != "" {
+		fields = append(fields, "file_path", ed.FilePath)
+	}
+	if len(ed.Context) > 0 {
+		fields = append(fields, "context", ed.Context)
+	}
+	if ed.Validation != nil {
+		fields = append(fields, "validation_rule", ed.Validation.Rule)
+		fields = append(fields, "expected", ed.Validation.Expected)
+		fields = append(fields, "actual", ed.Validation.Actual)
+	}
+	if ed.System != nil {
+		fields = append(fields, "os", ed.System.OS)
+		fields = append(fields, "architecture", ed.System.Architecture)
+	}
+	if ed.Recovery != nil {
+		fields = append(fields, "retryable", ed.Recovery.Retryable)
+		fields = append(fields, "max_retries", ed.Recovery.MaxRetries)
+	}
+
+	// Log at appropriate level based on severity
+	switch ed.Severity {
+	case "high":
+		logger.ErrorWithFields("PDF generation error", fields...)
+	case "medium":
+		logger.WarnWithFields("PDF generation warning", fields...)
+	case "low":
+		logger.InfoWithFields("PDF generation info", fields...)
+	default:
+		logger.ErrorWithFields("PDF generation error", fields...)
+	}
+
+	return ed
+}
+
+// LogErrorWithMessage logs the error details with a custom message
+func (ed *ErrorDetails) LogErrorWithMessage(logger *logger.LoggerAdapter, message string) *ErrorDetails {
+	fields := []interface{}{
+		"category", ed.Category,
+		"severity", ed.Severity,
+		"timestamp", ed.Timestamp,
+	}
+
+	if ed.FilePath != "" {
+		fields = append(fields, "file_path", ed.FilePath)
+	}
+	if len(ed.Context) > 0 {
+		fields = append(fields, "context", ed.Context)
+	}
+
+	// Log at appropriate level based on severity
+	switch ed.Severity {
+	case "high":
+		logger.ErrorWithFields(message, fields...)
+	case "medium":
+		logger.WarnWithFields(message, fields...)
+	case "low":
+		logger.InfoWithFields(message, fields...)
+	default:
+		logger.ErrorWithFields(message, fields...)
+	}
+
+	return ed
 }

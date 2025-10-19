@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
+	"text/template"
 
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -19,17 +20,25 @@ import (
 // TemplateProcessorAdapter implements domain.TemplateProcessingService
 type TemplateProcessorAdapter struct {
 	config *config.Config
+	logger *logger.LoggerAdapter
 }
 
 // NewTemplateProcessorAdapter creates a new template processor adapter
-func NewTemplateProcessorAdapter(cfg *config.Config) *TemplateProcessorAdapter {
+func NewTemplateProcessorAdapter(cfg *config.Config, logger *logger.LoggerAdapter) *TemplateProcessorAdapter {
 	return &TemplateProcessorAdapter{
 		config: cfg,
+		logger: logger,
 	}
 }
 
 // Process processes a template with variables
-func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath string, variables map[string]interface{}) (string, error) {
+func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath string, variables map[string]string) (string, error) {
+	tpa.logger.DebugWithFields("Starting template processing",
+		"template_path", templatePath,
+		"variable_count", len(variables),
+		"variable_keys", getStringMapKeys(variables),
+	)
+
 	if templatePath == "" {
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
@@ -41,6 +50,10 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 	// Read template file
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
+		tpa.logger.ErrorWithFields("Failed to read template file",
+			"template_path", templatePath,
+			"error", err,
+		)
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
 			Message: api.ErrTemplateFileNotReadable,
@@ -50,9 +63,18 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 		}
 	}
 
+	tpa.logger.DebugWithFields("Template file read successfully",
+		"template_path", templatePath,
+		"content_length", len(content),
+	)
+
 	// Process template with variables
 	processedContent, err := tpa.processTemplate(string(content), variables)
 	if err != nil {
+		tpa.logger.ErrorWithFields("Failed to process template",
+			"template_path", templatePath,
+			"error", err,
+		)
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
 			Message: api.ErrTemplateProcessingFailed,
@@ -61,6 +83,12 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 				WithError(err),
 		}
 	}
+
+	tpa.logger.InfoWithFields("Template processing completed",
+		"template_path", templatePath,
+		"original_length", len(content),
+		"processed_length", len(processedContent),
+	)
 
 	return processedContent, nil
 }
@@ -136,78 +164,94 @@ func (tpa *TemplateProcessorAdapter) GetTemplateVariables(templatePath string) (
 	return variables, nil
 }
 
-// processTemplate processes template content with variables
-func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]interface{}) (string, error) {
-	// Use custom delimiters to avoid conflicts with LaTeX
-	delimStart := "delim[["
-	delimEnd := "]]"
+// processTemplate processes template content with variables using Go's text/template
+func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]string) (string, error) {
+	// Import text/template at the top of the file
+	// We need to use Go's text/template to support conditionals, loops, and dot notation
 
-	// Find all template variables
-	pattern := regexp.MustCompile(regexp.QuoteMeta(delimStart) + `([^` + regexp.QuoteMeta(delimEnd) + `]+)` + regexp.QuoteMeta(delimEnd))
+	// Convert flattened variables back to nested structure for template execution
+	templateData := tpa.reconstructNestedStructure(variables)
 
-	result := pattern.ReplaceAllStringFunc(content, func(match string) string {
-		// Extract variable name
-		variableName := strings.TrimPrefix(match, delimStart)
-		variableName = strings.TrimSuffix(variableName, delimEnd)
-		variableName = strings.TrimSpace(variableName)
-
-		// Handle dot notation and array access
-		value := tpa.resolveVariableValue(variableName, variables)
-		return value
-	})
-
-	return result, nil
-}
-
-// resolveVariableValue resolves a variable value from the variables map
-func (tpa *TemplateProcessorAdapter) resolveVariableValue(variableName string, variables map[string]interface{}) string {
-	// Handle dot notation (e.g., "foo.bar" or ".foo")
-	parts := strings.Split(variableName, ".")
-
-	var current interface{} = variables
-	for _, part := range parts {
-		// Skip empty parts (e.g., from ".foo" -> ["", "foo"])
-		if part == "" {
-			continue
-		}
-
-		// Handle array access (e.g., "foo[0]")
-		if strings.Contains(part, "[") && strings.Contains(part, "]") {
-			// Extract array name and index
-			arrayName := strings.Split(part, "[")[0]
-			indexStr := strings.TrimSuffix(strings.Split(part, "[")[1], "]")
-
-			if currentMap, ok := current.(map[string]interface{}); ok {
-				if array, exists := currentMap[arrayName]; exists {
-					if arraySlice, ok := array.([]interface{}); ok {
-						if index, err := strconv.Atoi(indexStr); err == nil && index >= 0 && index < len(arraySlice) {
-							current = arraySlice[index]
-							continue
-						}
-					}
-				}
-			}
-			return "" // Variable not found
-		}
-
-		// Handle regular map access
-		if currentMap, ok := current.(map[string]interface{}); ok {
-			if val, exists := currentMap[part]; exists {
-				current = val
-			} else {
-				return "" // Variable not found
-			}
-		} else {
-			return "" // Cannot traverse further
-		}
+	// Create template with custom delimiters
+	tmpl, err := tpa.createTemplate(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
-	// Convert final value to string
-	return fmt.Sprintf("%v", current)
+	// Execute template
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return buf.String(), nil
 }
 
-// getMapKeys returns the keys of a map for debugging
-func getMapKeys(m map[string]interface{}) []string {
+// createTemplate creates a Go template with custom delimiters
+func (tpa *TemplateProcessorAdapter) createTemplate(content string) (*template.Template, error) {
+	// Create function map for template functions
+	funcMap := template.FuncMap{
+		"eq": func(a, b interface{}) bool {
+			return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+		},
+	}
+
+	// Create template with custom delimiters to avoid conflicts with LaTeX
+	tmpl, err := template.New("latex").
+		Funcs(funcMap).
+		Delims("delim[[", "]]").
+		Parse(content)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tmpl, nil
+}
+
+// reconstructNestedStructure converts flattened variables back to nested structure
+// Handles flattened dot-notation keys from Flatten() method
+func (tpa *TemplateProcessorAdapter) reconstructNestedStructure(variables map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range variables {
+		// Handle flattened dot-notation keys (e.g., "velorio.dia", "velorio.periodo.inicio")
+		parts := splitKey(key)
+		tpa.setNestedValue(result, parts, value)
+	}
+
+	return result
+}
+
+// splitKey splits a dot-notation key into parts
+func splitKey(key string) []string {
+	return strings.Split(key, ".")
+}
+
+// setNestedValue sets a value in a nested map structure
+func (tpa *TemplateProcessorAdapter) setNestedValue(data map[string]interface{}, parts []string, value string) {
+	if len(parts) == 0 {
+		return
+	}
+
+	if len(parts) == 1 {
+		data[parts[0]] = value
+		return
+	}
+
+	// Create nested map if it doesn't exist
+	if _, exists := data[parts[0]]; !exists {
+		data[parts[0]] = make(map[string]interface{})
+	}
+
+	// Ensure it's a map
+	if nested, ok := data[parts[0]].(map[string]interface{}); ok {
+		tpa.setNestedValue(nested, parts[1:], value)
+	}
+}
+
+// getStringMapKeys returns the keys of a string map for debugging
+func getStringMapKeys(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

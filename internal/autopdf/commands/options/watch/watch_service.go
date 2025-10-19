@@ -15,6 +15,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/pattern_matcher"
 	watchService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/watch"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
+	argsPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch/exclude"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch/interval"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
@@ -28,9 +29,9 @@ var WatchServiceCmd = &bonzai.Cmd{
 	Name:    `watch`,
 	Alias:   `w`,
 	Short:   `watch files and auto-rebuild on changes`,
-	Usage:   `TEMPLATE [CONFIG]`,
+	Usage:   `TEMPLATE [CONFIG] [OPTIONS...]`,
 	MinArgs: 1,
-	MaxArgs: 2,
+	MaxArgs: 10, // Allow up to 10 arguments for multiple options
 	Long: `
 The watch command monitors template and configuration files for changes and automatically
 rebuilds the PDF when modifications are detected.
@@ -63,7 +64,7 @@ Examples:
 		defer logger.Sync()
 
 		// Execute the streamlined watch process
-		return executeWatchProcess(ctx, args)
+		return ExecuteWatchProcess(ctx, args)
 	},
 }
 
@@ -76,13 +77,20 @@ type WatchConfig struct {
 	Include      []string
 }
 
-// executeWatchProcess orchestrates file watching and automatic rebuilding
-func executeWatchProcess(ctx context.Context, args []string) error {
+// ExecuteWatchProcess orchestrates file watching and automatic rebuilding
+func ExecuteWatchProcess(ctx context.Context, args []string) error {
 	logger := configs.GetLoggerFromContext(ctx)
 	logger.InfoWithFields("Starting file watcher", "args", args)
 
-	// Parse watch arguments
-	watchConfig, err := parseWatchArgs(args)
+	// Filter out options first (they're ignored by watch but prevent errors)
+	argsParser := argsPkg.NewArgsParser()
+	cleanArgs, _, err := argsParser.ParseArgsWithOptions(args)
+	if err != nil {
+		return fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Parse watch arguments from cleaned args
+	watchConfig, err := parseWatchArgs(cleanArgs)
 	if err != nil {
 		return fmt.Errorf("failed to parse watch arguments: %w", err)
 	}

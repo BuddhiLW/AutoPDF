@@ -3,12 +3,15 @@
 
 package options
 
+import "time"
+
 // BuildOptions represents the domain model for build command options
 type BuildOptions struct {
 	Clean   CleanOption
 	Verbose VerboseOption
 	Debug   DebugOption
 	Force   ForceOption
+	Watch   WatchOption
 }
 
 // CleanOption represents the clean auxiliary files option
@@ -35,6 +38,12 @@ type ForceOption struct {
 	Overwrite bool // Whether to overwrite existing files
 }
 
+// WatchOption represents the watch mode option
+type WatchOption struct {
+	Enabled  bool
+	Interval time.Duration // Watch interval, defaults to 500ms
+}
+
 // NewBuildOptions creates a new BuildOptions with default values
 func NewBuildOptions() BuildOptions {
 	return BuildOptions{
@@ -42,6 +51,7 @@ func NewBuildOptions() BuildOptions {
 		Verbose: VerboseOption{Enabled: false, Level: 1},
 		Debug:   DebugOption{Enabled: false, Output: "stdout"},
 		Force:   ForceOption{Enabled: false, Overwrite: false},
+		Watch:   WatchOption{Enabled: false, Interval: 500 * time.Millisecond},
 	}
 }
 
@@ -69,25 +79,35 @@ func (bo *BuildOptions) EnableForce(overwrite bool) {
 	bo.Force.Overwrite = overwrite
 }
 
-// HasAnyEnabled returns true if any option is enabled
-func (bo *BuildOptions) HasAnyEnabled() bool {
-	return bo.Clean.Enabled || bo.Verbose.Enabled || bo.Debug.Enabled || bo.Force.Enabled
+// EnableWatch enables watch mode with the specified interval
+func (bo *BuildOptions) EnableWatch(interval time.Duration) {
+	bo.Watch.Enabled = true
+	bo.Watch.Interval = interval
 }
 
-// GetEnabledOptions returns a list of enabled option names
+// HasAnyEnabled returns true if any option is enabled
+func (bo *BuildOptions) HasAnyEnabled() bool {
+	for _, option := range bo.GetEnabledOptions() {
+		if option != "" {
+			return true
+		}
+	}
+	return false
+	// equivalent to:
+	// return bo.Clean.Enabled || bo.Verbose.Enabled || bo.Debug.Enabled || bo.Force.Enabled || bo.Watch.Enabled
+}
+
+// GetEnabledOptions returns a list of enabled option names as strings
 func (bo *BuildOptions) GetEnabledOptions() []string {
 	var enabled []string
-	if bo.Clean.Enabled {
-		enabled = append(enabled, "clean")
-	}
-	if bo.Verbose.Enabled {
-		enabled = append(enabled, "verbose")
-	}
 	if bo.Debug.Enabled {
 		enabled = append(enabled, "debug")
 	}
 	if bo.Force.Enabled {
 		enabled = append(enabled, "force")
+	}
+	if bo.Watch.Enabled {
+		enabled = append(enabled, "watch")
 	}
 	return enabled
 }

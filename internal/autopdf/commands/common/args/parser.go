@@ -6,6 +6,7 @@ package args
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
@@ -20,11 +21,33 @@ type BuildArgs struct {
 }
 
 // ArgsParser handles parsing of command line arguments
-type ArgsParser struct{}
+type ArgsParser struct {
+	registry *options.OptionRegistry
+}
 
 // NewArgsParser creates a new argument parser
 func NewArgsParser() *ArgsParser {
-	return &ArgsParser{}
+	return &ArgsParser{
+		registry: options.NewGlobalRegistry(),
+	}
+}
+
+// ParseArgsWithOptions extracts all known options from args and returns clean args
+func (ap *ArgsParser) ParseArgsWithOptions(args []string) (cleanArgs []string, buildOptions options.BuildOptions, err error) {
+	buildOptions = options.NewBuildOptions()
+	cleanArgs = make([]string, 0, len(args))
+
+	for _, arg := range args {
+		if ap.registry.IsOption(arg) {
+			// Parse and set the option
+			ap.setOption(&buildOptions, arg)
+		} else {
+			// Keep non-option arguments
+			cleanArgs = append(cleanArgs, arg)
+		}
+	}
+
+	return cleanArgs, buildOptions, nil
 }
 
 // ParseBuildArgs parses the build command arguments
@@ -86,8 +109,8 @@ func (ap *ArgsParser) ParseBuildArgsWithDelegation(args []string) (*BuildArgs, e
 	for i := 1; i < len(args); i++ {
 		arg := args[i]
 
-		// Check if this is a subcommand (like "convert")
-		if ap.isSubcommand(arg) {
+		// Check if this is a subcommand (like "convert") but NOT "watch" (which can be both option and subcommand)
+		if ap.isSubcommand(arg) && arg != "watch" {
 			// Everything from this point on is for the subcommand
 			buildArgs.RemainingArgs = args[i:]
 			break
@@ -125,11 +148,7 @@ func (ba *BuildArgs) GetRemainingArgs() []string {
 
 // isSubcommand checks if an argument is a subcommand
 func (ap *ArgsParser) isSubcommand(arg string) bool {
-	knownSubcommands := map[string]bool{
-		"convert": true,
-		"config":  true,
-	}
-	return knownSubcommands[arg]
+	return ap.registry.IsSubcommand(arg)
 }
 
 // ParseBuildArgsWithLogging parses build arguments with integrated logging
@@ -188,13 +207,7 @@ func getLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
 
 // isOption checks if an argument is an option (starts with known option names)
 func (ap *ArgsParser) isOption(arg string) bool {
-	knownOptions := map[string]bool{
-		"clean":   true,
-		"verbose": true,
-		"debug":   true,
-		"force":   true,
-	}
-	return knownOptions[arg]
+	return ap.registry.IsOption(arg)
 }
 
 // isValidConfigFile checks if an argument looks like a valid config file
@@ -233,5 +246,7 @@ func (ap *ArgsParser) setOption(buildOptions *options.BuildOptions, option strin
 		buildOptions.EnableDebug("stdout") // Default to stdout
 	case "force":
 		buildOptions.EnableForce(true) // Default to overwrite enabled
+	case "watch":
+		buildOptions.EnableWatch(500 * time.Millisecond) // Default to 500ms interval
 	}
 }
