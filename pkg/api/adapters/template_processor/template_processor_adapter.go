@@ -262,10 +262,8 @@ func getStringMapKeys(m map[string]string) []string {
 // validateLaTeXContent performs basic LaTeX validation
 func (tpa *TemplateProcessorAdapter) validateLaTeXContent(content string) error {
 	// Check for basic LaTeX structure
-	if !strings.Contains(content, "\\documentclass") {
-		return fmt.Errorf("template does not contain \\documentclass")
-	}
-
+	// For format-aware compilation, \documentclass is provided by the format file
+	// so we only require \begin{document} and \end{document}
 	if !strings.Contains(content, "\\begin{document}") {
 		return fmt.Errorf("template does not contain \\begin{document}")
 	}

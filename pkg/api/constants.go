@@ -16,7 +16,7 @@ const (
 	ErrPDFFileEmpty            = "PDF file is empty: %s"
 	ErrPDFFileInvalid          = "File is not a valid PDF: %s"
 	ErrPDFFileCorrupted        = "PDF file appears to be corrupted: %s"
-	ErrPDFFileExtensionInvalid = "File does not have .pdf extension: %s"
+	ErrPDFFileExtensionInvalid = "File does not have .pdf extension"
 
 	// PDF Structure validation
 	ErrPDFHeaderInvalid    = "Invalid PDF header signature"

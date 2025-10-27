@@ -9,12 +9,16 @@ import (
 )
 
 // PDFGenerationRequest represents a request to generate a PDF
+// Value Object: Encapsulates all parameters needed for PDF generation
 type PDFGenerationRequest struct {
-	TemplatePath string
-	Variables    *TemplateVariables
-	Engine       string
-	OutputPath   string
-	Options      PDFGenerationOptions
+	TemplatePath    string // Original template path (for reference/logging)
+	TemplateContent string // Processed template content with variables substituted
+	Variables       *TemplateVariables
+	Engine          string
+	OutputPath      string
+	FormatFile      string // Optional precompiled format file path (.fmt)
+	WorkingDir      string // Working directory for LaTeX execution
+	Options         PDFGenerationOptions
 }
 
 // PDFGenerationOptions contains optional settings for PDF generation

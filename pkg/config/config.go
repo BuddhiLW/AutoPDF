@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/rwxrob/bonzai/persisters/inyaml"
 	"gopkg.in/yaml.v3"
@@ -17,6 +18,8 @@ type Config struct {
 	Variables  Variables  `yaml:"variables" json:"variables" default:"{}"`
 	Engine     Engine     `yaml:"engine" json:"engine" default:"pdflatex"`
 	Conversion Conversion `yaml:"conversion" json:"conversion"`
+	FormatFile FormatFile `yaml:"format_file" json:"format_file" default:""` // Optional precompiled format file path
+	WorkingDir WorkingDir `yaml:"working_dir" json:"working_dir" default:""` // Working directory for LaTeX execution
 }
 
 func (c *Config) String() string {
@@ -43,6 +46,32 @@ type Engine string
 
 func (e Engine) String() string {
 	return string(e)
+}
+
+// FormatFile represents a precompiled LaTeX format file path
+// Value Object: Encapsulates format file path with domain meaning
+type FormatFile string
+
+func (f FormatFile) String() string {
+	return string(f)
+}
+
+// IsEmpty checks if format file path is empty
+func (f FormatFile) IsEmpty() bool {
+	return strings.TrimSpace(string(f)) == ""
+}
+
+// WorkingDir represents the working directory for LaTeX compilation
+// Value Object: Encapsulates working directory path with domain meaning
+type WorkingDir string
+
+func (w WorkingDir) String() string {
+	return string(w)
+}
+
+// IsEmpty checks if working directory path is empty
+func (w WorkingDir) IsEmpty() bool {
+	return strings.TrimSpace(string(w)) == ""
 }
 
 // Variables represents a collection of complex variables

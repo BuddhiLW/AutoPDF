@@ -11,7 +11,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	apiconfig "github.com/BuddhiLW/AutoPDF/pkg/api/config"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
@@ -42,6 +44,9 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	if _, err := exec.LookPath(engine); err != nil {
 		return "", fmt.Errorf("LaTeX engine not found: %s", engine)
 	}
+
+	// Load debug configuration from environment
+	debugConfig := apiconfig.LoadDebugConfigFromEnv()
 
 	// Create a temporary file for the LaTeX content
 	tempDir, err := os.Getwd()
@@ -100,23 +105,82 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	// Get the base name for the LaTeX job
 	baseName := strings.TrimSuffix(filepath.Base(pdfPath), ".pdf")
 
+	// Extract template directory from first line comment if present
+	// Template path should be passed via environment variable or inferred from output path
+	// For now, we'll try to get it from the AUTOPDF_TEMPLATE_PATH environment variable
+	templateDir := os.Getenv("AUTOPDF_TEMPLATE_DIR")
+
 	// Create command to run LaTeX
 	var cmd *exec.Cmd
 	if outputDir == "." {
 		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseName, concreteFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 	} else {
+		// Make output directory absolute to work with working directory change
+		absOutputDir, err := filepath.Abs(outputDir)
+		if err == nil {
+			outputDir = absOutputDir
+		}
 		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseName, outputDir, concreteFile)
 		cmd = exec.Command("sh", "-c", cmdStr)
 	}
 
-	// Run the LaTeX command
-	if err := cmd.Run(); err != nil {
+	// Set working directory to template directory if specified
+	// This allows templates to reference assets with relative paths like ./assets/logo.png
+	if templateDir != "" {
+		cmd.Dir = templateDir
+	}
+
+	// Run the LaTeX command and capture output for debug logging
+	var cmdOutput []byte
+	var cmdErr error
+	if debugConfig.Enabled {
+		// Capture both stdout and stderr for debug logging
+		cmdOutput, cmdErr = cmd.CombinedOutput()
+	} else {
+		// Normal execution without capturing output
+		cmdErr = cmd.Run()
+	}
+
+	if cmdErr != nil {
 		// Check if PDF was created despite the error
 		if _, statErr := os.Stat(pdfPath); statErr != nil {
-			return "", fmt.Errorf("LaTeX compilation failed: %w", err)
+			return "", fmt.Errorf("LaTeX compilation failed: %w", cmdErr)
 		}
 		// PDF was created, so continue
+	}
+
+	// Create debug log file if enabled
+	if debugConfig.Enabled {
+		logDir := debugConfig.GetLogDirectory()
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			fmt.Printf("Warning: Failed to create log directory %s: %v\n", logDir, err)
+		} else {
+			// Create timestamped log file
+			timestamp := time.Now().Format("20060102-150405")
+			logFile := filepath.Join(logDir, fmt.Sprintf("request-%s.log", timestamp))
+
+			// Prepare log content
+			logContent := fmt.Sprintf("=== AutoPDF LaTeX Compilation Log ===\n")
+			logContent += fmt.Sprintf("Timestamp: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+			logContent += fmt.Sprintf("Engine: %s\n", engine)
+			logContent += fmt.Sprintf("Input File: %s\n", concreteFile)
+			logContent += fmt.Sprintf("Output PDF: %s\n", pdfPath)
+			logContent += fmt.Sprintf("Command: %s\n", cmd.String())
+			logContent += fmt.Sprintf("Exit Code: %v\n", cmdErr)
+			logContent += fmt.Sprintf("\n=== LaTeX Output ===\n")
+			if len(cmdOutput) > 0 {
+				logContent += string(cmdOutput)
+			} else {
+				logContent += "No output captured\n"
+			}
+
+			if err := os.WriteFile(logFile, []byte(logContent), 0644); err != nil {
+				fmt.Printf("Warning: Failed to create debug log file %s: %v\n", logFile, err)
+			} else {
+				fmt.Printf("Debug: Created log file at %s\n", logFile)
+			}
+		}
 	}
 
 	// Check if output PDF exists and has content

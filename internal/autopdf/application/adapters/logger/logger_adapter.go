@@ -111,27 +111,27 @@ func (la *LoggerAdapter) SetLevel(level LogLevel) {
 
 // Info logs an info message
 func (la *LoggerAdapter) Info(msg string, fields ...zap.Field) {
-	la.logger.Info(msg, fields...)
+	la.logger.Info("[AutoPDF] "+msg, fields...)
 }
 
 // Debug logs a debug message
 func (la *LoggerAdapter) Debug(msg string, fields ...zap.Field) {
-	la.logger.Debug(msg, fields...)
+	la.logger.Debug("[AutoPDF] "+msg, fields...)
 }
 
 // Warn logs a warning message
 func (la *LoggerAdapter) Warn(msg string, fields ...zap.Field) {
-	la.logger.Warn(msg, fields...)
+	la.logger.Warn("[AutoPDF] "+msg, fields...)
 }
 
 // Error logs an error message
 func (la *LoggerAdapter) Error(msg string, fields ...zap.Field) {
-	la.logger.Error(msg, fields...)
+	la.logger.Error("[AutoPDF] "+msg, fields...)
 }
 
 // Fatal logs a fatal message and exits
 func (la *LoggerAdapter) Fatal(msg string, fields ...zap.Field) {
-	la.logger.Fatal(msg, fields...)
+	la.logger.Fatal("[AutoPDF] "+msg, fields...)
 }
 
 // InfoWithFields logs an info message with key-value pairs
@@ -145,7 +145,7 @@ func (la *LoggerAdapter) InfoWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Info(msg, fields...)
+	la.logger.Info("[AutoPDF] "+msg, fields...)
 }
 
 // DebugWithFields logs a debug message with key-value pairs
@@ -159,7 +159,7 @@ func (la *LoggerAdapter) DebugWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Debug(msg, fields...)
+	la.logger.Debug("[AutoPDF] "+msg, fields...)
 }
 
 // ErrorWithFields logs an error message with key-value pairs
@@ -173,7 +173,7 @@ func (la *LoggerAdapter) ErrorWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Error(msg, fields...)
+	la.logger.Error("[AutoPDF] "+msg, fields...)
 }
 
 // WarnWithFields logs a warning message with key-value pairs
@@ -187,7 +187,7 @@ func (la *LoggerAdapter) WarnWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Warn(msg, fields...)
+	la.logger.Warn("[AutoPDF] "+msg, fields...)
 }
 
 // Sync flushes any buffered log entries

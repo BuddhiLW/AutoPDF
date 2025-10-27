@@ -43,6 +43,13 @@ func (b *PDFGenerationRequestBuilder) WithTemplate(templatePath string) *PDFGene
 	return b
 }
 
+// WithTemplateContent sets the processed template content
+// This should be used when the template has already been processed with variables
+func (b *PDFGenerationRequestBuilder) WithTemplateContent(content string) *PDFGenerationRequestBuilder {
+	b.request.TemplateContent = content
+	return b
+}
+
 // WithEngine sets the LaTeX engine
 func (b *PDFGenerationRequestBuilder) WithEngine(engine string) *PDFGenerationRequestBuilder {
 	b.request.Engine = engine
@@ -52,6 +59,20 @@ func (b *PDFGenerationRequestBuilder) WithEngine(engine string) *PDFGenerationRe
 // WithOutput sets the output path
 func (b *PDFGenerationRequestBuilder) WithOutput(outputPath string) *PDFGenerationRequestBuilder {
 	b.request.OutputPath = outputPath
+	return b
+}
+
+// WithFormatFile sets the precompiled format file path
+// Fluent Builder: Optional format file for 4-12x compilation speedup
+func (b *PDFGenerationRequestBuilder) WithFormatFile(formatFile string) *PDFGenerationRequestBuilder {
+	b.request.FormatFile = formatFile
+	return b
+}
+
+// WithWorkingDir sets the working directory for LaTeX execution
+// Fluent Builder: Working directory where LaTeX will execute from
+func (b *PDFGenerationRequestBuilder) WithWorkingDir(workingDir string) *PDFGenerationRequestBuilder {
+	b.request.WorkingDir = workingDir
 	return b
 }
 

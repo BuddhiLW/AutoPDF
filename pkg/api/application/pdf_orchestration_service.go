@@ -6,6 +6,7 @@ package application
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
@@ -134,22 +135,42 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		}, err
 	}
 
-	// Write processed template to a temporary file
-	// This ensures the LaTeX engine uses the processed content with variables replaced
-	tempFile, err := os.CreateTemp("", "autopdf-processed-*.tex")
-	if err != nil {
-		return generation.PDFGenerationResult{
-			Success: false,
-			Error: domain.TemplateProcessingError{
-				Code:    domain.ErrCodeTemplateInvalid,
-				Message: "Failed to create temporary file for processed template",
-				Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
-					WithTemplatePath(req.TemplatePath).
-					WithError(err),
-			},
-		}, err
+	// Write processed template to working directory (not /tmp/)
+	// This ensures correct asset paths and keeps files organized
+	var tempFile *os.File
+	if req.WorkingDir != "" {
+		// Write to working directory for correct asset paths
+		tempFilePath := filepath.Join(req.WorkingDir, "processed_"+filepath.Base(req.TemplatePath))
+		tempFile, err = os.Create(tempFilePath)
+		if err != nil {
+			return generation.PDFGenerationResult{
+				Success: false,
+				Error: domain.TemplateProcessingError{
+					Code:    domain.ErrCodeTemplateInvalid,
+					Message: "Failed to create processed template file in working directory",
+					Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+						WithTemplatePath(req.TemplatePath).
+						WithError(err),
+				},
+			}, err
+		}
+	} else {
+		// Fallback to /tmp/ if no working directory
+		tempFile, err = os.CreateTemp("", "autopdf-processed-*.tex")
+		if err != nil {
+			return generation.PDFGenerationResult{
+				Success: false,
+				Error: domain.TemplateProcessingError{
+					Code:    domain.ErrCodeTemplateInvalid,
+					Message: "Failed to create temporary file for processed template",
+					Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
+						WithTemplatePath(req.TemplatePath).
+						WithError(err),
+				},
+			}, err
+		}
+		defer os.Remove(tempFile.Name()) // Clean up temporary file after generation
 	}
-	defer os.Remove(tempFile.Name()) // Clean up temporary file after generation
 
 	// Log processed content using guard
 	contentLen := len(processedContent)
@@ -182,11 +203,14 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	// Step 4: Generate PDF using external service with processed template
 	generationReq := generation.PDFGenerationRequest{
-		TemplatePath: tempFile.Name(), // Use processed template file
-		Variables:    req.Variables,   // Keep original variables for metadata
-		Engine:       req.Engine,
-		OutputPath:   req.OutputPath,
-		Options:      req.Options,
+		TemplatePath:    tempFile.Name(),  // Use processed temp file path
+		TemplateContent: processedContent, // Processed content with variables substituted
+		Variables:       req.Variables,    // Keep original variables for metadata
+		Engine:          req.Engine,
+		OutputPath:      req.OutputPath,
+		FormatFile:      req.FormatFile, // Pass format file if provided
+		WorkingDir:      req.WorkingDir, // Pass working directory
+		Options:         req.Options,
 	}
 
 	result, err := s.externalService.Generate(ctx, generationReq)

@@ -12,19 +12,24 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
+	apiconfig "github.com/BuddhiLW/AutoPDF/pkg/api/config"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	autopdfconfig "github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 // PDFGenerationAPIService provides a clean API for PDF generation
 type PDFGenerationAPIService struct {
-	appService *application.PDFGenerationApplicationService
-	config     *config.Config
+	appService  *application.PDFGenerationApplicationService
+	config      *autopdfconfig.Config
+	debugConfig *apiconfig.APIDebugConfig
 }
 
 // NewPDFGenerationAPIService creates a new API service
-func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter) *PDFGenerationAPIService {
+func NewPDFGenerationAPIService(cfg *autopdfconfig.Config, logger *logger.LoggerAdapter) *PDFGenerationAPIService {
+	// Load debug configuration from environment
+	debugConfig := apiconfig.LoadDebugConfigFromEnv()
+
 	// Create factory
 	factory := factories.NewPDFGenerationServiceFactory(cfg, logger)
 
@@ -32,8 +37,9 @@ func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter
 	appService := factory.CreateApplicationService()
 
 	return &PDFGenerationAPIService{
-		appService: appService,
-		config:     cfg,
+		appService:  appService,
+		config:      cfg,
+		debugConfig: debugConfig,
 	}
 }
 
@@ -126,8 +132,17 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 
 // GeneratePDFFromStruct generates a PDF from a struct (converts struct to variables automatically)
 func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, templatePath string, outputPath string, data interface{}) ([]byte, map[string]string, error) {
+	// Build debug options from environment config
+	debugOptions := generation.DebugOptions{
+		Enabled:            s.debugConfig.Enabled,
+		LogToFile:          s.debugConfig.Enabled, // Enable log files when debug is on
+		LogFilePath:        s.debugConfig.GetLogDirectory(),
+		CreateConcreteFile: s.debugConfig.Enabled, // Create concrete .tex files for inspection
+		RequestID:          fmt.Sprintf("request-%d", time.Now().Unix()),
+	}
+
 	// Build request using builder pattern with struct conversion
-	request := builders.NewPDFGenerationRequestBuilder().
+	requestBuilder := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(templatePath).
 		WithOutput(outputPath).
 		WithEngine(s.config.Engine.String()).
@@ -135,7 +150,19 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, tem
 		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
 		WithCleanup(false). // Don't clean for API usage
 		WithTimeout(30 * time.Second).
-		Build()
+		WithDebug(debugOptions) // Add debug options here
+
+	// Add format file if configured (DIP: depends on config abstraction)
+	if !s.config.FormatFile.IsEmpty() {
+		requestBuilder = requestBuilder.WithFormatFile(s.config.FormatFile.String())
+	}
+
+	// Add working directory if configured (DIP: depends on config abstraction)
+	if !s.config.WorkingDir.IsEmpty() {
+		requestBuilder = requestBuilder.WithWorkingDir(s.config.WorkingDir.String())
+	}
+
+	request := requestBuilder.Build()
 
 	// Generate PDF
 	result, err := s.appService.GeneratePDF(ctx, request)
