@@ -49,6 +49,8 @@ func (l LogLevel) String() string {
 }
 
 // NewLoggerAdapter creates a new logger adapter
+// If output is a file path (contains "/" and ends with ".log"), it will be used as the log file
+// Otherwise, output can be "stdout", "stderr", "file", or "both" for predefined behaviors
 func NewLoggerAdapter(level LogLevel, output string) *LoggerAdapter {
 	config := zap.NewProductionConfig()
 
@@ -67,17 +69,24 @@ func NewLoggerAdapter(level LogLevel, output string) *LoggerAdapter {
 	}
 
 	// Configure output based on debug setting
-	switch output {
-	case "stderr":
-		config.OutputPaths = []string{"stderr"}
-	case "file":
-		logFile := filepath.Join(os.TempDir(), fmt.Sprintf("autopdf-%d.log", time.Now().Unix()))
-		config.OutputPaths = []string{logFile}
-	case "both":
-		logFile := filepath.Join(os.TempDir(), fmt.Sprintf("autopdf-%d.log", time.Now().Unix()))
-		config.OutputPaths = []string{"stdout", logFile}
-	default: // stdout
-		config.OutputPaths = []string{"stdout"}
+	// Check if output is a custom file path (contains "/" and ends with ".log")
+	if filepath.IsAbs(output) || (filepath.Dir(output) != "." && filepath.Ext(output) == ".log") {
+		// Custom file path provided
+		config.OutputPaths = []string{output}
+	} else {
+		// Predefined output modes
+		switch output {
+		case "stderr":
+			config.OutputPaths = []string{"stderr"}
+		case "file":
+			logFile := filepath.Join(os.TempDir(), fmt.Sprintf("autopdf-%d.log", time.Now().Unix()))
+			config.OutputPaths = []string{logFile}
+		case "both":
+			logFile := filepath.Join(os.TempDir(), fmt.Sprintf("autopdf-%d.log", time.Now().Unix()))
+			config.OutputPaths = []string{"stdout", logFile}
+		default: // stdout
+			config.OutputPaths = []string{"stdout"}
+		}
 	}
 
 	// Add caller information for detailed debugging
@@ -90,6 +99,18 @@ func NewLoggerAdapter(level LogLevel, output string) *LoggerAdapter {
 	if level >= Detailed {
 		config.EncoderConfig = zap.NewDevelopmentEncoderConfig()
 		config.Encoding = "console"
+	}
+
+	// For file outputs (custom paths or "file"/"both" modes), create parent directories
+	for _, outputPath := range config.OutputPaths {
+		if outputPath != "stdout" && outputPath != "stderr" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				// Fallback to temp dir if custom path fails
+				logFile := filepath.Join(os.TempDir(), fmt.Sprintf("autopdf-%d.log", time.Now().Unix()))
+				config.OutputPaths = []string{logFile}
+				break
+			}
+		}
 	}
 
 	logger, err := config.Build()
@@ -109,29 +130,31 @@ func (la *LoggerAdapter) SetLevel(level LogLevel) {
 	la.logger = la.logger.WithOptions(zap.IncreaseLevel(zapcore.Level(level)))
 }
 
+const AutoPDFPrefix = "[AutoPDF] " // TODO: Move to a constant file
+
 // Info logs an info message
 func (la *LoggerAdapter) Info(msg string, fields ...zap.Field) {
-	la.logger.Info(msg, fields...)
+	la.logger.Info(AutoPDFPrefix+msg, fields...)
 }
 
 // Debug logs a debug message
 func (la *LoggerAdapter) Debug(msg string, fields ...zap.Field) {
-	la.logger.Debug(msg, fields...)
+	la.logger.Debug(AutoPDFPrefix+msg, fields...)
 }
 
 // Warn logs a warning message
 func (la *LoggerAdapter) Warn(msg string, fields ...zap.Field) {
-	la.logger.Warn(msg, fields...)
+	la.logger.Warn(AutoPDFPrefix+msg, fields...)
 }
 
 // Error logs an error message
 func (la *LoggerAdapter) Error(msg string, fields ...zap.Field) {
-	la.logger.Error(msg, fields...)
+	la.logger.Error(AutoPDFPrefix+msg, fields...)
 }
 
 // Fatal logs a fatal message and exits
 func (la *LoggerAdapter) Fatal(msg string, fields ...zap.Field) {
-	la.logger.Fatal(msg, fields...)
+	la.logger.Fatal(AutoPDFPrefix+msg, fields...)
 }
 
 // InfoWithFields logs an info message with key-value pairs
@@ -145,7 +168,7 @@ func (la *LoggerAdapter) InfoWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Info(msg, fields...)
+	la.logger.Info("[AutoPDF] "+msg, fields...)
 }
 
 // DebugWithFields logs a debug message with key-value pairs
@@ -159,7 +182,7 @@ func (la *LoggerAdapter) DebugWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Debug(msg, fields...)
+	la.logger.Debug("[AutoPDF] "+msg, fields...)
 }
 
 // ErrorWithFields logs an error message with key-value pairs
@@ -173,7 +196,7 @@ func (la *LoggerAdapter) ErrorWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Error(msg, fields...)
+	la.logger.Error("[AutoPDF] "+msg, fields...)
 }
 
 // WarnWithFields logs a warning message with key-value pairs
@@ -187,7 +210,7 @@ func (la *LoggerAdapter) WarnWithFields(msg string, keyValues ...interface{}) {
 			}
 		}
 	}
-	la.logger.Warn(msg, fields...)
+	la.logger.Warn("[AutoPDF] "+msg, fields...)
 }
 
 // Sync flushes any buffered log entries

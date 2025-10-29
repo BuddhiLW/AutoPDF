@@ -188,6 +188,13 @@ func (b *PDFGenerationRequestBuilder) WithWatchMode(enabled bool) *PDFGeneration
 	return b
 }
 
+// WithWorkingDir sets the working directory for LaTeX compilation
+// This isolates template builds to prevent file collisions
+func (b *PDFGenerationRequestBuilder) WithWorkingDir(workingDir string) *PDFGenerationRequestBuilder {
+	b.request.Options.WorkingDir = workingDir
+	return b
+}
+
 // Build constructs the final PDF generation request
 func (b *PDFGenerationRequestBuilder) Build() generation.PDFGenerationRequest {
 	return b.request

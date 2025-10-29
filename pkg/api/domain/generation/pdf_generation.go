@@ -28,6 +28,7 @@ type PDFGenerationOptions struct {
 	Force      bool
 	RequestID  string // For unique file naming
 	WatchMode  bool   // Enable file watching for automatic rebuilds
+	WorkingDir string // Working directory for LaTeX compilation (isolates template builds)
 }
 
 // DebugOptions contains debug-specific settings

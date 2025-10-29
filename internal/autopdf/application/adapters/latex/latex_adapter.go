@@ -7,23 +7,49 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	application "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 )
 
 // LaTeXCompilerAdapter wraps the existing LaTeX compiler
+// Now DIP-compliant: depends on ports, not low-level libraries
 type LaTeXCompilerAdapter struct {
-	config *config.Config
+	config     *config.Config
+	fileSystem application.FileSystem
+	executor   application.CommandExecutor
+	workingDir string // NEW: Configurable working directory
 }
 
 // NewLaTeXCompilerAdapter creates a new LaTeX compiler adapter
-func NewLaTeXCompilerAdapter(cfg *config.Config) *LaTeXCompilerAdapter {
+func NewLaTeXCompilerAdapter(
+	cfg *config.Config,
+	fileSystem application.FileSystem,
+	executor application.CommandExecutor,
+) *LaTeXCompilerAdapter {
 	return &LaTeXCompilerAdapter{
-		config: cfg,
+		config:     cfg,
+		fileSystem: fileSystem,
+		executor:   executor,
+		workingDir: "/tmp/autopdf", // Default working directory
+	}
+}
+
+// NewLaTeXCompilerAdapterWithWorkingDir creates a new LaTeX compiler adapter with custom working directory
+func NewLaTeXCompilerAdapterWithWorkingDir(
+	cfg *config.Config,
+	fileSystem application.FileSystem,
+	executor application.CommandExecutor,
+	workingDir string,
+) *LaTeXCompilerAdapter {
+	return &LaTeXCompilerAdapter{
+		config:     cfg,
+		fileSystem: fileSystem,
+		executor:   executor,
+		workingDir: workingDir, // Use provided working directory
 	}
 }
 
@@ -39,14 +65,16 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	}
 
 	// Verify that the engine is installed
-	if _, err := exec.LookPath(engine); err != nil {
+	if _, err := lca.executor.Execute(ctx, application.NewCommand("which", []string{engine}, "")); err != nil {
 		return "", fmt.Errorf("LaTeX engine not found: %s", engine)
 	}
 
-	// Create a temporary file for the LaTeX content
-	tempDir, err := os.Getwd()
-	if err != nil {
-		return "", err
+	// Use configurable working directory
+	workingDir := lca.workingDir
+
+	// Ensure working directory exists
+	if err := lca.fileSystem.MkdirAll(ctx, workingDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create working directory: %w", err)
 	}
 
 	// Generate a concrete file name
@@ -66,16 +94,20 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 			concreteFileName = "autopdf_" + strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".tex"
 		}
 	}
-	concreteFile := filepath.Join(tempDir, concreteFileName)
+	concreteFile := filepath.Join(workingDir, concreteFileName)
 
 	// Write the content to the concrete file
-	if err := os.WriteFile(concreteFile, []byte(content), 0644); err != nil {
+	if err := lca.fileSystem.WriteFile(ctx, concreteFile, []byte(content), 0644); err != nil {
 		return "", err
 	}
 
 	// Only clean up temp file if not in debug mode
 	if !debugEnabled {
-		defer os.Remove(concreteFile)
+		defer func() {
+			if err := lca.fileSystem.Remove(ctx, concreteFile); err != nil {
+				// Log cleanup error but don't fail
+			}
+		}()
 	}
 
 	// Determine output PDF path
@@ -88,12 +120,12 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	} else {
 		// Default output path
 		baseName := strings.TrimSuffix(filepath.Base(concreteFile), ".tex")
-		pdfPath = filepath.Join(tempDir, baseName+".pdf")
+		pdfPath = filepath.Join(workingDir, baseName+".pdf")
 	}
 
 	// Create output directory if needed
 	outputDir := filepath.Dir(pdfPath)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := lca.fileSystem.MkdirAll(ctx, outputDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -101,28 +133,35 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, en
 	baseName := strings.TrimSuffix(filepath.Base(pdfPath), ".pdf")
 
 	// Create command to run LaTeX
-	var cmd *exec.Cmd
+	var cmdStr string
 	if outputDir == "." {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseName, concreteFile)
-		cmd = exec.Command("sh", "-c", cmdStr)
+		cmdStr = fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", engine, baseName, concreteFile)
 	} else {
-		cmdStr := fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseName, outputDir, concreteFile)
-		cmd = exec.Command("sh", "-c", cmdStr)
+		cmdStr = fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", engine, baseName, outputDir, concreteFile)
 	}
 
+	cmd := application.NewCommand("sh", []string{"-c", cmdStr}, workingDir).
+		WithTimeout(5 * time.Minute)
+
 	// Run the LaTeX command
-	if err := cmd.Run(); err != nil {
+	result, err := lca.executor.Execute(ctx, cmd)
+	if err != nil {
 		// Check if PDF was created despite the error
-		if _, statErr := os.Stat(pdfPath); statErr != nil {
-			return "", fmt.Errorf("LaTeX compilation failed: %w", err)
+		if _, statErr := lca.fileSystem.Stat(ctx, pdfPath); statErr != nil {
+			// Include LaTeX's actual error output in the error message
+			errorDetails := fmt.Sprintf(
+				"LaTeX compilation failed:\nCommand: %s\nWorking Dir: %s\nStderr:\n%s\nStdout:\n%s",
+				cmdStr, workingDir, result.Stderr, result.Stdout,
+			)
+			return "", fmt.Errorf("%s: %w", errorDetails, err)
 		}
 		// PDF was created, so continue
 	}
 
 	// Check if output PDF exists and has content
-	fileInfo, statErr := os.Stat(pdfPath)
+	fileInfo, statErr := lca.fileSystem.Stat(ctx, pdfPath)
 	if statErr != nil {
-		if os.IsNotExist(statErr) {
+		if lca.fileSystem.IsNotExist(statErr) {
 			return "", errors.New("PDF output file was not created")
 		}
 		return "", fmt.Errorf("error checking output file: %w", statErr)

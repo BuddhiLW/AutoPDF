@@ -19,21 +19,23 @@ import (
 
 // PDFGenerationAPIService provides a clean API for PDF generation
 type PDFGenerationAPIService struct {
-	appService *application.PDFGenerationApplicationService
-	config     *config.Config
+	appService   *application.PDFGenerationApplicationService
+	config       *config.Config
+	debugEnabled bool
 }
 
 // NewPDFGenerationAPIService creates a new API service
-func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter) *PDFGenerationAPIService {
+func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool) *PDFGenerationAPIService {
 	// Create factory
-	factory := factories.NewPDFGenerationServiceFactory(cfg, logger)
+	factory := factories.NewPDFGenerationServiceFactory(cfg, logger, debugEnabled)
 
 	// Create application service
 	appService := factory.CreateApplicationService()
 
 	return &PDFGenerationAPIService{
-		appService: appService,
-		config:     cfg,
+		appService:   appService,
+		config:       cfg,
+		debugEnabled: debugEnabled,
 	}
 }
 
@@ -135,9 +137,55 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, tem
 		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
 		WithCleanup(false). // Don't clean for API usage
 		WithTimeout(30 * time.Second).
+		WithDebug(generation.DebugOptions{
+			Enabled: s.debugEnabled,
+		}).
 		Build()
 
 	// Generate PDF
+	result, err := s.appService.GeneratePDF(ctx, request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !result.Success {
+		return nil, nil, result.Error
+	}
+
+	// Read PDF bytes
+	pdfBytes, err := os.ReadFile(result.PDFPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
+	}
+
+	// Create image paths map
+	imagePaths := make(map[string]string)
+	for i, imagePath := range result.ImagePaths {
+		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
+	}
+
+	return pdfBytes, imagePaths, nil
+}
+
+// GeneratePDFFromStructWithWorkingDir generates a PDF from a struct with custom working directory
+// Uses the full application service pipeline to ensure variable resolution works correctly
+func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx context.Context, templatePath string, outputPath string, data interface{}, workingDir string) ([]byte, map[string]string, error) {
+	// Build request using builder pattern with struct conversion and working directory
+	request := builders.NewPDFGenerationRequestBuilder().
+		WithTemplate(templatePath).
+		WithOutput(outputPath).
+		WithEngine(s.config.Engine.String()).
+		WithVariablesFromStruct(data). // Convert struct to TemplateVariables
+		WithWorkingDir(workingDir).    // Set working directory in request
+		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
+		WithCleanup(false). // Don't clean for API usage
+		WithTimeout(30 * time.Second).
+		WithDebug(generation.DebugOptions{
+			Enabled: s.debugEnabled,
+		}).
+		Build()
+
+	// Use application service (maintains full pipeline: Variable Resolver → External PDF Service)
 	result, err := s.appService.GeneratePDF(ctx, request)
 	if err != nil {
 		return nil, nil, err

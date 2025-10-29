@@ -25,6 +25,7 @@ func NewPDFGenerationApplicationService(
 	watchService watch.WatchService,
 	watchManager generation.WatchModeManager,
 	logger *logger.LoggerAdapter,
+	debugEnabled bool, // Accept debug flag
 ) *PDFGenerationApplicationService {
 	// Initialize orchestration service with all dependencies
 	orchestrationService := NewPDFOrchestrationService(

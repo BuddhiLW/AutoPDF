@@ -47,6 +47,7 @@ func WatchModeExample() {
 		nil, // watchService (not needed for this example)
 		watchManager,
 		logger,
+		false, // Default debug to false for examples
 	)
 
 	// Create a PDF generation request with watch mode enabled

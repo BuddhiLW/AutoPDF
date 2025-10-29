@@ -18,6 +18,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/template"
 	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/args"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 
 	// Legacy converter functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -35,9 +36,13 @@ func NewServiceBuilder() *ServiceBuilder {
 
 // BuildDocumentService constructs the DocumentService with all required adapters
 func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentService.DocumentService {
+	// Create infrastructure adapters (DIP: Application depends on abstractions)
+	fileSystem := infraadapters.NewOSFileSystem()
+	executor := infraadapters.NewOSCommandExecutor()
+
 	return &documentService.DocumentService{
 		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
-		LaTeXCompiler:     latex.NewLaTeXCompilerAdapter(cfg),
+		LaTeXCompiler:     latex.NewLaTeXCompilerAdapter(cfg, fileSystem, executor),
 		Converter:         converter.NewConverterAdapter(cfg),
 		Cleaner:           cleaner.NewCleanerAdapter(),
 	}

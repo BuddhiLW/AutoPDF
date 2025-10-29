@@ -20,15 +20,17 @@ import (
 
 // PDFGenerationServiceFactory creates PDF generation services
 type PDFGenerationServiceFactory struct {
-	config *config.Config
-	logger *logger.LoggerAdapter
+	config       *config.Config
+	logger       *logger.LoggerAdapter
+	debugEnabled bool
 }
 
 // NewPDFGenerationServiceFactory creates a new factory
-func NewPDFGenerationServiceFactory(cfg *config.Config, logger *logger.LoggerAdapter) *PDFGenerationServiceFactory {
+func NewPDFGenerationServiceFactory(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool) *PDFGenerationServiceFactory {
 	return &PDFGenerationServiceFactory{
-		config: cfg,
-		logger: logger,
+		config:       cfg,
+		logger:       logger,
+		debugEnabled: debugEnabled,
 	}
 }
 
@@ -38,7 +40,7 @@ func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PD
 	templateAdapter := template_processor.NewTemplateProcessorAdapter(f.config, f.logger)
 	variableResolver := variable_resolver.NewVariableResolverAdapter(f.config, f.logger)
 	pdfValidator := pdf_validator.NewPDFValidatorAdapter()
-	externalService := external_pdf_service.NewExternalPDFServiceAdapter(f.config)
+	externalService := external_pdf_service.NewExternalPDFServiceAdapter(f.config, f.debugEnabled)
 
 	// Create watch service dependencies
 	// For factory usage, create a minimal watch service
@@ -55,6 +57,7 @@ func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PD
 		watchServiceAdapter,
 		watchManager,
 		f.logger,
+		f.debugEnabled,
 	)
 }
 
@@ -75,7 +78,7 @@ func (f *PDFGenerationServiceFactory) CreatePDFValidator() generation.PDFValidat
 
 // CreateExternalService creates an external PDF service
 func (f *PDFGenerationServiceFactory) CreateExternalService() generation.PDFGenerationService {
-	return external_pdf_service.NewExternalPDFServiceAdapter(f.config)
+	return external_pdf_service.NewExternalPDFServiceAdapter(f.config, f.debugEnabled)
 }
 
 // CreateCompleteService creates a complete service with all dependencies

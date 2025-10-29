@@ -74,7 +74,7 @@ func ExampleComplexVariables() {
 
 	// Create logger and API service
 	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger)
+	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
 
 	// Example 1: Using builder pattern with complex variables
 	ctx := context.Background()
@@ -119,7 +119,7 @@ func ExampleBuilderPattern() {
 
 	// Create logger and API service
 	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger)
+	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
 
 	// Build request using builder pattern
 	options := services.NewPDFGenerationOptions("template.tex", "output.pdf").
@@ -162,7 +162,7 @@ func ExampleTemplateVariables() {
 
 	// Create logger and API service
 	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger)
+	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
 
 	// Extract variables from template
 	variables, err := apiService.GetTemplateVariables("template.tex")
@@ -260,7 +260,7 @@ func ExampleTemplateProcessing() {
 
 	// Create logger and API service
 	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger)
+	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
 
 	// Generate PDF
 	ctx := context.Background()

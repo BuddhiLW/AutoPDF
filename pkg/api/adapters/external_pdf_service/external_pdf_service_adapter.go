@@ -20,26 +20,85 @@ import (
 // ExternalPDFServiceAdapter implements domain.PDFGenerationService
 // This adapter bridges the API layer with the internal application layer
 type ExternalPDFServiceAdapter struct {
-	config *config.Config
+	config       *config.Config
+	debugEnabled bool // Store debug from config
 }
 
 // NewExternalPDFServiceAdapter creates a new external PDF service adapter
-func NewExternalPDFServiceAdapter(cfg *config.Config) *ExternalPDFServiceAdapter {
+func NewExternalPDFServiceAdapter(cfg *config.Config, debugEnabled bool) *ExternalPDFServiceAdapter {
 	return &ExternalPDFServiceAdapter{
-		config: cfg,
+		config:       cfg,
+		debugEnabled: debugEnabled,
 	}
 }
 
 // Generate generates a PDF using the internal application layer
 func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req generation.PDFGenerationRequest) (generation.PDFGenerationResult, error) {
+	// Merge debug: request overrides config default
+	debugEnabled := epsa.debugEnabled
+	if req.Options.Debug.Enabled {
+		debugEnabled = true
+	}
+
 	// Convert domain request to config
 	cfg := epsa.createConfigFromRequest(req)
 
 	// Create internal application adapter
 	internalAdapter := adapters.NewInternalApplicationAdapter(cfg)
 
-	// Generate PDF using the internal adapter
-	pdfBytes, paths, err := internalAdapter.GeneratePDF(cfg, config.Template(req.TemplatePath))
+	// Extract working directory from request options
+	workingDir := req.Options.WorkingDir
+
+	// Generate PDF using the internal adapter with working directory
+	pdfBytes, paths, err := internalAdapter.GeneratePDF(cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
+	if err != nil {
+		return generation.PDFGenerationResult{
+			Success: false,
+			Error: domain.PDFGenerationError{
+				Code:    domain.ErrCodePDFGenerationFailed,
+				Message: "PDF generation failed",
+				Details: api.NewErrorDetails(api.ErrorCategoryGeneration, api.ErrorSeverityHigh).
+					WithError(err),
+			},
+		}, err
+	}
+
+	// Convert result to domain result
+	imagePaths := make([]string, 0, len(paths))
+	for _, path := range paths {
+		imagePaths = append(imagePaths, path)
+	}
+
+	return generation.PDFGenerationResult{
+		PDFPath:    req.OutputPath,
+		ImagePaths: imagePaths,
+		Success:    true,
+		Metadata: generation.PDFMetadata{
+			FileSize:    int64(len(pdfBytes)),
+			PageCount:   1, // Would need proper PDF parsing
+			GeneratedAt: time.Now(),
+			Engine:      req.Engine,
+			Template:    req.TemplatePath,
+		},
+	}, nil
+}
+
+// GenerateWithWorkingDir generates a PDF using the internal application layer with custom working directory
+func (epsa *ExternalPDFServiceAdapter) GenerateWithWorkingDir(ctx context.Context, req generation.PDFGenerationRequest, workingDir string) (generation.PDFGenerationResult, error) {
+	// Merge debug: request overrides config default
+	debugEnabled := epsa.debugEnabled
+	if req.Options.Debug.Enabled {
+		debugEnabled = true
+	}
+
+	// Convert domain request to config
+	cfg := epsa.createConfigFromRequest(req)
+
+	// Create internal application adapter
+	internalAdapter := adapters.NewInternalApplicationAdapter(cfg)
+
+	// Generate PDF using the internal adapter with custom working directory
+	pdfBytes, paths, err := internalAdapter.GeneratePDFWithWorkingDir(cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
 	if err != nil {
 		return generation.PDFGenerationResult{
 			Success: false,

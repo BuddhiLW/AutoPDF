@@ -32,7 +32,8 @@ type PDFGenerationAPI struct {
 func NewPDFGenerationAPI(cfg *config.Config) *PDFGenerationAPI {
 	// Create factory and application service
 	// Note: In a real implementation, you'd inject a proper logger
-	factory := factories.NewPDFGenerationServiceFactory(cfg, nil)
+	// Default debugEnabled to false for legacy REST API compatibility
+	factory := factories.NewPDFGenerationServiceFactory(cfg, nil, false)
 	appService := factory.CreateApplicationService()
 
 	return &PDFGenerationAPI{

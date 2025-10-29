@@ -16,8 +16,8 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 	// Create the internal application adapter
 	adapter := adapters.NewInternalApplicationAdapter(cfg)
 
-	// Use the adapter to generate the PDF
-	return adapter.GeneratePDF(cfg, template)
+	// Use the adapter to generate the PDF (default debugEnabled to false, workingDir empty for legacy compatibility)
+	return adapter.GeneratePDF(cfg, template, false, "")
 }
 
 // func convertToFormat(file string, format string) string {
