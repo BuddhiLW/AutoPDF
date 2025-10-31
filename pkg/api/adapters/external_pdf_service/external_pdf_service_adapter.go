@@ -214,7 +214,9 @@ func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PD
 			Enabled: req.Options.Conversion.Enabled,
 			Formats: req.Options.Conversion.Formats,
 		},
-		Variables: *config.NewVariables(),
+		Variables:  *config.NewVariables(),
+		Passes:     req.Options.Passes,
+		UseLatexmk: req.Options.UseLatexmk,
 	}
 
 	// Set variables from request (now using TemplateVariables)

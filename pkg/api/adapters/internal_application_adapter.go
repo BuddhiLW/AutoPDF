@@ -16,6 +16,7 @@ import (
 	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	errors "github.com/BuddhiLW/AutoPDF/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -63,9 +64,12 @@ func (iaa *InternalApplicationAdapter) GeneratePDF(cfg *config.Config, template 
 		Variables:    &mergedCfg.Variables,
 		Engine:       mergedCfg.Engine.String(),
 		OutputPath:   mergedCfg.Output.String(),
+		WorkingDir:   workingDir, // Pass working directory to BuildRequest
 		DoConvert:    mergedCfg.Conversion.Enabled,
 		DoClean:      false, // Don't clean for API usage
 		DebugEnabled: debugEnabled,
+		Passes:       mergedCfg.Passes,
+		UseLatexmk:   mergedCfg.UseLatexmk,
 		Conversion: documentService.ConversionSettings{
 			Enabled: mergedCfg.Conversion.Enabled,
 			Formats: mergedCfg.Conversion.Formats,
@@ -138,9 +142,12 @@ func (iaa *InternalApplicationAdapter) GeneratePDFWithWorkingDir(cfg *config.Con
 		Variables:    &mergedCfg.Variables,
 		Engine:       mergedCfg.Engine.String(),
 		OutputPath:   mergedCfg.Output.String(),
+		WorkingDir:   workingDir, // Pass working directory to BuildRequest
 		DoConvert:    mergedCfg.Conversion.Enabled,
 		DoClean:      false, // Don't clean for API usage
 		DebugEnabled: debugEnabled,
+		Passes:       mergedCfg.Passes,
+		UseLatexmk:   mergedCfg.UseLatexmk,
 		Conversion: documentService.ConversionSettings{
 			Enabled: mergedCfg.Conversion.Enabled,
 			Formats: mergedCfg.Conversion.Formats,
@@ -257,5 +264,8 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(cfg *
 		LaTeXCompiler:     latexAdapter,
 		Converter:         converterAdapter,
 		Cleaner:           cleanerAdapter,
+		PathOps:           infraadapters.NewOSPathOperations(),
+		FileSystem:        infraadapters.NewOSFileSystem(),
+		ErrorFactory:      errors.NewDomainErrorFactory(nil),
 	}
 }

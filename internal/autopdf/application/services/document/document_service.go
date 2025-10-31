@@ -5,10 +5,10 @@ package document
 
 import (
 	"context"
-	"fmt"
 
 	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	apperrors "github.com/BuddhiLW/AutoPDF/pkg/errors"
 )
 
 // DocumentService orchestrates the document generation workflow
@@ -18,6 +18,9 @@ type DocumentService struct {
 	LaTeXCompiler     ports.LaTeXCompiler
 	Converter         ports.Converter
 	Cleaner           ports.Cleaner
+	PathOps           ports.PathOperations
+	FileSystem        ports.FileSystem
+	ErrorFactory      *apperrors.DomainErrorFactory
 }
 
 // BuildRequest encapsulates all parameters for building a document
@@ -27,9 +30,12 @@ type BuildRequest struct {
 	Variables    *config.Variables // Use complex variables from pkg/
 	Engine       string
 	OutputPath   string
+	WorkingDir   string // Working directory for LaTeX compilation (where assets are symlinked)
 	DoConvert    bool
 	DoClean      bool
 	DebugEnabled bool // Enable debug mode for persistent concrete files
+	Passes       int  // Number of compilation passes
+	UseLatexmk   bool // Whether to use latexmk
 	Conversion   ConversionSettings
 }
 
@@ -65,16 +71,27 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	if err != nil {
 		return BuildResult{
 			Success: false,
-			Error:   fmt.Errorf("template processing failed: %w", err),
+			Error:   s.ErrorFactory.TemplateProcessingFailed(req.TemplatePath, err),
 		}, err
 	}
 
 	// Step 3: Compile LaTeX to PDF
-	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, req.Engine, req.OutputPath, req.DebugEnabled)
+	// Note: Asset symlinks should be set up by the calling strategy (e.g., AutoPDFGenerationStrategy)
+	// Use the working directory from BuildRequest if provided, otherwise derive from output path
+	workingDir := req.WorkingDir
+	if workingDir == "" {
+		workingDir = s.PathOps.Dir(req.OutputPath)
+	}
+	compileOptions := ports.NewCompileOptions(req.Engine, req.OutputPath, workingDir).
+		WithDebug(req.DebugEnabled).
+		WithPasses(req.Passes).
+		WithLatexmk(req.UseLatexmk)
+
+	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, compileOptions)
 	if err != nil {
 		return BuildResult{
 			Success: false,
-			Error:   fmt.Errorf("LaTeX compilation failed: %w", err),
+			Error:   s.ErrorFactory.LaTeXCompilationFailed(req.OutputPath, err),
 		}, err
 	}
 
@@ -83,22 +100,22 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 		Success: true,
 	}
 
-	// Step 4: Optionally convert PDF to images
+	// Step 5: Optionally convert PDF to images
 	if req.DoConvert && req.Conversion.Enabled {
 		imagePaths, err := s.Converter.ConvertToImages(ctx, pdfPath, req.Conversion.Formats)
 		if err != nil {
 			// Log warning but don't fail the build
-			result.Error = fmt.Errorf("PDF conversion failed: %w", err)
+			result.Error = s.ErrorFactory.PDFConversionFailed(pdfPath, err)
 		} else {
 			result.ImagePaths = imagePaths
 		}
 	}
 
-	// Step 5: Optionally clean auxiliary files
+	// Step 6: Optionally clean auxiliary files
 	if req.DoClean {
 		if err := s.Cleaner.Clean(ctx, pdfPath); err != nil {
 			// Log warning but don't fail the build
-			result.Error = fmt.Errorf("cleanup failed: %w", err)
+			result.Error = s.ErrorFactory.CleanupFailed(pdfPath, err)
 		}
 	}
 
