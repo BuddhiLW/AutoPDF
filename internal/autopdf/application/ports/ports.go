@@ -18,7 +18,73 @@ type TemplateProcessor interface {
 // LaTeXCompiler compiles LaTeX content to PDF
 // Pure transport types - no domain dependencies
 type LaTeXCompiler interface {
-	Compile(ctx context.Context, content string, engine string, outputPath string, debugEnabled bool) (string, error)
+	Compile(ctx context.Context, content string, opts CompileOptions) (string, error)
+}
+
+// CompileOptions represents LaTeX compilation parameters
+// Value Object following DDD principles - immutable and validated
+type CompileOptions struct {
+	Engine     string // pdflatex, xelatex, lualatex
+	OutputPath string
+	WorkingDir string
+	Passes     int  // Number of compilation passes
+	UseLatexmk bool // Whether to use latexmk
+	JobName    string
+	Cleanup    bool // Whether to cleanup aux files
+	Debug      bool // Whether debug mode is enabled
+}
+
+// NewCompileOptions creates a validated CompileOptions with defaults
+func NewCompileOptions(engine, outputPath, workingDir string) CompileOptions {
+	return CompileOptions{
+		Engine:     engine,
+		OutputPath: outputPath,
+		WorkingDir: workingDir,
+		Passes:     1,
+		UseLatexmk: false,
+		JobName:    "document",
+		Cleanup:    true,
+		Debug:      false,
+	}
+}
+
+// WithPasses sets the number of compilation passes
+func (opts CompileOptions) WithPasses(passes int) CompileOptions {
+	if passes < 1 {
+		passes = 1
+	}
+	if passes > 10 {
+		passes = 10
+	}
+	opts.Passes = passes
+	return opts
+}
+
+// WithLatexmk enables latexmk usage
+func (opts CompileOptions) WithLatexmk(useLatexmk bool) CompileOptions {
+	opts.UseLatexmk = useLatexmk
+	return opts
+}
+
+// WithJobName sets the job name
+func (opts CompileOptions) WithJobName(jobName string) CompileOptions {
+	if jobName == "" {
+		jobName = "document"
+	}
+	opts.JobName = jobName
+	return opts
+}
+
+// WithCleanup sets cleanup behavior
+func (opts CompileOptions) WithCleanup(cleanup bool) CompileOptions {
+	opts.Cleanup = cleanup
+	return opts
+}
+
+// WithDebug sets debug mode
+func (opts CompileOptions) WithDebug(debug bool) CompileOptions {
+	opts.Debug = debug
+	return opts
 }
 
 // Converter converts PDFs to images
@@ -58,8 +124,23 @@ type FileSystem interface {
 	// Directory operations
 	MkdirAll(ctx context.Context, path string, perm fs.FileMode) error
 
+	// Symlink operations
+	Symlink(ctx context.Context, oldname, newname string) error
+
 	// Synchronization
 	Sync(ctx context.Context) error
+}
+
+// PathOperations abstracts path manipulation operations (DIP for AutoPDF)
+// This ensures the application layer doesn't depend on path/filepath package
+type PathOperations interface {
+	// Path manipulation
+	Dir(path string) string
+	Base(path string) string
+	Ext(path string) string
+	Join(elem ...string) string
+	IsAbs(path string) bool
+	Clean(path string) string
 }
 
 // FileInfo abstracts file information
@@ -69,6 +150,7 @@ type FileInfo interface {
 	Mode() fs.FileMode
 	ModTime() time.Time
 	IsDir() bool
+	Sys() interface{}
 }
 
 // CommandExecutor abstracts command execution (DIP for AutoPDF)
@@ -127,4 +209,42 @@ func NewCommandResult(stdout, stderr string, exitCode int, duration time.Duratio
 		Duration: duration,
 		Success:  exitCode == 0,
 	}
+}
+
+// RebuildService orchestrates document rebuilding from file changes
+// This port abstracts rebuild orchestration following DIP principle
+// Pure transport types - no domain dependencies
+type RebuildService interface {
+	Rebuild(ctx context.Context, templatePath, configPath string) (RebuildResult, error)
+}
+
+// RebuildResult represents the result of a rebuild operation
+type RebuildResult struct {
+	PDFPath string
+	Success bool
+	Error   error
+}
+
+// Logger provides structured logging capabilities (DIP for logging)
+// This ensures adapters can log without depending on concrete logging libraries
+type Logger interface {
+	// Debug logs a debug-level message
+	Debug(ctx context.Context, msg string, fields ...LogField)
+	// Info logs an info-level message
+	Info(ctx context.Context, msg string, fields ...LogField)
+	// Warn logs a warning-level message
+	Warn(ctx context.Context, msg string, fields ...LogField)
+	// Error logs an error-level message
+	Error(ctx context.Context, msg string, fields ...LogField)
+}
+
+// LogField represents a single logging field (key-value pair)
+type LogField struct {
+	Key   string
+	Value interface{}
+}
+
+// NewLogField creates a new log field
+func NewLogField(key string, value interface{}) LogField {
+	return LogField{Key: key, Value: value}
 }

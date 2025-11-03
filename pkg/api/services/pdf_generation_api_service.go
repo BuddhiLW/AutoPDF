@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
+	"github.com/BuddhiLW/AutoPDF/pkg/api"
+	apiapplication "github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
@@ -19,15 +20,27 @@ import (
 
 // PDFGenerationAPIService provides a clean API for PDF generation
 type PDFGenerationAPIService struct {
-	appService   *application.PDFGenerationApplicationService
+	appService   *apiapplication.PDFGenerationApplicationService
 	config       *config.Config
 	debugEnabled bool
+	logger       api.Logger // Optional logger for latexmk transparency (public API)
 }
 
 // NewPDFGenerationAPIService creates a new API service
 func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool) *PDFGenerationAPIService {
+	return NewPDFGenerationAPIServiceWithPortLogger(cfg, logger, debugEnabled, nil)
+}
+
+// NewPDFGenerationAPIServiceWithPortLogger creates a new API service with optional public Logger for latexmk transparency
+func NewPDFGenerationAPIServiceWithPortLogger(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool, publicLogger api.Logger) *PDFGenerationAPIService {
 	// Create factory
 	factory := factories.NewPDFGenerationServiceFactory(cfg, logger, debugEnabled)
+
+	// Convert public Logger to ports.Logger and set in factory if provided
+	if publicLogger != nil {
+		portLogger := api.NewLoggerAdapter(publicLogger)
+		factory.SetPortLogger(portLogger)
+	}
 
 	// Create application service
 	appService := factory.CreateApplicationService()
@@ -36,6 +49,7 @@ func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter
 		appService:   appService,
 		config:       cfg,
 		debugEnabled: debugEnabled,
+		logger:       publicLogger,
 	}
 }
 
@@ -50,6 +64,8 @@ func (s *PDFGenerationAPIService) GeneratePDF(ctx context.Context, templatePath 
 		WithConversion(s.config.Conversion.Enabled, s.config.Conversion.Formats...).
 		WithCleanup(false). // Don't clean for API usage
 		WithTimeout(30 * time.Second).
+		WithPasses(s.config.Passes).
+		WithLatexmk(s.config.UseLatexmk).
 		Build()
 
 	// Generate PDF
@@ -99,6 +115,8 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 		WithTimeout(options.Timeout).
 		WithVerbose(verboseLevel).
 		WithDebug(debugOptions).
+		WithPasses(options.Passes).
+		WithLatexmk(options.UseLatexmk).
 		Build()
 
 	// Generate PDF
@@ -140,6 +158,8 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, tem
 		WithDebug(generation.DebugOptions{
 			Enabled: s.debugEnabled,
 		}).
+		WithPasses(s.config.Passes).
+		WithLatexmk(s.config.UseLatexmk).
 		Build()
 
 	// Generate PDF
@@ -170,6 +190,15 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, tem
 // GeneratePDFFromStructWithWorkingDir generates a PDF from a struct with custom working directory
 // Uses the full application service pipeline to ensure variable resolution works correctly
 func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx context.Context, templatePath string, outputPath string, data interface{}, workingDir string) ([]byte, map[string]string, error) {
+	// DEBUG: Log config values before building request
+	if s.logger != nil {
+		s.logger.Info(ctx, "Building PDF generation request",
+			api.NewLogField("config_passes", s.config.Passes),
+			api.NewLogField("config_use_latexmk", s.config.UseLatexmk),
+			api.NewLogField("config_engine", s.config.Engine.String()),
+			api.NewLogField("template_path", templatePath))
+	}
+
 	// Build request using builder pattern with struct conversion and working directory
 	request := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(templatePath).
@@ -183,7 +212,17 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx contex
 		WithDebug(generation.DebugOptions{
 			Enabled: s.debugEnabled,
 		}).
+		WithPasses(s.config.Passes).
+		WithLatexmk(s.config.UseLatexmk).
 		Build()
+
+	// DEBUG: Log request values after building
+	if s.logger != nil {
+		s.logger.Info(ctx, "PDF generation request built",
+			api.NewLogField("request_passes", request.Options.Passes),
+			api.NewLogField("request_use_latexmk", request.Options.UseLatexmk),
+			api.NewLogField("request_engine", request.Engine))
+	}
 
 	// Use application service (maintains full pipeline: Variable Resolver → External PDF Service)
 	result, err := s.appService.GeneratePDF(ctx, request)
@@ -241,6 +280,8 @@ type PDFGenerationOptions struct {
 	Timeout      time.Duration
 	Verbose      bool
 	Debug        bool
+	Passes       int  // Number of compilation passes
+	UseLatexmk   bool // Whether to use latexmk
 }
 
 // ConversionOptions represents conversion options
@@ -260,10 +301,12 @@ func NewPDFGenerationOptions(templatePath, outputPath string) *PDFGenerationOpti
 			Enabled: false,
 			Formats: []string{},
 		},
-		Cleanup: false,
-		Timeout: 30 * time.Second,
-		Verbose: false,
-		Debug:   false,
+		Cleanup:    false,
+		Timeout:    30 * time.Second,
+		Verbose:    false,
+		Debug:      false,
+		Passes:     1,
+		UseLatexmk: false,
 	}
 }
 
@@ -316,5 +359,23 @@ func (o *PDFGenerationOptions) WithVerbose(enabled bool) *PDFGenerationOptions {
 // WithDebug enables debug logging
 func (o *PDFGenerationOptions) WithDebug(enabled bool) *PDFGenerationOptions {
 	o.Debug = enabled
+	return o
+}
+
+// WithPasses sets the number of compilation passes
+func (o *PDFGenerationOptions) WithPasses(passes int) *PDFGenerationOptions {
+	if passes < 1 {
+		passes = 1
+	}
+	if passes > 10 {
+		passes = 10
+	}
+	o.Passes = passes
+	return o
+}
+
+// WithLatexmk enables latexmk compilation
+func (o *PDFGenerationOptions) WithLatexmk(enabled bool) *PDFGenerationOptions {
+	o.UseLatexmk = enabled
 	return o
 }

@@ -211,6 +211,8 @@ func (tpa *TemplateProcessorAdapter) createTemplate(content string) (*template.T
 
 // reconstructNestedStructure converts flattened variables back to nested structure
 // Handles flattened dot-notation keys from Flatten() method
+// Variables are placed at root level for direct template access (e.g., .logo_path)
+// Templates should use delim[[.logo_path]] NOT delim[[.vars.logo_path]]
 func (tpa *TemplateProcessorAdapter) reconstructNestedStructure(variables map[string]string) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -220,6 +222,9 @@ func (tpa *TemplateProcessorAdapter) reconstructNestedStructure(variables map[st
 		tpa.setNestedValue(result, parts, value)
 	}
 
+	// Return variables at root level (NOT wrapped under "vars" key)
+	// This allows templates to use direct access like delim[[.logo_path]]
+	// instead of requiring delim[[.vars.logo_path]]
 	return result
 }
 

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	external_pdf_service "github.com/BuddhiLW/AutoPDF/pkg/api/adapters/external_pdf_service"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters/pdf_validator"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters/template_processor"
@@ -23,6 +25,7 @@ type PDFGenerationServiceFactory struct {
 	config       *config.Config
 	logger       *logger.LoggerAdapter
 	debugEnabled bool
+	portLogger   autopdfports.Logger // Optional logger for latexmk transparency
 }
 
 // NewPDFGenerationServiceFactory creates a new factory
@@ -40,7 +43,9 @@ func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PD
 	templateAdapter := template_processor.NewTemplateProcessorAdapter(f.config, f.logger)
 	variableResolver := variable_resolver.NewVariableResolverAdapter(f.config, f.logger)
 	pdfValidator := pdf_validator.NewPDFValidatorAdapter()
-	externalService := external_pdf_service.NewExternalPDFServiceAdapter(f.config, f.debugEnabled)
+
+	// Create external service with logger (for latexmk transparency)
+	externalService := f.CreateExternalService()
 
 	// Create watch service dependencies
 	// For factory usage, create a minimal watch service
@@ -76,9 +81,21 @@ func (f *PDFGenerationServiceFactory) CreatePDFValidator() generation.PDFValidat
 	return pdf_validator.NewPDFValidatorAdapter()
 }
 
+// SetPortLogger sets the ports.Logger for passing through to latexmk adapter
+func (f *PDFGenerationServiceFactory) SetPortLogger(logger autopdfports.Logger) {
+	f.portLogger = logger
+}
+
 // CreateExternalService creates an external PDF service
 func (f *PDFGenerationServiceFactory) CreateExternalService() generation.PDFGenerationService {
-	return external_pdf_service.NewExternalPDFServiceAdapter(f.config, f.debugEnabled)
+	// Use portLogger if set (from cartas-backend), otherwise convert AutoPDF logger adapter
+	var portLogger autopdfports.Logger
+	if f.portLogger != nil {
+		portLogger = f.portLogger
+	} else if f.logger != nil {
+		portLogger = infraadapters.NewLoggerPortAdapter(f.logger)
+	}
+	return external_pdf_service.NewExternalPDFServiceAdapterWithLogger(f.config, f.debugEnabled, portLogger)
 }
 
 // CreateCompleteService creates a complete service with all dependencies

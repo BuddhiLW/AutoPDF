@@ -29,6 +29,8 @@ type PDFGenerationOptions struct {
 	RequestID  string // For unique file naming
 	WatchMode  bool   // Enable file watching for automatic rebuilds
 	WorkingDir string // Working directory for LaTeX compilation (isolates template builds)
+	Passes     int    // Number of compilation passes
+	UseLatexmk bool   // Whether to use latexmk
 }
 
 // DebugOptions contains debug-specific settings

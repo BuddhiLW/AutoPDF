@@ -5,6 +5,7 @@ package build
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
@@ -94,8 +95,10 @@ func executeSingleBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error
 	}
 
 	// Build and execute with logging
+	// Use template's directory as working directory for CLI to find assets (.cls files, images)
+	templateDir := filepath.Dir(cfg.Template.String())
 	serviceBuilder := wiringPkg.NewServiceBuilder()
-	svc := serviceBuilder.BuildDocumentService(cfg)
+	svc := serviceBuilder.BuildDocumentServiceWithWorkingDir(cfg, templateDir)
 	req := serviceBuilder.BuildRequest(buildArgs, cfg)
 
 	result, err := svc.Build(ctx, req)
@@ -129,16 +132,10 @@ func executeWatchedBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) erro
 		watchArgs = append(watchArgs, buildArgs.ConfigFile)
 	}
 
-	// Add any other options that make sense for watch mode
-	if buildArgs.Options.Verbose.Enabled {
-		watchArgs = append(watchArgs, "verbose")
-	}
-	if buildArgs.Options.Debug.Enabled {
-		watchArgs = append(watchArgs, "debug")
-	}
-
-	// Delegate to watch service
-	return watch.ExecuteWatchProcess(ctx, watchArgs)
+	// Pass BuildOptions directly to watch service
+	// This preserves verbose level, debug settings, and other options
+	// Following CLARITY: explicit option passing instead of string-based args
+	return watch.ExecuteWatchProcessWithOptions(ctx, watchArgs, buildArgs.Options)
 }
 
 // handleDelegation manages subcommand delegation using the new flexible approach

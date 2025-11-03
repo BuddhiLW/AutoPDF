@@ -32,6 +32,8 @@ func NewPDFGenerationRequestBuilder() *PDFGenerationRequestBuilder {
 				Debug: generation.DebugOptions{
 					Enabled: false,
 				},
+				Passes:     1,     // Default to single pass
+				UseLatexmk: false, // Default to shell runner
 			},
 		},
 	}
@@ -192,6 +194,18 @@ func (b *PDFGenerationRequestBuilder) WithWatchMode(enabled bool) *PDFGeneration
 // This isolates template builds to prevent file collisions
 func (b *PDFGenerationRequestBuilder) WithWorkingDir(workingDir string) *PDFGenerationRequestBuilder {
 	b.request.Options.WorkingDir = workingDir
+	return b
+}
+
+// WithPasses sets the number of compilation passes
+func (b *PDFGenerationRequestBuilder) WithPasses(passes int) *PDFGenerationRequestBuilder {
+	b.request.Options.Passes = passes
+	return b
+}
+
+// WithLatexmk enables latexmk compilation
+func (b *PDFGenerationRequestBuilder) WithLatexmk(enabled bool) *PDFGenerationRequestBuilder {
+	b.request.Options.UseLatexmk = enabled
 	return b
 }
 

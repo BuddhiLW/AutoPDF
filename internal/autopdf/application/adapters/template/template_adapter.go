@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -56,12 +57,23 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 		return "", err
 	}
 
-	// Create template data that includes both flattened variables and complex structure
-	templateData := map[string]interface{}{
-		// Flattened variables for direct access
-		"vars": variables,
-		// Complex structure for range loops (if available)
-		"complex": tpa.getComplexVariables(),
+	// Reconstruct nested structure from flattened variables for direct template access
+	// Variables are placed at root level so templates can use delim[[.logo_path]]
+	// instead of delim[[.vars.logo_path]]
+	nestedVariables := tpa.reconstructNestedStructure(variables)
+
+	// Create template data with variables at root level
+	templateData := nestedVariables
+	if templateData == nil {
+		templateData = make(map[string]interface{})
+	}
+
+	// Add complex structure for range loops (if available)
+	complex := tpa.getComplexVariables()
+	if len(complex) > 0 {
+		for k, v := range complex {
+			templateData[k] = v
+		}
 	}
 
 	// Apply template with both flattened and complex variables
@@ -71,6 +83,46 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 	}
 
 	return buf.String(), nil
+}
+
+// reconstructNestedStructure converts flattened variables back to nested structure
+// Handles flattened dot-notation keys from Flatten() method
+// Variables are placed at root level for direct template access (e.g., .logo_path)
+func (tpa *TemplateProcessorAdapter) reconstructNestedStructure(variables map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	for key, value := range variables {
+		// Handle flattened dot-notation keys (e.g., "velorio.dia", "velorio.periodo.inicio")
+		parts := strings.Split(key, ".")
+		tpa.setNestedValue(result, parts, value)
+	}
+
+	// Return variables at root level (NOT wrapped under "vars" key)
+	// This allows templates to use direct access like delim[[.logo_path]]
+	// instead of requiring delim[[.vars.logo_path]]
+	return result
+}
+
+// setNestedValue sets a value in a nested map structure
+func (tpa *TemplateProcessorAdapter) setNestedValue(data map[string]interface{}, parts []string, value string) {
+	if len(parts) == 0 {
+		return
+	}
+
+	if len(parts) == 1 {
+		data[parts[0]] = value
+		return
+	}
+
+	// Create nested map if it doesn't exist
+	if _, exists := data[parts[0]]; !exists {
+		data[parts[0]] = make(map[string]interface{})
+	}
+
+	// Ensure it's a map
+	if nested, ok := data[parts[0]].(map[string]interface{}); ok {
+		tpa.setNestedValue(nested, parts[1:], value)
+	}
 }
 
 // getComplexVariables returns the complex variable structure for range loops

@@ -6,6 +6,7 @@ package watch
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
@@ -144,25 +145,35 @@ func (w *WatchApplicationService) watchLoop() {
 
 // handleFileEvent processes a file system event
 func (w *WatchApplicationService) handleFileEvent(event fsnotify.Event) {
+	// Normalize operation string to lowercase for comparison with domain constants
+	// fsnotify returns "WRITE", "CREATE", etc. (uppercase), but domain uses lowercase
+	operationStr := strings.ToLower(event.Op.String())
+
 	changeEvent := watch.FileChangeEvent{
 		FilePath:  event.Name,
-		Operation: watch.FileOperation(event.Op.String()),
+		Operation: watch.FileOperation(operationStr),
 		Timestamp: time.Now(),
 	}
 
-	w.logger.DebugWithFields("File system event detected",
+	// Following CLARITY: Info-level logging for visibility (not just Debug)
+	// This helps diagnose when events are detected vs. filtered
+	w.logger.InfoWithFields("File system event detected",
 		"file", changeEvent.FilePath,
 		"operation", changeEvent.Operation)
 
 	// Check if we should process this event
 	if !w.shouldProcessEvent(changeEvent) {
-		w.logger.DebugWithFields("Event filtered out", "file", changeEvent.FilePath)
+		w.logger.InfoWithFields("Event filtered out by pattern matcher",
+			"file", changeEvent.FilePath,
+			"excluded", w.patternMatcher.ShouldExclude(changeEvent.FilePath),
+			"not_included", !w.patternMatcher.ShouldInclude(changeEvent.FilePath))
 		return
 	}
 
 	// Apply debounce strategy
 	if !w.debounceStrategy.ShouldTrigger(changeEvent) {
-		w.logger.DebugWithFields("Event debounced", "file", changeEvent.FilePath)
+		w.logger.InfoWithFields("Event debounced",
+			"file", changeEvent.FilePath)
 		return
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/converter"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/latex"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/template"
+	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
 	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -24,12 +25,22 @@ import (
 // This adapter follows the Adapter pattern from GoF and maintains separation of concerns
 type InternalApplicationAdapter struct {
 	config *config.Config
+	logger autopdfports.Logger // Optional logger for transparency
 }
 
 // NewInternalApplicationAdapter creates a new adapter
 func NewInternalApplicationAdapter(cfg *config.Config) *InternalApplicationAdapter {
 	return &InternalApplicationAdapter{
 		config: cfg,
+		logger: nil,
+	}
+}
+
+// NewInternalApplicationAdapterWithLogger creates a new adapter with logger
+func NewInternalApplicationAdapterWithLogger(cfg *config.Config, logger autopdfports.Logger) *InternalApplicationAdapter {
+	return &InternalApplicationAdapter{
+		config: cfg,
+		logger: logger,
 	}
 }
 
@@ -52,7 +63,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDF(cfg *config.Config, template 
 	// Use working directory if provided, otherwise use default
 	var docService *documentService.DocumentService
 	if workingDir != "" {
-		docService = iaa.createDocumentServiceWithWorkingDir(mergedCfg, workingDir)
+		docService = iaa.createDocumentServiceWithWorkingDir(mergedCfg, workingDir, iaa.logger)
 	} else {
 		docService = iaa.createDocumentService(mergedCfg)
 	}
@@ -133,7 +144,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDFWithWorkingDir(cfg *config.Con
 	defer os.Remove(configPath)
 
 	// Create document service using the internal application layer with custom working directory
-	docService := iaa.createDocumentServiceWithWorkingDir(mergedCfg, workingDir)
+	docService := iaa.createDocumentServiceWithWorkingDir(mergedCfg, workingDir, iaa.logger)
 
 	// Create build request
 	req := documentService.BuildRequest{
@@ -191,12 +202,23 @@ func (iaa *InternalApplicationAdapter) GeneratePDFWithWorkingDir(cfg *config.Con
 func (iaa *InternalApplicationAdapter) mergeConfig(cfg *config.Config, template config.Template) *config.Config {
 	defaultCfg := config.GetDefaultConfig()
 
+	// Log incoming config values for debugging
+	if iaa.logger != nil {
+		iaa.logger.Info(context.Background(), "Merging AutoPDF config",
+			autopdfports.NewLogField("incoming_passes", cfg.Passes),
+			autopdfports.NewLogField("incoming_use_latexmk", cfg.UseLatexmk),
+			autopdfports.NewLogField("default_passes", defaultCfg.Passes),
+			autopdfports.NewLogField("default_use_latexmk", defaultCfg.UseLatexmk))
+	}
+
 	merged := &config.Config{
 		Template:   cfg.Template,
 		Output:     cfg.Output,
 		Variables:  cfg.Variables,
 		Engine:     cfg.Engine,
 		Conversion: cfg.Conversion,
+		Passes:     cfg.Passes,     // Preserve Passes from template config
+		UseLatexmk: cfg.UseLatexmk, // Preserve UseLatexmk from template config
 	}
 
 	// Apply template if not set
@@ -216,6 +238,21 @@ func (iaa *InternalApplicationAdapter) mergeConfig(cfg *config.Config, template 
 		tmpOutDir := filepath.Join(tmpDir, "out")
 		os.MkdirAll(tmpOutDir, 0755)
 		merged.Output = config.Output(filepath.Join(tmpOutDir, "output.pdf"))
+	}
+
+	// Apply defaults for Passes and UseLatexmk if not set (zero values)
+	if merged.Passes < 1 {
+		merged.Passes = defaultCfg.Passes
+	}
+	// UseLatexmk defaults to false if not explicitly set, which is fine
+	// But we preserve the value from cfg if it was set
+
+	// Log merged config values for debugging
+	if iaa.logger != nil {
+		iaa.logger.Info(context.Background(), "Merged AutoPDF config",
+			autopdfports.NewLogField("merged_passes", merged.Passes),
+			autopdfports.NewLogField("merged_use_latexmk", merged.UseLatexmk),
+			autopdfports.NewLogField("merged_engine", string(merged.Engine)))
 	}
 
 	return merged
@@ -243,18 +280,43 @@ func (iaa *InternalApplicationAdapter) createConfigFile(cfg *config.Config, conf
 // createDocumentService creates the internal document service
 func (iaa *InternalApplicationAdapter) createDocumentService(cfg *config.Config) *documentService.DocumentService {
 	// Use default working directory for backward compatibility
-	return iaa.createDocumentServiceWithWorkingDir(cfg, "/tmp/autopdf")
+	return iaa.createDocumentServiceWithWorkingDir(cfg, "/tmp/autopdf", iaa.logger)
 }
 
 // createDocumentServiceWithWorkingDir creates the internal document service with custom working directory
-func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(cfg *config.Config, workingDir string) *documentService.DocumentService {
+// logger can be nil if no logging is needed
+func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(cfg *config.Config, workingDir string, logger autopdfports.Logger) *documentService.DocumentService {
 	// Create infrastructure adapters (DIP: Application depends on abstractions)
 	fileSystem := infraadapters.NewOSFileSystem()
 	executor := infraadapters.NewOSCommandExecutor()
 
 	// Create adapters using the internal application layer
 	templateAdapter := template.NewTemplateProcessorAdapter(cfg)
-	latexAdapter := latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir)
+
+	// Select LaTeX compiler based on UseLatexmk flag
+	var latexAdapter autopdfports.LaTeXCompiler
+	if cfg.UseLatexmk {
+		// Use latexmk adapter with logger for transparency
+		// Log selection for debugging
+		if logger != nil {
+			logger.Info(context.Background(), "Using latexmk adapter for multi-pass compilation",
+				autopdfports.NewLogField("passes", cfg.Passes),
+				autopdfports.NewLogField("engine", string(cfg.Engine)),
+				autopdfports.NewLogField("working_dir", workingDir))
+		}
+		latexAdapter = latex.NewLatexmkCompilerAdapterWithLogger(executor, fileSystem, logger)
+	} else {
+		// Use regular LaTeX adapter (manual passes)
+		// Log selection for debugging
+		if logger != nil {
+			logger.Info(context.Background(), "Using manual LaTeX adapter (non-latexmk)",
+				autopdfports.NewLogField("passes", cfg.Passes),
+				autopdfports.NewLogField("engine", string(cfg.Engine)),
+				autopdfports.NewLogField("working_dir", workingDir))
+		}
+		latexAdapter = latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir)
+	}
+
 	converterAdapter := converter.NewConverterAdapter(cfg)
 	cleanerAdapter := cleaner.NewCleanerAdapter()
 

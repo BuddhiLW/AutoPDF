@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
@@ -21,14 +22,21 @@ import (
 // This adapter bridges the API layer with the internal application layer
 type ExternalPDFServiceAdapter struct {
 	config       *config.Config
-	debugEnabled bool // Store debug from config
+	debugEnabled bool                // Store debug from config
+	logger       autopdfports.Logger // Store logger for passing to InternalApplicationAdapter
 }
 
 // NewExternalPDFServiceAdapter creates a new external PDF service adapter
 func NewExternalPDFServiceAdapter(cfg *config.Config, debugEnabled bool) *ExternalPDFServiceAdapter {
+	return NewExternalPDFServiceAdapterWithLogger(cfg, debugEnabled, nil)
+}
+
+// NewExternalPDFServiceAdapterWithLogger creates a new external PDF service adapter with logger
+func NewExternalPDFServiceAdapterWithLogger(cfg *config.Config, debugEnabled bool, logger autopdfports.Logger) *ExternalPDFServiceAdapter {
 	return &ExternalPDFServiceAdapter{
 		config:       cfg,
 		debugEnabled: debugEnabled,
+		logger:       logger,
 	}
 }
 
@@ -43,8 +51,8 @@ func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req generat
 	// Convert domain request to config
 	cfg := epsa.createConfigFromRequest(req)
 
-	// Create internal application adapter
-	internalAdapter := adapters.NewInternalApplicationAdapter(cfg)
+	// Create internal application adapter with logger
+	internalAdapter := adapters.NewInternalApplicationAdapterWithLogger(cfg, epsa.logger)
 
 	// Extract working directory from request options
 	workingDir := req.Options.WorkingDir
@@ -94,8 +102,8 @@ func (epsa *ExternalPDFServiceAdapter) GenerateWithWorkingDir(ctx context.Contex
 	// Convert domain request to config
 	cfg := epsa.createConfigFromRequest(req)
 
-	// Create internal application adapter
-	internalAdapter := adapters.NewInternalApplicationAdapter(cfg)
+	// Create internal application adapter with logger
+	internalAdapter := adapters.NewInternalApplicationAdapterWithLogger(cfg, epsa.logger)
 
 	// Generate PDF using the internal adapter with custom working directory
 	pdfBytes, paths, err := internalAdapter.GeneratePDFWithWorkingDir(cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
@@ -217,6 +225,17 @@ func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PD
 		Variables:  *config.NewVariables(),
 		Passes:     req.Options.Passes,
 		UseLatexmk: req.Options.UseLatexmk,
+	}
+
+	// DEBUG: Log extracted config values (if logger is available)
+	// Note: epsa.logger is ports.Logger, not cartas-backend logger, so these logs
+	// will go to AutoPDF's logger, not cartas-backend's logger
+	if epsa.logger != nil {
+		epsa.logger.Info(context.Background(), "Extracting config from PDF generation request",
+			autopdfports.NewLogField("request_passes", req.Options.Passes),
+			autopdfports.NewLogField("request_use_latexmk", req.Options.UseLatexmk),
+			autopdfports.NewLogField("config_passes", cfg.Passes),
+			autopdfports.NewLogField("config_use_latexmk", cfg.UseLatexmk))
 	}
 
 	// Set variables from request (now using TemplateVariables)

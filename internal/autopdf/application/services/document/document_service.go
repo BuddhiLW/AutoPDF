@@ -82,10 +82,26 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	if workingDir == "" {
 		workingDir = s.PathOps.Dir(req.OutputPath)
 	}
+
+	// Extract jobname from output path (base filename without extension)
+	// This ensures PDF/JPEG use the custom tag naming instead of hardcoded "document"
+	outputBaseName := s.PathOps.Base(req.OutputPath)
+	ext := s.PathOps.Ext(outputBaseName)
+	// Remove extension from base filename to get jobname
+	jobName := outputBaseName
+	if ext != "" && len(jobName) > len(ext) {
+		jobName = jobName[:len(jobName)-len(ext)]
+	}
+	// Fallback to "document" if extraction fails
+	if jobName == "" {
+		jobName = "document"
+	}
+
 	compileOptions := ports.NewCompileOptions(req.Engine, req.OutputPath, workingDir).
 		WithDebug(req.DebugEnabled).
 		WithPasses(req.Passes).
-		WithLatexmk(req.UseLatexmk)
+		WithLatexmk(req.UseLatexmk).
+		WithJobName(jobName) // Set jobname from output path
 
 	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, compileOptions)
 	if err != nil {

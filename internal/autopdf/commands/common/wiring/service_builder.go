@@ -22,6 +22,7 @@ import (
 
 	// Legacy converter functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	apperrors "github.com/BuddhiLW/AutoPDF/pkg/errors"
 	"github.com/rwxrob/bonzai/futil"
 	"go.uber.org/zap"
 )
@@ -45,6 +46,27 @@ func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentServ
 		LaTeXCompiler:     latex.NewLaTeXCompilerAdapter(cfg, fileSystem, executor),
 		Converter:         converter.NewConverterAdapter(cfg),
 		Cleaner:           cleaner.NewCleanerAdapter(),
+		PathOps:           infraadapters.NewOSPathOperations(),
+		FileSystem:        infraadapters.NewOSFileSystem(),
+		ErrorFactory:      apperrors.NewDomainErrorFactory(nil),
+	}
+}
+
+// BuildDocumentServiceWithWorkingDir constructs the DocumentService with template directory as working dir
+// This is used by CLI to ensure LaTeX can find assets (.cls files, images) in the template's directory
+func (sb *ServiceBuilder) BuildDocumentServiceWithWorkingDir(cfg *config.Config, workingDir string) *documentService.DocumentService {
+	// Create infrastructure adapters (DIP: Application depends on abstractions)
+	fileSystem := infraadapters.NewOSFileSystem()
+	executor := infraadapters.NewOSCommandExecutor()
+
+	return &documentService.DocumentService{
+		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
+		LaTeXCompiler:     latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir),
+		Converter:         converter.NewConverterAdapter(cfg),
+		Cleaner:           cleaner.NewCleanerAdapter(),
+		PathOps:           infraadapters.NewOSPathOperations(),
+		FileSystem:        infraadapters.NewOSFileSystem(),
+		ErrorFactory:      apperrors.NewDomainErrorFactory(nil),
 	}
 }
 

@@ -98,8 +98,10 @@ type PDFGenerationOptions struct {
 	Conversion   RESTConversionOptions `json:"conversion,omitempty"`
 	Debug        bool                  `json:"debug,omitempty"`
 	Cleanup      bool                  `json:"cleanup,omitempty"`
-	Timeout      int                   `json:"timeout,omitempty"`    // seconds
-	WatchMode    bool                  `json:"watch_mode,omitempty"` // Enable file watching
+	Timeout      int                   `json:"timeout,omitempty"`     // seconds
+	WatchMode    bool                  `json:"watch_mode,omitempty"`  // Enable file watching
+	Passes       int                   `json:"passes,omitempty"`      // Number of compilation passes (1-10)
+	UseLatexmk   bool                  `json:"use_latexmk,omitempty"` // Whether to use latexmk
 }
 
 // RESTConversionOptions represents conversion options for images in REST API
@@ -219,6 +221,16 @@ func (api *PDFGenerationAPI) GeneratePDF(w http.ResponseWriter, r *http.Request)
 
 	// Apply options if provided
 	if req.Options != nil {
+		// Validate passes field
+		if req.Options.Passes < 1 || req.Options.Passes > 10 {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, PDFGenerationResponse{
+				Success: false,
+				Message: "passes must be between 1 and 10",
+			})
+			return
+		}
+
 		if req.Options.Engine != "" {
 			builder = builder.WithEngine(req.Options.Engine)
 		}
@@ -336,6 +348,16 @@ func (api *PDFGenerationAPI) GeneratePDFFromStruct(w http.ResponseWriter, r *htt
 
 	// Apply options if provided
 	if req.Options != nil {
+		// Validate passes field
+		if req.Options.Passes < 1 || req.Options.Passes > 10 {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, PDFGenerationResponse{
+				Success: false,
+				Message: "passes must be between 1 and 10",
+			})
+			return
+		}
+
 		if req.Options.Engine != "" {
 			builder = builder.WithEngine(req.Options.Engine)
 		}

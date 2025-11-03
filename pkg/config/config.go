@@ -17,6 +17,8 @@ type Config struct {
 	Variables  Variables  `yaml:"variables" json:"variables" default:"{}"`
 	Engine     Engine     `yaml:"engine" json:"engine" default:"pdflatex"`
 	Conversion Conversion `yaml:"conversion" json:"conversion"`
+	Passes     int        `yaml:"passes" json:"passes" default:"1"`
+	UseLatexmk bool       `yaml:"use_latexmk" json:"use_latexmk" default:"false"`
 }
 
 func (c *Config) String() string {
@@ -292,7 +294,9 @@ func GetDefaultConfig() *Config {
 			Enabled: false,
 			Formats: []string{},
 		},
-		Variables: *NewVariables(),
+		Variables:  *NewVariables(),
+		Passes:     1,
+		UseLatexmk: false,
 	}
 }
 
@@ -319,6 +323,14 @@ func NewConfigFromYAML(yamlData []byte) (*Config, error) {
 
 	if config.Variables.VariableSet == nil {
 		config.Variables = *NewVariables()
+	}
+
+	// Set defaults for new fields
+	if config.Passes < 1 {
+		config.Passes = 1
+	}
+	if config.Passes > 10 {
+		config.Passes = 10
 	}
 
 	return &config, nil
