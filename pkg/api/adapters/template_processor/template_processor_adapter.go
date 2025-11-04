@@ -54,9 +54,11 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 			"template_path", templatePath,
 			"error", err,
 		)
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateFileNotReadable, templatePath)
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
-			Message: api.ErrTemplateFileNotReadable,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),
@@ -75,9 +77,11 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 			"template_path", templatePath,
 			"error", err,
 		)
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateProcessingFailed, err.Error())
 		return "", domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
-			Message: api.ErrTemplateProcessingFailed,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),
@@ -105,9 +109,11 @@ func (tpa *TemplateProcessorAdapter) ValidateTemplate(templatePath string) error
 
 	// Check if file exists
 	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateFileNotFound, templatePath)
 		return domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
-			Message: api.ErrTemplateFileNotFound,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath),
 		}
@@ -116,9 +122,11 @@ func (tpa *TemplateProcessorAdapter) ValidateTemplate(templatePath string) error
 	// Read and validate template content
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateFileNotReadable, templatePath)
 		return domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
-			Message: api.ErrTemplateFileNotReadable,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),
@@ -127,9 +135,11 @@ func (tpa *TemplateProcessorAdapter) ValidateTemplate(templatePath string) error
 
 	// Basic LaTeX validation
 	if err := tpa.validateLaTeXContent(string(content)); err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateSyntaxInvalid, err.Error())
 		return domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
-			Message: api.ErrTemplateSyntaxInvalid,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),
@@ -151,9 +161,11 @@ func (tpa *TemplateProcessorAdapter) GetTemplateVariables(templatePath string) (
 
 	content, err := os.ReadFile(templatePath)
 	if err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateFileNotReadable, templatePath)
 		return nil, domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateNotFound,
-			Message: api.ErrTemplateFileNotReadable,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),

@@ -5,6 +5,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -98,11 +99,13 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	simpleVariables, err := s.variableResolver.Resolve(req.Variables)
 	if err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrVariableResolutionFailed, err.Error())
 		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.VariableResolutionError{
 				Code:    domain.ErrCodeVariableInvalid,
-				Message: api.ErrVariableResolutionFailed,
+				Message: errorMessage,
 				Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
 					WithError(err),
 			},
@@ -122,11 +125,13 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	processedContent, err := s.templateService.Process(ctx, req.TemplatePath, simpleVariables)
 	if err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateProcessingFailed, err.Error())
 		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.TemplateProcessingError{
 				Code:    domain.ErrCodeTemplateInvalid,
-				Message: api.ErrTemplateProcessingFailed,
+				Message: errorMessage,
 				Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 					WithTemplatePath(req.TemplatePath).
 					WithError(err),
@@ -191,11 +196,13 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	result, err := s.externalService.Generate(ctx, generationReq)
 	if err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrPDFGenerationFailed, err.Error())
 		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.PDFGenerationError{
 				Code:    domain.ErrCodePDFGenerationFailed,
-				Message: api.ErrPDFGenerationFailed,
+				Message: errorMessage,
 				Details: api.NewErrorDetails(api.ErrorCategoryGeneration, api.ErrorSeverityHigh).
 					WithError(err),
 			},

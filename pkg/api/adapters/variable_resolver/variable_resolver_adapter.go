@@ -105,9 +105,11 @@ func (vra *VariableResolverAdapter) Validate(variables *generation.TemplateVaria
 		vra.logger.ErrorWithFields("Variable validation failed",
 			"error", err,
 		)
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrVariableValidationFailed, err.Error())
 		return domain.VariableResolutionError{
 			Code:    domain.ErrCodeVariableInvalid,
-			Message: api.ErrVariableValidationFailed,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
 				WithError(err),
 		}
@@ -137,9 +139,11 @@ func (vra *VariableResolverAdapter) ConvertStruct(v interface{}) (*generation.Te
 			"struct_type", fmt.Sprintf("%T", v),
 			"error", err,
 		)
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrVariableResolutionFailed, err.Error())
 		return nil, domain.VariableResolutionError{
 			Code:    domain.ErrCodeVariableInvalid,
-			Message: api.ErrVariableResolutionFailed,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
 				AddContext("struct_type", fmt.Sprintf("%T", v)).
 				WithError(err),

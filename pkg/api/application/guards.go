@@ -5,6 +5,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
@@ -96,9 +97,11 @@ func (g *RequestValidationGuard) validateOutputPath(outputPath string) error {
 // validateTemplateFile guards against invalid template files
 func (g *RequestValidationGuard) validateTemplateFile(templatePath string) error {
 	if err := g.templateService.ValidateTemplate(templatePath); err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateValidationFailed, err.Error())
 		return domain.TemplateProcessingError{
 			Code:    domain.ErrCodeTemplateInvalid,
-			Message: api.ErrTemplateValidationFailed,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				WithError(err),
@@ -110,9 +113,11 @@ func (g *RequestValidationGuard) validateTemplateFile(templatePath string) error
 // validateVariables guards against invalid variables
 func (g *RequestValidationGuard) validateVariables(variables *generation.TemplateVariables) error {
 	if err := g.variableResolver.Validate(variables); err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrVariableValidationFailed, err.Error())
 		return domain.VariableResolutionError{
 			Code:    domain.ErrCodeVariableInvalid,
-			Message: api.ErrVariableValidationFailed,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryVariable, api.ErrorSeverityHigh).
 				WithError(err),
 		}

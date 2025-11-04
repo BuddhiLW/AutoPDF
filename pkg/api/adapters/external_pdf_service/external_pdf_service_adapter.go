@@ -5,6 +5,7 @@ package adapters
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -167,9 +168,11 @@ func (epsa *ExternalPDFServiceAdapter) ValidateRequest(req generation.PDFGenerat
 
 	// Check if template exists
 	if _, err := os.Stat(req.TemplatePath); os.IsNotExist(err) {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrTemplateFileNotFound, req.TemplatePath)
 		return domain.PDFGenerationError{
 			Code:    domain.ErrCodeTemplateNotFound,
-			Message: api.ErrTemplateFileNotFound,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryTemplate, api.ErrorSeverityHigh).
 				WithTemplatePath(req.TemplatePath),
 		}
@@ -178,9 +181,11 @@ func (epsa *ExternalPDFServiceAdapter) ValidateRequest(req generation.PDFGenerat
 	// Check if output directory exists or can be created
 	outputDir := filepath.Dir(req.OutputPath)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		// Format the error message properly to avoid literal %s
+		errorMessage := fmt.Sprintf(api.ErrOutputPathInvalid, err.Error())
 		return domain.PDFGenerationError{
 			Code:    domain.ErrCodeOutputPathInvalid,
-			Message: api.ErrOutputPathInvalid,
+			Message: errorMessage,
 			Details: api.NewErrorDetails(api.ErrorCategoryGeneration, api.ErrorSeverityHigh).
 				WithOutputPath(req.OutputPath).
 				WithError(err),
