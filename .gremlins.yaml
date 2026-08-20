@@ -1,0 +1,25 @@
+silent: false
+unleash:
+  integration: false
+  dry-run: false
+  output-statuses: "lk"
+  workers: 2
+  test-cpu: 1
+  timeout-coefficient: 30
+  threshold:
+    efficacy: 80
+    mutant-coverage: 70
+  exclude-files:
+    - "_test\\.go$"
+
+mutants:
+  arithmetic-base:
+    enabled: true
+  conditionals-boundary:
+    enabled: true
+  conditionals-negation:
+    enabled: true
+  increment-decrement:
+    enabled: true
+  invert-negatives:
+    enabled: true

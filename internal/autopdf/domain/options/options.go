@@ -100,6 +100,12 @@ func (bo *BuildOptions) HasAnyEnabled() bool {
 // GetEnabledOptions returns a list of enabled option names as strings
 func (bo *BuildOptions) GetEnabledOptions() []string {
 	var enabled []string
+	if bo.Clean.Enabled {
+		enabled = append(enabled, "clean")
+	}
+	if bo.Verbose.Enabled {
+		enabled = append(enabled, "verbose")
+	}
 	if bo.Debug.Enabled {
 		enabled = append(enabled, "debug")
 	}

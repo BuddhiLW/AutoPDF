@@ -16,6 +16,11 @@ type TemplateVariables struct {
 	variables *config.Variables
 }
 
+// VariableCloner copies a custom template variable.
+type VariableCloner interface {
+	CloneVariable() config.Variable
+}
+
 // NewTemplateVariables creates a new TemplateVariables from config.Variables
 func NewTemplateVariables(vars *config.Variables) *TemplateVariables {
 	if vars == nil {
@@ -205,7 +210,7 @@ func (tv *TemplateVariables) Clone() *TemplateVariables {
 	// Create a new Variables and copy all values
 	newVars := config.NewVariables()
 	tv.variables.Range(func(name string, value config.Variable) bool {
-		newVars.Set(name, value)
+		newVars.Set(name, cloneVariable(value))
 		return true
 	})
 
@@ -224,7 +229,7 @@ func (tv *TemplateVariables) Merge(other *TemplateVariables) {
 	}
 
 	other.variables.Range(func(name string, value config.Variable) bool {
-		tv.variables.Set(name, value)
+		tv.variables.Set(name, cloneVariable(value))
 		return true
 	})
 }
@@ -298,5 +303,34 @@ func variableToInterface(v config.Variable) interface{} {
 		return result
 	default:
 		return val.String()
+	}
+}
+
+func cloneVariable(variable config.Variable) config.Variable {
+	switch value := variable.(type) {
+	case *config.StringVariable:
+		return &config.StringVariable{Value: value.Value}
+	case *config.NumberVariable:
+		return &config.NumberVariable{Value: value.Value}
+	case *config.BoolVariable:
+		return &config.BoolVariable{Value: value.Value}
+	case *config.MapVariable:
+		clone := config.NewMapVariable()
+		for key, nested := range value.Values {
+			clone.Values[key] = cloneVariable(nested)
+		}
+		return clone
+	case *config.SliceVariable:
+		clone := config.NewSliceVariable()
+		for _, nested := range value.Values {
+			clone.Values = append(clone.Values, cloneVariable(nested))
+		}
+		return clone
+	case nil:
+		return nil
+	case VariableCloner:
+		return value.CloneVariable()
+	default:
+		return variable
 	}
 }

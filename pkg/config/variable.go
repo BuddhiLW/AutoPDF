@@ -114,7 +114,7 @@ func (v MapVariable) Get(path string) (Variable, bool) {
 
 	parts := parsePath(path)
 	if len(parts) == 0 {
-		return &v, true
+		return nil, false
 	}
 
 	key := parts[0]
@@ -238,7 +238,7 @@ func (v SliceVariable) Get(path string) (Variable, bool) {
 
 	parts := parsePath(path)
 	if len(parts) == 0 {
-		return &v, true
+		return nil, false
 	}
 
 	// Check if first part is an index
@@ -506,19 +506,12 @@ func (vs *VariableSet) GetString(name string) (string, bool) {
 }
 
 func (vs *VariableSet) GetByPath(path string) (Variable, bool) {
-	parts := parsePath(path)
-	if len(parts) == 0 {
+	if path == "" {
 		return nil, false
 	}
 
-	rootName := parts[0]
-	if rootVar, exists := vs.Get(rootName); exists {
-		if len(parts) == 1 {
-			return rootVar, true
-		}
-		return rootVar.Get(strings.Join(parts[1:], "."))
-	}
-	return nil, false
+	root := MapVariable{Values: vs.variables}
+	return root.Get(path)
 }
 
 func (vs *VariableSet) SetByPath(path string, value Variable) error {

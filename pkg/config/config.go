@@ -116,7 +116,39 @@ func (v Variables) MarshalYAML() (interface{}, error) {
 	if v.VariableSet == nil {
 		return map[string]interface{}{}, nil
 	}
-	return v.VariableSet.variables, nil
+
+	result := make(map[string]interface{}, len(v.VariableSet.variables))
+	for key, value := range v.VariableSet.variables {
+		result[key] = variableYAMLValue(value)
+	}
+	return result, nil
+}
+
+func variableYAMLValue(variable Variable) interface{} {
+	switch value := variable.(type) {
+	case *StringVariable:
+		return value.Value
+	case *NumberVariable:
+		return value.Value
+	case *BoolVariable:
+		return value.Value
+	case *MapVariable:
+		result := make(map[string]interface{}, len(value.Values))
+		for key, nested := range value.Values {
+			result[key] = variableYAMLValue(nested)
+		}
+		return result
+	case *SliceVariable:
+		result := make([]interface{}, len(value.Values))
+		for index, nested := range value.Values {
+			result[index] = variableYAMLValue(nested)
+		}
+		return result
+	case nil:
+		return nil
+	default:
+		return value.String()
+	}
 }
 
 // UnmarshalYAML implements yaml.Unmarshaler
