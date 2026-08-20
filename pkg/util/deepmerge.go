@@ -9,7 +9,7 @@ func DeepMerge[T any](a, b T) (T, error) {
 	aVal := reflect.ValueOf(a)
 	bVal := reflect.ValueOf(b)
 
-	if aVal.Kind() == reflect.Ptr && bVal.Kind() == reflect.Ptr {
+	if aVal.Kind() == reflect.Pointer && bVal.Kind() == reflect.Pointer {
 		aVal = aVal.Elem()
 		bVal = bVal.Elem()
 	} else {

@@ -69,7 +69,6 @@ func (d *DocumentRebuildAdapter) Rebuild(ctx context.Context, templatePath, conf
 		Variables:    &cfg.Variables,
 		Engine:       cfg.Engine.String(),
 		OutputPath:   cfg.Output.String(),
-		DoConvert:    cfg.Conversion.Enabled,
 		DoClean:      false, // Don't clean in watch mode by default
 		DebugEnabled: false,
 		Conversion: documentService.ConversionSettings{

@@ -41,7 +41,7 @@ conversion:
 	fmt.Printf("Variables: %+v\n", config.Variables)
 	if config.Variables.VariableSet != nil {
 		fmt.Printf("VariableSet: %+v\n", config.Variables.VariableSet)
-		fmt.Printf("Variables map: %+v\n", config.Variables.VariableSet.variables)
+		fmt.Printf("Variables map: %+v\n", config.Variables.variables)
 	}
 
 	// Test basic access

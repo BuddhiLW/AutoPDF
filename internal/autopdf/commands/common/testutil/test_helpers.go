@@ -4,7 +4,6 @@
 package testutil
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -86,14 +85,14 @@ delim[[.content]]
 
 	if configFile == "" {
 		configFile = filepath.Join(testDir, "config.yaml")
-		configContent := fmt.Sprintf(`template: "./template.tex"
+		configContent := `template: "./template.tex"
 output: "./out/output"
 variables:
   title: "Test Document"
   content: "This is a test document."
 engine: "pdflatex"
 conversion:
-  enabled: false`)
+  enabled: false`
 		err = os.WriteFile(configFile, []byte(configContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create config file: %v", err)
@@ -104,7 +103,9 @@ conversion:
 	cleanup := func() {
 		if testConfig.ShouldCleanup() {
 			// Remove the entire test directory
-			os.RemoveAll(testDir)
+			if err := os.RemoveAll(testDir); err != nil {
+				t.Errorf("cleanup test directory: %v", err)
+			}
 		}
 	}
 

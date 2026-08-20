@@ -25,6 +25,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch/interval"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -67,7 +68,7 @@ Examples:
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		// Create standardized logger and context
 		ctx, logger := common.CreateStandardLoggerContext()
-		defer logger.Sync()
+		defer func() { _ = logger.Sync() }()
 
 		// Execute the streamlined watch process
 		return ExecuteWatchProcess(ctx, args)
@@ -160,7 +161,7 @@ func ExecuteWatchProcessWithOptions(ctx context.Context, args []string, buildOpt
 	if err := watchSvc.StartWatching(domainConfig); err != nil {
 		return fmt.Errorf("failed to start watching: %w", err)
 	}
-	defer watchSvc.StopWatching()
+	defer func() { _ = watchSvc.StopWatching() }()
 
 	logger.InfoWithFields("File watcher started successfully",
 		"template", watchConfig.TemplateFile,
@@ -297,14 +298,13 @@ func parseWatchArgs(args []string) (*WatchConfig, error) {
 // createLoggerFromOptions creates a logger adapter based on BuildOptions
 // Following CLARITY: explicit logger creation from options, with fallback to persistent flags
 func createLoggerFromOptions(buildOpts options.BuildOptions) *logger.LoggerAdapter {
-	var logLevel logger.LogLevel = logger.Detailed // Default
+	var logLevel logger.LogLevel
 
-	// If verbose is enabled in options, use that level
 	if buildOpts.Verbose.Enabled {
 		logLevel = logger.LogLevel(buildOpts.Verbose.Level)
 	} else {
 		// Otherwise, check persistent flags
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 		logLevel = persistentSvc.GetVerboseLevel()
 	}
 

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -96,7 +97,7 @@ func TestToJSON(t *testing.T) {
 	}
 
 	// Set a test variable
-	cfg.Variables.SetString("title", "Test Document")
+	require.NoError(t, cfg.Variables.SetString("title", "Test Document"))
 
 	json, err := cfg.ToJSON()
 	if err != nil {
@@ -189,8 +190,8 @@ func TestVariables_String(t *testing.T) {
 
 	// Test variables with content
 	vars := *NewVariables()
-	vars.SetString("title", "Test Document")
-	vars.SetString("author", "Test User")
+	require.NoError(t, vars.SetString("title", "Test Document"))
+	require.NoError(t, vars.SetString("author", "Test User"))
 	result := vars.String()
 	expectedSubstrings := []string{"title:", "Test Document", "author:", "Test User"}
 	for _, substr := range expectedSubstrings {

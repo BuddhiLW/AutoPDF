@@ -11,6 +11,7 @@ import (
 	persistentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/persistent"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -46,7 +47,7 @@ Examples:
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		// Create persistent service
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 
 		// Default to current level if no level specified
 		level := int(persistentSvc.GetVerboseLevel())

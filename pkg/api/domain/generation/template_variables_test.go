@@ -23,7 +23,7 @@ func TestNewTemplateVariables(t *testing.T) {
 
 	t.Run("with existing variables", func(t *testing.T) {
 		vars := config.NewVariables()
-		vars.SetString("key1", "value1")
+		require.NoError(t, vars.SetString("key1", "value1"))
 
 		tv := generation.NewTemplateVariables(vars)
 		assert.NotNil(t, tv)
@@ -238,7 +238,7 @@ func TestTemplateVariables_Flatten(t *testing.T) {
 func TestTemplateVariables_GetAndSet(t *testing.T) {
 	t.Run("get existing variable", func(t *testing.T) {
 		vars := config.NewVariables()
-		vars.SetString("test_key", "test_value")
+		require.NoError(t, vars.SetString("test_key", "test_value"))
 
 		tv := generation.NewTemplateVariables(vars)
 
@@ -330,7 +330,7 @@ func TestTemplateVariables_Clone(t *testing.T) {
 func TestTemplateVariables_Merge(t *testing.T) {
 	t.Run("merge with nil", func(t *testing.T) {
 		tv := generation.NewTemplateVariables(nil)
-		tv.SetString("key1", "value1")
+		require.NoError(t, tv.SetString("key1", "value1"))
 
 		tv.Merge(nil)
 		assert.Equal(t, 1, tv.Len())

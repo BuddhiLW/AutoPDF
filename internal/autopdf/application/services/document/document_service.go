@@ -31,7 +31,6 @@ type BuildRequest struct {
 	Engine       string
 	OutputPath   string
 	WorkingDir   string // Working directory for LaTeX compilation (where assets are symlinked)
-	DoConvert    bool
 	DoClean      bool
 	DebugEnabled bool // Enable debug mode for persistent concrete files
 	Passes       int  // Number of compilation passes
@@ -78,26 +77,33 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	// Step 3: Compile LaTeX to PDF
 	// Note: Asset symlinks should be set up by the calling strategy (e.g., AutoPDFGenerationStrategy)
 	// Use the working directory from BuildRequest if provided, otherwise derive from output path
+	outputPath := req.OutputPath
+	if outputPath != "" && s.PathOps.Ext(outputPath) == "" {
+		outputPath += ".pdf"
+	}
+
 	workingDir := req.WorkingDir
 	if workingDir == "" {
-		workingDir = s.PathOps.Dir(req.OutputPath)
+		workingDir = s.PathOps.Dir(outputPath)
 	}
 
 	// Extract jobname from output path (base filename without extension)
 	// This ensures PDF/JPEG use the custom tag naming instead of hardcoded "document"
-	outputBaseName := s.PathOps.Base(req.OutputPath)
-	ext := s.PathOps.Ext(outputBaseName)
-	// Remove extension from base filename to get jobname
-	jobName := outputBaseName
-	if ext != "" && len(jobName) > len(ext) {
-		jobName = jobName[:len(jobName)-len(ext)]
-	}
-	// Fallback to "document" if extraction fails
-	if jobName == "" {
-		jobName = "document"
+	jobName := "document"
+	if outputPath != "" {
+		outputBaseName := s.PathOps.Base(outputPath)
+		ext := s.PathOps.Ext(outputBaseName)
+		// Remove extension from base filename to get jobname
+		jobName = outputBaseName
+		if ext != "" && len(jobName) > len(ext) {
+			jobName = jobName[:len(jobName)-len(ext)]
+		}
+		if jobName == "" {
+			jobName = "document"
+		}
 	}
 
-	compileOptions := ports.NewCompileOptions(req.Engine, req.OutputPath, workingDir).
+	compileOptions := ports.NewCompileOptions(req.Engine, outputPath, workingDir).
 		WithDebug(req.DebugEnabled).
 		WithPasses(req.Passes).
 		WithLatexmk(req.UseLatexmk).
@@ -107,7 +113,7 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	if err != nil {
 		return BuildResult{
 			Success: false,
-			Error:   s.ErrorFactory.LaTeXCompilationFailed(req.OutputPath, err),
+			Error:   s.ErrorFactory.LaTeXCompilationFailed(outputPath, err),
 		}, err
 	}
 
@@ -117,7 +123,7 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	}
 
 	// Step 5: Optionally convert PDF to images
-	if req.DoConvert && req.Conversion.Enabled {
+	if req.Conversion.Enabled {
 		imagePaths, err := s.Converter.ConvertToImages(ctx, pdfPath, req.Conversion.Formats)
 		if err != nil {
 			// Log warning but don't fail the build

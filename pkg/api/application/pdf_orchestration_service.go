@@ -29,9 +29,8 @@ type PDFOrchestrationService struct {
 	watchService generation.WatchService
 
 	// Guards for validation and conditional logic
-	requestGuard        ValidationGuard
-	pdfValidationGuard  *PDFValidationGuard
-	contentPreviewGuard *ContentPreviewGuard
+	requestGuard       ValidationGuard
+	pdfValidationGuard *PDFValidationGuard
 }
 
 // NewPDFOrchestrationService creates a new orchestration service
@@ -47,7 +46,6 @@ func NewPDFOrchestrationService(
 	// Initialize guards
 	requestGuard := NewRequestValidationGuard(templateService, variableResolver)
 	pdfValidationGuard := NewPDFValidationGuard()
-	contentPreviewGuard := NewContentPreviewGuard()
 
 	// Initialize encapsulated watch service
 	encapsulatedWatchService := NewWatchService(watchService, watchManager)
@@ -63,9 +61,8 @@ func NewPDFOrchestrationService(
 		watchService: encapsulatedWatchService,
 
 		// Initialize guards
-		requestGuard:        requestGuard,
-		pdfValidationGuard:  pdfValidationGuard,
-		contentPreviewGuard: contentPreviewGuard,
+		requestGuard:       requestGuard,
+		pdfValidationGuard: pdfValidationGuard,
 	}
 }
 
@@ -116,12 +113,8 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		"resolved_variable_count", len(simpleVariables),
 	)
 
-	// Step 3: Process template with resolved variables
-	// Log variables being processed
-	s.logger.DebugWithFields("Processing template with variables",
-		"variables", simpleVariables,
-		"variable_count", len(simpleVariables),
-	)
+	// Step 3: Process template without logging variable names or values.
+	s.logger.DebugWithFields("Processing template", "variable_count", len(simpleVariables))
 
 	processedContent, err := s.templateService.Process(ctx, req.TemplatePath, simpleVariables)
 	if err != nil {
@@ -154,19 +147,16 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 			},
 		}, err
 	}
-	defer os.Remove(tempFile.Name()) // Clean up temporary file after generation
+	defer func() { _ = os.Remove(tempFile.Name()) }() // Clean up after generation.
 
-	// Log processed content using guard
+	// Log size only; processed content may contain secrets or personal data.
 	contentLen := len(processedContent)
-	previewLen := s.contentPreviewGuard.GetPreviewLength(contentLen)
 	s.logger.DebugWithFields("Processed template content",
 		"content_length", contentLen,
-		"preview_length", previewLen,
-		"preview", processedContent[:previewLen],
 	)
 
 	if _, err := tempFile.WriteString(processedContent); err != nil {
-		tempFile.Close()
+		_ = tempFile.Close()
 		return generation.PDFGenerationResult{
 			Success: false,
 			Error: domain.TemplateProcessingError{
@@ -178,7 +168,9 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 			},
 		}, err
 	}
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		return generation.PDFGenerationResult{Success: false}, fmt.Errorf("close processed template: %w", err)
+	}
 
 	// Log temporary file path
 	s.logger.InfoWithFields("Using temporary template file",

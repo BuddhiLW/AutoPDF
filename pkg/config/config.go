@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/rwxrob/bonzai/persisters/inyaml"
 	"gopkg.in/yaml.v3"
 )
 
@@ -92,7 +91,7 @@ func (v *Variables) SetString(path string, value string) error {
 	if v.VariableSet == nil {
 		v.VariableSet = NewVariableSet()
 	}
-	return v.VariableSet.SetByPath(path, &StringVariable{Value: value})
+	return v.SetByPath(path, &StringVariable{Value: value})
 }
 
 // MarshalJSON implements json.Marshaler
@@ -117,8 +116,8 @@ func (v Variables) MarshalYAML() (interface{}, error) {
 		return map[string]interface{}{}, nil
 	}
 
-	result := make(map[string]interface{}, len(v.VariableSet.variables))
-	for key, value := range v.VariableSet.variables {
+	result := make(map[string]interface{}, len(v.variables))
+	for key, value := range v.variables {
 		result[key] = variableYAMLValue(value)
 	}
 	return result, nil
@@ -194,7 +193,7 @@ func (v *Variables) unmarshalYAMLMap(node *yaml.Node) error {
 		key := keyNode.Value
 		value := v.convertYAMLNodeToVariable(valueNode)
 
-		v.VariableSet.Set(key, value)
+		v.Set(key, value)
 	}
 
 	return nil
@@ -259,7 +258,7 @@ func (v *Variables) convertYAMLNodeToVariable(node *yaml.Node) Variable {
 			if keyNode.Kind == yaml.ScalarNode {
 				key := keyNode.Value
 				value := v.convertYAMLNodeToVariable(valueNode)
-				mapVar.Set(key, value)
+				_ = mapVar.Set(key, value) // YAML scalar keys form valid map paths.
 			}
 		}
 		return mapVar
@@ -285,7 +284,16 @@ type Conversion struct {
 }
 
 // GetConfig retrieves the configuration from the persister
-func GetConfig(persister *inyaml.Persister) (*Config, error) {
+// Store is the persistence capability required by configuration serialization.
+type Store interface {
+	Get(key string) string
+	Set(key, value string)
+}
+
+func GetConfig(persister Store) (*Config, error) {
+	if persister == nil {
+		return nil, errors.New("config store cannot be nil")
+	}
 	configStr := persister.Get("autopdf_config")
 
 	if configStr == "" {
@@ -302,7 +310,10 @@ func GetConfig(persister *inyaml.Persister) (*Config, error) {
 }
 
 // SaveConfig saves the configuration to the persister
-func SaveConfig(persister *inyaml.Persister, config *Config) error {
+func SaveConfig(persister Store, config *Config) error {
+	if persister == nil {
+		return errors.New("config store cannot be nil")
+	}
 	if config == nil {
 		return errors.New("config cannot be nil")
 	}

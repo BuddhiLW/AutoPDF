@@ -58,7 +58,9 @@ func (da *DebuggerAdapter) Debug(message string, args ...interface{}) {
 		fmt.Fprint(os.Stderr, formattedMessage)
 	default:
 		if da.file != nil {
-			da.file.WriteString(formattedMessage)
+			if _, err := da.file.WriteString(formattedMessage); err != nil {
+				fmt.Fprintf(os.Stderr, "debug output failed: %v\n", err)
+			}
 		}
 	}
 }

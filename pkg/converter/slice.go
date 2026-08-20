@@ -88,12 +88,12 @@ func (sc *SliceConverter) CanConvert(value interface{}) bool {
 // convertElement converts a single slice element
 func (sc *SliceConverter) convertElement(element reflect.Value) (config.Variable, error) {
 	// Handle nil pointers
-	if element.Kind() == reflect.Ptr && element.IsNil() {
+	if element.Kind() == reflect.Pointer && element.IsNil() {
 		return &config.StringVariable{Value: ""}, nil
 	}
 
 	// Dereference pointers
-	if element.Kind() == reflect.Ptr {
+	if element.Kind() == reflect.Pointer {
 		element = element.Elem()
 	}
 
@@ -272,4 +272,3 @@ func (fsc *FloatSliceConverter) CanConvert(value interface{}) bool {
 	_, ok := value.([]float64)
 	return ok
 }
-

@@ -116,7 +116,10 @@ func NewLoggerAdapter(level LogLevel, output string) *LoggerAdapter {
 	logger, err := config.Build()
 	if err != nil {
 		// Fallback to basic logger if configuration fails
-		logger, _ = zap.NewProduction()
+		logger, err = zap.NewProduction()
+		if err != nil {
+			logger = zap.NewNop()
+		}
 	}
 
 	return &LoggerAdapter{
@@ -233,7 +236,6 @@ func (la *LoggerAdapter) LogConfigBuilding(configPath string, variables map[stri
 	la.Info("Building configuration",
 		zap.String("config_path", configPath),
 		zap.Int("variable_count", len(variables)),
-		zap.Strings("variables", mapKeysToStrings(variables)),
 	)
 }
 
@@ -244,13 +246,6 @@ func (la *LoggerAdapter) LogDataMapping(templatePath string, variables map[strin
 		zap.Int("variable_count", len(variables)),
 	)
 
-	// Log each variable mapping in debug mode
-	for key, value := range variables {
-		la.Debug("Variable mapping",
-			zap.String("key", key),
-			zap.String("value", value),
-		)
-	}
 }
 
 // LogLaTeXCompilation logs LaTeX compilation process
@@ -344,13 +339,4 @@ func (la *LoggerAdapter) LogPerformance(operation string, duration time.Duration
 	}
 
 	la.Info("Performance metric", fields...)
-}
-
-// Helper function to convert map keys to strings
-func mapKeysToStrings(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }

@@ -3,10 +3,8 @@ package api
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	apilogger "github.com/BuddhiLW/AutoPDF/pkg/api/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/config"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
@@ -19,14 +17,9 @@ func TestAPIDebugIntegration(t *testing.T) {
 	// Test environment variable configuration
 	t.Run("Environment Variable Configuration", func(t *testing.T) {
 		// Set test environment variables
-		os.Setenv("AUTOPDF_API_DEBUG", "true")
-		os.Setenv("AUTOPDF_API_LOG_DIR", "/tmp/test-logs")
-		os.Setenv("AUTOPDF_API_CONCRETE_DIR", "/tmp/test-concrete")
-		defer func() {
-			os.Unsetenv("AUTOPDF_API_DEBUG")
-			os.Unsetenv("AUTOPDF_API_LOG_DIR")
-			os.Unsetenv("AUTOPDF_API_CONCRETE_DIR")
-		}()
+		t.Setenv("AUTOPDF_API_DEBUG", "true")
+		t.Setenv("AUTOPDF_API_LOG_DIR", "/tmp/test-logs")
+		t.Setenv("AUTOPDF_API_CONCRETE_DIR", "/tmp/test-concrete")
 
 		// Load configuration
 		debugConfig := config.LoadDebugConfigFromEnv()
@@ -95,9 +88,6 @@ func TestAPIDebugIntegration(t *testing.T) {
 
 	// Test error details logging
 	t.Run("ErrorDetails Logging", func(t *testing.T) {
-		// Create test logger
-		testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-
 		// Create error details
 		errorDetails := NewErrorDetails(ErrorCategoryTemplate, ErrorSeverityHigh).
 			WithFilePath("/test/template.tex").
@@ -106,12 +96,12 @@ func TestAPIDebugIntegration(t *testing.T) {
 
 		// Test logging (this will output to stdout, but we can verify it doesn't panic)
 		assert.NotPanics(t, func() {
-			errorDetails.LogError(testLogger)
+			errorDetails.LogError(NewNoopLogger())
 		}, "LogError should not panic")
 
 		// Test logging with custom message
 		assert.NotPanics(t, func() {
-			errorDetails.LogErrorWithMessage(testLogger, "Custom error message")
+			errorDetails.LogErrorWithMessage(NewNoopLogger(), "Custom error message")
 		}, "LogErrorWithMessage should not panic")
 	})
 
@@ -136,11 +126,13 @@ func TestAPIDebugIntegration(t *testing.T) {
 	// Test PDF generation options structure
 	t.Run("PDFGenerationOptions Structure", func(t *testing.T) {
 		options := generation.PDFGenerationOptions{
-			DoConvert: true,
 			DoClean:   true,
 			Verbose:   2,
 			Force:     false,
 			RequestID: "test-request-abc",
+			Conversion: generation.ConversionOptions{
+				Enabled: true,
+			},
 			Debug: generation.DebugOptions{
 				Enabled:            true,
 				LogToFile:          true,
@@ -150,7 +142,7 @@ func TestAPIDebugIntegration(t *testing.T) {
 		}
 
 		// Verify structure
-		assert.True(t, options.DoConvert)
+		assert.True(t, options.Conversion.Enabled)
 		assert.True(t, options.DoClean)
 		assert.Equal(t, 2, options.Verbose)
 		assert.False(t, options.Force)

@@ -5,6 +5,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +14,9 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 )
+
+// ErrWatchModeUnavailable is returned until a real filesystem watcher is configured.
+var ErrWatchModeUnavailable = errors.New("watch mode is unavailable: no watch service configured")
 
 // WatchModeManager manages watch mode instances for PDF generation
 type WatchModeManager struct {
@@ -42,73 +46,17 @@ func NewWatchModeManager(logger *logger.LoggerAdapter) *WatchModeManager {
 }
 
 // StartWatchMode starts watching for a PDF generation request
-func (m *WatchModeManager) StartWatchMode(ctx context.Context, req generation.PDFGenerationRequest) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	// Create unique watch ID
-	watchID := fmt.Sprintf("%s-%s-%d", req.Options.RequestID, req.TemplatePath, time.Now().UnixNano())
-
-	// Check if already watching this template
-	for _, instance := range m.activeWatches {
-		if instance.TemplatePath == req.TemplatePath {
-			m.logger.InfoWithFields("Template already being watched",
-				"template_path", req.TemplatePath,
-				"existing_watch_id", instance.ID,
-			)
-			return nil // Already watching, no need to start another
-		}
+func (m *WatchModeManager) StartWatchMode(ctx context.Context, _ generation.PDFGenerationRequest) error {
+	if m == nil {
+		return ErrWatchModeUnavailable
 	}
-
-	// Create watch configuration
-	watchConfig := watch.WatchConfiguration{
-		TemplateFile:      req.TemplatePath,
-		ConfigFile:        "autopdf.yaml", // Default config file
-		DebounceInterval:  500 * time.Millisecond,
-		ExclusionPatterns: []string{"*.aux", "*.log", "*.out", "*.toc", "*.fdb_latexmk", "*.fls", "*.synctex.gz"},
-		InclusionPatterns: []string{"*.tex", "*.yaml", "*.yml"},
+	if ctx == nil {
+		ctx = context.Background()
 	}
-
-	// Create context for this watch instance
-	watchCtx, cancel := context.WithCancel(ctx)
-
-	// Create watch instance
-	instance := &WatchInstance{
-		ID:           watchID,
-		TemplatePath: req.TemplatePath,
-		RequestID:    req.Options.RequestID,
-		Config:       watchConfig,
-		StartedAt:    time.Now(),
-		Context:      watchCtx,
-		Cancel:       cancel,
+	if err := ctx.Err(); err != nil {
+		return err
 	}
-
-	// Start watching in a goroutine
-	go func() {
-		m.logger.InfoWithFields("Starting watch mode",
-			"watch_id", watchID,
-			"template_path", req.TemplatePath,
-			"request_id", req.Options.RequestID,
-		)
-
-		// TODO: Create actual watch service instance
-		// For now, just simulate the watch service
-		m.simulateWatchService(instance)
-
-		// Clean up when done
-		m.StopWatchMode(watchID)
-	}()
-
-	// Store the instance
-	m.activeWatches[watchID] = instance
-
-	m.logger.InfoWithFields("Watch mode started successfully",
-		"watch_id", watchID,
-		"template_path", req.TemplatePath,
-		"active_watches", len(m.activeWatches),
-	)
-
-	return nil
+	return ErrWatchModeUnavailable
 }
 
 // StopWatchMode stops watching for a specific watch ID
@@ -185,25 +133,4 @@ type WatchInstanceInfo struct {
 	RequestID    string        `json:"request_id"`
 	StartedAt    time.Time     `json:"started_at"`
 	Duration     time.Duration `json:"duration"`
-}
-
-// simulateWatchService simulates a watch service for testing
-func (m *WatchModeManager) simulateWatchService(instance *WatchInstance) {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-instance.Context.Done():
-			m.logger.InfoWithFields("Watch service context cancelled",
-				"watch_id", instance.ID,
-			)
-			return
-		case <-ticker.C:
-			m.logger.DebugWithFields("Watch service heartbeat",
-				"watch_id", instance.ID,
-				"template_path", instance.TemplatePath,
-			)
-		}
-	}
 }

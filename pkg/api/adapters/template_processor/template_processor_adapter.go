@@ -36,7 +36,6 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 	tpa.logger.DebugWithFields("Starting template processing",
 		"template_path", templatePath,
 		"variable_count", len(variables),
-		"variable_keys", getStringMapKeys(variables),
 	)
 
 	if templatePath == "" {
@@ -265,15 +264,6 @@ func (tpa *TemplateProcessorAdapter) setNestedValue(data map[string]interface{},
 	if nested, ok := data[parts[0]].(map[string]interface{}); ok {
 		tpa.setNestedValue(nested, parts[1:], value)
 	}
-}
-
-// getStringMapKeys returns the keys of a string map for debugging
-func getStringMapKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }
 
 // validateLaTeXContent performs basic LaTeX validation

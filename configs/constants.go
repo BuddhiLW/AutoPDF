@@ -172,7 +172,7 @@ const (
 	DefaultEngine       = "pdflatex"
 	DefaultOutputFormat = "pdf"
 	DefaultTemplateName = "template.tex"
-	DefaultConfigName   = "config.yaml"
+	DefaultConfigName   = "autopdf.yaml"
 	DefaultOutputName   = "output.pdf"
 )
 

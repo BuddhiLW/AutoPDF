@@ -451,7 +451,7 @@ func (api *StructConverterAPI) ValidateStruct(w http.ResponseWriter, r *http.Req
 
 	// Check if it's a struct
 	v := reflect.ValueOf(req.Data)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 

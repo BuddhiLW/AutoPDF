@@ -85,7 +85,7 @@ func (sc *StructConverter) ConvertStruct(v interface{}) (*config.Variables, erro
 
 	// Check custom converters in registry
 	val := reflect.ValueOf(v)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
@@ -114,7 +114,7 @@ func (sc *StructConverter) ConvertStruct(v interface{}) (*config.Variables, erro
 // convertStructByReflection handles the core reflection logic
 func (sc *StructConverter) convertStructByReflection(v interface{}) (*config.Variables, error) {
 	val := reflect.ValueOf(v)
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return config.NewVariables(), nil
 		}
@@ -182,12 +182,12 @@ func (sc *StructConverter) convertStructByReflection(v interface{}) (*config.Var
 // convertValue handles individual value conversion
 func (sc *StructConverter) convertValue(val reflect.Value, tag FieldTag) (config.Variable, error) {
 	// Handle nil pointers
-	if val.Kind() == reflect.Ptr && val.IsNil() {
+	if val.Kind() == reflect.Pointer && val.IsNil() {
 		return &config.StringVariable{Value: ""}, nil
 	}
 
 	// Dereference pointers
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		val = val.Elem()
 	}
 
@@ -241,7 +241,9 @@ func (sc *StructConverter) convertStructField(val reflect.Value, tag FieldTag) (
 	// Convert Variables to MapVariable
 	mapVar := config.NewMapVariable()
 	for key, variable := range nestedVars.GetVariables() {
-		mapVar.Set(key, variable)
+		if err := mapVar.Set(key, variable); err != nil {
+			return nil, fmt.Errorf("set nested field %q: %w", key, err)
+		}
 	}
 
 	return mapVar, nil
@@ -283,7 +285,9 @@ func (sc *StructConverter) convertMapField(val reflect.Value, tag FieldTag) (con
 			return nil, fmt.Errorf("failed to convert map value for key %s: %w", keyStr, err)
 		}
 
-		mapVar.Set(keyStr, valueVar)
+		if err := mapVar.Set(keyStr, valueVar); err != nil {
+			return nil, fmt.Errorf("set map field %q: %w", keyStr, err)
+		}
 	}
 
 	return mapVar, nil
@@ -355,7 +359,7 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
+	case reflect.Interface, reflect.Pointer:
 		return v.IsNil()
 	}
 	return false

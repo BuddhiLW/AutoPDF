@@ -41,7 +41,7 @@ Examples:
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		// Create standardized logger and context
 		ctx, logger := common.CreateStandardLoggerContext()
-		defer logger.Sync()
+		defer func() { _ = logger.Sync() }()
 
 		// Execute the exclude process
 		return executeExcludeProcess(ctx, args, logger)

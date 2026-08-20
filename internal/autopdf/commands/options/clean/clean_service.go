@@ -11,6 +11,7 @@ import (
 	persistentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/persistent"
 	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -95,7 +96,7 @@ Examples:
   autopdf clean on
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 
 		if err := persistentSvc.SetCleanEnabled(true); err != nil {
 			return fmt.Errorf("failed to enable persistent cleaning: %w", err)
@@ -124,7 +125,7 @@ Examples:
   autopdf clean off
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 
 		if err := persistentSvc.SetCleanEnabled(false); err != nil {
 			return fmt.Errorf("failed to disable persistent cleaning: %w", err)
@@ -153,7 +154,7 @@ Examples:
   autopdf clean switch
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 
 		enabled, err := persistentSvc.ToggleClean()
 		if err != nil {
@@ -187,7 +188,7 @@ Examples:
   autopdf clean status
 `,
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
-		persistentSvc := persistentService.NewPersistentService()
+		persistentSvc := persistentService.NewPersistentService(infraadapters.NewYAMLStoreFactory())
 		status := persistentSvc.GetStatus()
 
 		// Create logger for user feedback

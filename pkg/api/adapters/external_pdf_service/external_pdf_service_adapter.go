@@ -50,7 +50,10 @@ func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req generat
 	}
 
 	// Convert domain request to config
-	cfg := epsa.createConfigFromRequest(req)
+	cfg, err := epsa.createConfigFromRequest(ctx, req)
+	if err != nil {
+		return generation.PDFGenerationResult{Success: false}, err
+	}
 
 	// Create internal application adapter with logger
 	internalAdapter := adapters.NewInternalApplicationAdapterWithLogger(cfg, epsa.logger)
@@ -59,7 +62,7 @@ func (epsa *ExternalPDFServiceAdapter) Generate(ctx context.Context, req generat
 	workingDir := req.Options.WorkingDir
 
 	// Generate PDF using the internal adapter with working directory
-	pdfBytes, paths, err := internalAdapter.GeneratePDF(cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
+	pdfBytes, paths, err := internalAdapter.GeneratePDFContext(ctx, cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
 	if err != nil {
 		return generation.PDFGenerationResult{
 			Success: false,
@@ -101,13 +104,16 @@ func (epsa *ExternalPDFServiceAdapter) GenerateWithWorkingDir(ctx context.Contex
 	}
 
 	// Convert domain request to config
-	cfg := epsa.createConfigFromRequest(req)
+	cfg, err := epsa.createConfigFromRequest(ctx, req)
+	if err != nil {
+		return generation.PDFGenerationResult{Success: false}, err
+	}
 
 	// Create internal application adapter with logger
 	internalAdapter := adapters.NewInternalApplicationAdapterWithLogger(cfg, epsa.logger)
 
 	// Generate PDF using the internal adapter with custom working directory
-	pdfBytes, paths, err := internalAdapter.GeneratePDFWithWorkingDir(cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
+	pdfBytes, paths, err := internalAdapter.GeneratePDFContext(ctx, cfg, config.Template(req.TemplatePath), debugEnabled, workingDir)
 	if err != nil {
 		return generation.PDFGenerationResult{
 			Success: false,
@@ -218,7 +224,7 @@ func (epsa *ExternalPDFServiceAdapter) GetSupportedFormats() []string {
 }
 
 // createConfigFromRequest creates a config from a PDF generation request
-func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PDFGenerationRequest) *config.Config {
+func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(ctx context.Context, req generation.PDFGenerationRequest) (*config.Config, error) {
 	cfg := &config.Config{
 		Template: config.Template(req.TemplatePath),
 		Output:   config.Output(req.OutputPath),
@@ -236,7 +242,7 @@ func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PD
 	// Note: epsa.logger is ports.Logger, not cartas-backend logger, so these logs
 	// will go to AutoPDF's logger, not cartas-backend's logger
 	if epsa.logger != nil {
-		epsa.logger.Info(context.Background(), "Extracting config from PDF generation request",
+		epsa.logger.Info(ctx, "Extracting config from PDF generation request",
 			autopdfports.NewLogField("request_passes", req.Options.Passes),
 			autopdfports.NewLogField("request_use_latexmk", req.Options.UseLatexmk),
 			autopdfports.NewLogField("config_passes", cfg.Passes),
@@ -248,9 +254,11 @@ func (epsa *ExternalPDFServiceAdapter) createConfigFromRequest(req generation.PD
 		// Convert TemplateVariables to flattened map
 		flattened := req.Variables.Flatten()
 		for key, value := range flattened {
-			cfg.Variables.SetString(key, value)
+			if err := cfg.Variables.SetString(key, value); err != nil {
+				return nil, fmt.Errorf("set request variable %q: %w", key, err)
+			}
 		}
 	}
 
-	return cfg
+	return cfg, nil
 }

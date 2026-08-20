@@ -21,8 +21,8 @@ func TestCmd_Structure(t *testing.T) {
 		t.Errorf("Expected Cmd.Alias to be 'apdf', got '%s'", Cmd.Alias)
 	}
 
-	if Cmd.Vers != "v1.3.2" {
-		t.Errorf("Expected Cmd.Vers to be 'v1.3.2', got '%s'", Cmd.Vers)
+	if Cmd.Vers != "v1.3.3" {
+		t.Errorf("Expected Cmd.Vers to be 'v1.3.3', got '%s'", Cmd.Vers)
 	}
 }
 
@@ -86,7 +86,11 @@ func TestConvertCmd_Do(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -134,7 +138,11 @@ func TestConvertCmd_Do_EmptyFormats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -164,7 +172,11 @@ func TestConvertCmd_ConfigCreation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -193,7 +205,11 @@ func TestConvertCmd_DefaultFormats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -221,7 +237,11 @@ func TestConvertCmd_MultipleFormats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -272,7 +292,11 @@ func TestConvertCmd_ConfigValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")
@@ -301,7 +325,11 @@ func TestConvertCmd_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			t.Errorf("cleanup temp directory: %v", err)
+		}
+	}()
 
 	// Create a dummy PDF file
 	pdfFile := filepath.Join(tempDir, "test")

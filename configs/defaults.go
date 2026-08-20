@@ -9,7 +9,9 @@ import (
 
 // DefaultConfigName is now defined in constants.go
 
-// Standardized error types
+// Standardized error types. Names are retained for public API compatibility.
+//
+//nolint:staticcheck
 var (
 	ConfigFileExistsError = fmt.Errorf("config file already exists")
 	ConfigFileWriteError  = fmt.Errorf("failed to write config file")

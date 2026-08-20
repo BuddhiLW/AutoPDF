@@ -6,6 +6,7 @@ package config
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -108,11 +109,11 @@ conversion:
 
 	// Test flattening
 	flattened := config.Variables.Flatten()
-	
+
 	// Check some flattened keys
 	expectedKeys := []string{
 		"title",
-		"author", 
+		"author",
 		"date",
 		"metadata.version",
 		"metadata.tags[0]",
@@ -159,9 +160,9 @@ conversion:
 func TestComplexVariablesYAMLMarshal(t *testing.T) {
 	// Create a config with complex variables
 	cfg := &Config{
-		Template: Template("template.tex"),
-		Output:   Output("output.pdf"),
-		Engine:   Engine("pdflatex"),
+		Template:  Template("template.tex"),
+		Output:    Output("output.pdf"),
+		Engine:    Engine("pdflatex"),
 		Variables: *NewVariables(),
 		Conversion: Conversion{
 			Enabled: true,
@@ -170,28 +171,28 @@ func TestComplexVariablesYAMLMarshal(t *testing.T) {
 	}
 
 	// Set complex variables
-	cfg.Variables.SetString("title", "My Document")
-	cfg.Variables.SetString("author", "AutoPDF User")
-	cfg.Variables.SetString("date", "2025-01-07")
-	
+	require.NoError(t, cfg.Variables.SetString("title", "My Document"))
+	require.NoError(t, cfg.Variables.SetString("author", "AutoPDF User"))
+	require.NoError(t, cfg.Variables.SetString("date", "2025-01-07"))
+
 	// Set nested metadata
 	metadata := NewMapVariable()
-	metadata.Set("version", &StringVariable{Value: "1.0"})
-	
+	require.NoError(t, metadata.Set("version", &StringVariable{Value: "1.0"}))
+
 	tags := NewSliceVariable()
 	tags.Values = []Variable{
 		&StringVariable{Value: "example"},
 		&StringVariable{Value: "complex"},
 		&StringVariable{Value: "variables"},
 	}
-	metadata.Set("tags", tags)
-	
+	require.NoError(t, metadata.Set("tags", tags))
+
 	settings := NewMapVariable()
-	settings.Set("verbose", &BoolVariable{Value: true})
-	settings.Set("debug", &BoolVariable{Value: false})
-	settings.Set("timeout", &NumberVariable{Value: 30})
-	metadata.Set("settings", settings)
-	
+	require.NoError(t, settings.Set("verbose", &BoolVariable{Value: true}))
+	require.NoError(t, settings.Set("debug", &BoolVariable{Value: false}))
+	require.NoError(t, settings.Set("timeout", &NumberVariable{Value: 30}))
+	require.NoError(t, metadata.Set("settings", settings))
+
 	cfg.Variables.Set("metadata", metadata)
 
 	// Marshal to YAML
@@ -227,7 +228,7 @@ func TestComplexVariablesYAMLMarshal(t *testing.T) {
 func TestComplexVariablesCLI(t *testing.T) {
 	// Test that the CLI can handle complex variables
 	// This simulates what happens when the CLI loads a config file
-	
+
 	yamlContent := `
 template: "template.tex"
 output: "output.pdf"
@@ -287,21 +288,21 @@ conversion:
 
 	// Test that flattening works for template processing
 	flattened := config.Variables.Flatten()
-	
+
 	// Verify key flattened variables exist
 	expectedFlattened := map[string]string{
-		"title": "CLI Test Document",
-		"author": "AutoPDF CLI",
-		"metadata.version": "2.0",
-		"metadata.features[0]": "complex variables",
-		"metadata.features[1]": "yaml parsing",
-		"metadata.features[2]": "cli integration",
+		"title":                     "CLI Test Document",
+		"author":                    "AutoPDF CLI",
+		"metadata.version":          "2.0",
+		"metadata.features[0]":      "complex variables",
+		"metadata.features[1]":      "yaml parsing",
+		"metadata.features[2]":      "cli integration",
 		"metadata.settings.verbose": "true",
-		"metadata.settings.debug": "false",
-		"items[0].name": "Feature 1",
-		"items[0].enabled": "true",
-		"items[1].name": "Feature 2",
-		"items[1].enabled": "false",
+		"metadata.settings.debug":   "false",
+		"items[0].name":             "Feature 1",
+		"items[0].enabled":          "true",
+		"items[1].name":             "Feature 2",
+		"items[1].enabled":          "false",
 	}
 
 	for key, expectedValue := range expectedFlattened {

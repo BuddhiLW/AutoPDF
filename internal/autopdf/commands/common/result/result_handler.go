@@ -129,7 +129,7 @@ func (rh *ResultHandler) HandleForceResult(result *wiring.ForceResult) error {
 func (rh *ResultHandler) HandleConfigResult(result *wiring.ConfigResult) error {
 	// Create logger for user feedback
 	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	if result.Valid {
 		logger.InfoWithFields("Configuration operation completed successfully",

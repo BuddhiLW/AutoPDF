@@ -6,10 +6,8 @@ package services
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	apiapplication "github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
@@ -24,39 +22,33 @@ type PDFGenerationAPIService struct {
 	config       *config.Config
 	debugEnabled bool
 	logger       api.Logger // Optional logger for latexmk transparency (public API)
+	engine       *api.Engine
+	engineErr    error
 }
 
 // NewPDFGenerationAPIService creates a new API service
-func NewPDFGenerationAPIService(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool) *PDFGenerationAPIService {
-	return NewPDFGenerationAPIServiceWithPortLogger(cfg, logger, debugEnabled, nil)
-}
-
-// NewPDFGenerationAPIServiceWithPortLogger creates a new API service with optional public Logger for latexmk transparency
-func NewPDFGenerationAPIServiceWithPortLogger(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool, publicLogger api.Logger) *PDFGenerationAPIService {
+func NewPDFGenerationAPIService(cfg *config.Config, publicLogger api.Logger, debugEnabled bool) *PDFGenerationAPIService {
 	// Create factory
-	factory := factories.NewPDFGenerationServiceFactory(cfg, logger, debugEnabled)
-
-	// Convert public Logger to ports.Logger and set in factory if provided
-	if publicLogger != nil {
-		portLogger := api.NewLoggerAdapter(publicLogger)
-		factory.SetPortLogger(portLogger)
-	}
+	factory := factories.NewPDFGenerationServiceFactory(cfg, publicLogger, debugEnabled)
 
 	// Create application service
 	appService := factory.CreateApplicationService()
+	engine, engineErr := api.NewEngine(api.WithLogger(publicLogger))
 
 	return &PDFGenerationAPIService{
 		appService:   appService,
 		config:       cfg,
 		debugEnabled: debugEnabled,
 		logger:       publicLogger,
+		engine:       engine,
+		engineErr:    engineErr,
 	}
 }
 
 // GeneratePDF generates a PDF using the builder pattern
 func (s *PDFGenerationAPIService) GeneratePDF(ctx context.Context, templatePath string, outputPath string, variables map[string]interface{}) ([]byte, map[string]string, error) {
 	// Build request using builder pattern
-	request := builders.NewPDFGenerationRequestBuilder().
+	request, err := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(templatePath).
 		WithOutput(outputPath).
 		WithEngine(s.config.Engine.String()).
@@ -66,31 +58,12 @@ func (s *PDFGenerationAPIService) GeneratePDF(ctx context.Context, templatePath 
 		WithTimeout(30 * time.Second).
 		WithPasses(s.config.Passes).
 		WithLatexmk(s.config.UseLatexmk).
-		Build()
-
-	// Generate PDF
-	result, err := s.appService.GeneratePDF(ctx, request)
+		BuildValidated()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if !result.Success {
-		return nil, nil, result.Error
-	}
-
-	// Read PDF bytes
-	pdfBytes, err := os.ReadFile(result.PDFPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
-	}
-
-	// Create image paths map
-	imagePaths := make(map[string]string)
-	for i, imagePath := range result.ImagePaths {
-		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
-	}
-
-	return pdfBytes, imagePaths, nil
+	return s.generate(ctx, request)
 }
 
 // GeneratePDFWithOptions generates a PDF with custom options
@@ -105,7 +78,7 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 		Enabled: options.Debug,
 	}
 
-	request := builders.NewPDFGenerationRequestBuilder().
+	request, err := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(options.TemplatePath).
 		WithOutput(options.OutputPath).
 		WithEngine(options.Engine).
@@ -117,37 +90,18 @@ func (s *PDFGenerationAPIService) GeneratePDFWithOptions(ctx context.Context, op
 		WithDebug(debugOptions).
 		WithPasses(options.Passes).
 		WithLatexmk(options.UseLatexmk).
-		Build()
-
-	// Generate PDF
-	result, err := s.appService.GeneratePDF(ctx, request)
+		BuildValidated()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if !result.Success {
-		return nil, nil, result.Error
-	}
-
-	// Read PDF bytes
-	pdfBytes, err := os.ReadFile(result.PDFPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
-	}
-
-	// Create image paths map
-	imagePaths := make(map[string]string)
-	for i, imagePath := range result.ImagePaths {
-		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
-	}
-
-	return pdfBytes, imagePaths, nil
+	return s.generate(ctx, request)
 }
 
 // GeneratePDFFromStruct generates a PDF from a struct (converts struct to variables automatically)
 func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, templatePath string, outputPath string, data interface{}) ([]byte, map[string]string, error) {
 	// Build request using builder pattern with struct conversion
-	request := builders.NewPDFGenerationRequestBuilder().
+	request, err := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(templatePath).
 		WithOutput(outputPath).
 		WithEngine(s.config.Engine.String()).
@@ -160,31 +114,12 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStruct(ctx context.Context, tem
 		}).
 		WithPasses(s.config.Passes).
 		WithLatexmk(s.config.UseLatexmk).
-		Build()
-
-	// Generate PDF
-	result, err := s.appService.GeneratePDF(ctx, request)
+		BuildValidated()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if !result.Success {
-		return nil, nil, result.Error
-	}
-
-	// Read PDF bytes
-	pdfBytes, err := os.ReadFile(result.PDFPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
-	}
-
-	// Create image paths map
-	imagePaths := make(map[string]string)
-	for i, imagePath := range result.ImagePaths {
-		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
-	}
-
-	return pdfBytes, imagePaths, nil
+	return s.generate(ctx, request)
 }
 
 // GeneratePDFFromStructWithWorkingDir generates a PDF from a struct with custom working directory
@@ -200,7 +135,7 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx contex
 	}
 
 	// Build request using builder pattern with struct conversion and working directory
-	request := builders.NewPDFGenerationRequestBuilder().
+	request, err := builders.NewPDFGenerationRequestBuilder().
 		WithTemplate(templatePath).
 		WithOutput(outputPath).
 		WithEngine(s.config.Engine.String()).
@@ -214,7 +149,10 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx contex
 		}).
 		WithPasses(s.config.Passes).
 		WithLatexmk(s.config.UseLatexmk).
-		Build()
+		BuildValidated()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// DEBUG: Log request values after building
 	if s.logger != nil {
@@ -224,29 +162,44 @@ func (s *PDFGenerationAPIService) GeneratePDFFromStructWithWorkingDir(ctx contex
 			api.NewLogField("request_engine", request.Engine))
 	}
 
-	// Use application service (maintains full pipeline: Variable Resolver → External PDF Service)
-	result, err := s.appService.GeneratePDF(ctx, request)
+	return s.generate(ctx, request)
+}
+
+func (s *PDFGenerationAPIService) generate(ctx context.Context, request generation.PDFGenerationRequest) ([]byte, map[string]string, error) {
+	if s.engineErr != nil {
+		return nil, nil, s.engineErr
+	}
+	if request.Options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, request.Options.Timeout)
+		defer cancel()
+	}
+	variables := map[string]string{}
+	if request.Variables != nil {
+		variables = request.Variables.Flatten()
+	}
+	result, err := s.engine.Generate(ctx, api.Request{
+		TemplatePath: request.TemplatePath,
+		OutputPath:   request.OutputPath,
+		Variables:    variables,
+		LaTeXEngine:  request.Engine,
+		WorkingDir:   request.Options.WorkingDir,
+		Passes:       request.Options.Passes,
+		UseLatexmk:   request.Options.UseLatexmk,
+		Debug:        request.Options.Debug.Enabled,
+		Conversion: api.ConversionOptions{
+			Enabled: request.Options.Conversion.Enabled,
+			Formats: append([]string(nil), request.Options.Conversion.Formats...),
+		},
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	if !result.Success {
-		return nil, nil, result.Error
+	paths := make(map[string]string, len(result.ImagePaths))
+	for index, imagePath := range result.ImagePaths {
+		paths[fmt.Sprintf("image_%d", index)] = imagePath
 	}
-
-	// Read PDF bytes
-	pdfBytes, err := os.ReadFile(result.PDFPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read generated PDF: %w", err)
-	}
-
-	// Create image paths map
-	imagePaths := make(map[string]string)
-	for i, imagePath := range result.ImagePaths {
-		imagePaths[fmt.Sprintf("image_%d", i)] = imagePath
-	}
-
-	return pdfBytes, imagePaths, nil
+	return result.PDF, paths, nil
 }
 
 // ValidateTemplate validates a template file
@@ -269,7 +222,8 @@ func (s *PDFGenerationAPIService) GetSupportedFormats() []string {
 	return s.appService.GetSupportedFormats()
 }
 
-// PDFGenerationOptions represents options for PDF generation
+// PDFGenerationOptions represents options for the compatibility service.
+// Deprecated: use api.Request and api.Engine for new integrations.
 type PDFGenerationOptions struct {
 	TemplatePath string
 	OutputPath   string
@@ -284,11 +238,8 @@ type PDFGenerationOptions struct {
 	UseLatexmk   bool // Whether to use latexmk
 }
 
-// ConversionOptions represents conversion options
-type ConversionOptions struct {
-	Enabled bool
-	Formats []string
-}
+// ConversionOptions represents conversion options.
+type ConversionOptions = api.ConversionOptions
 
 // NewPDFGenerationOptions creates new PDF generation options
 func NewPDFGenerationOptions(templatePath, outputPath string) *PDFGenerationOptions {

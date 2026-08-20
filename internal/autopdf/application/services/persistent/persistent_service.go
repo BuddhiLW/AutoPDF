@@ -5,326 +5,190 @@ package persistent
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/rwxrob/bonzai/persisters/inyaml"
 )
 
-// PersistentService handles persistent configuration using Bonzai persisters
+// Store is the persistence port required by PersistentService.
+type Store interface {
+	Get(key string) string
+	Set(key, value string)
+	Path() string
+}
+
+// StoreFactory opens the default store and explicit import/export stores.
+type StoreFactory interface {
+	OpenDefault() (Store, error)
+	Open(path string) (Store, error)
+}
+
 type PersistentService struct {
-	config    *PersistentConfig
-	persister *inyaml.Persister
+	config   *PersistentConfig
+	store    Store
+	factory  StoreFactory
+	storeErr error
 }
 
-// NewPersistentService creates a new persistent service
-func NewPersistentService() *PersistentService {
-	// Get user's home directory for config storage
-	homeDir, err := os.UserHomeDir()
+// NewPersistentService creates a service around an injected persistence boundary.
+// Without a factory it remains usable in memory and never claims disk persistence.
+func NewPersistentService(factories ...StoreFactory) *PersistentService {
+	var factory StoreFactory
+	if len(factories) > 0 {
+		factory = factories[0]
+	}
+	store := Store(newMemoryStore())
+	var storeErr error
+	if factory != nil {
+		opened, err := factory.OpenDefault()
+		if err == nil && opened != nil {
+			store = opened
+		} else if err != nil {
+			storeErr = fmt.Errorf("open default persistent store: %w", err)
+		} else {
+			storeErr = fmt.Errorf("open default persistent store: factory returned nil store")
+		}
+	}
+	return &PersistentService{config: loadConfig(store), store: store, factory: factory, storeErr: storeErr}
+}
+
+func (service *PersistentService) GetConfig() *PersistentConfig { return service.config }
+
+func (service *PersistentService) SaveConfig() error {
+	if service.storeErr != nil {
+		return service.storeErr
+	}
+	service.config.LastUpdated = time.Now()
+	writeConfig(service.store, service.config)
+	return nil
+}
+
+func (service *PersistentService) SetVerboseLevel(level logger.LogLevel) error {
+	service.config.SetVerboseLevel(level)
+	return service.SaveConfig()
+}
+
+func (service *PersistentService) GetVerboseLevel() logger.LogLevel {
+	return service.config.VerboseLevel
+}
+
+func (service *PersistentService) SetCleanEnabled(enabled bool) error {
+	service.config.SetCleanEnabled(enabled)
+	return service.SaveConfig()
+}
+
+func (service *PersistentService) GetCleanEnabled() bool { return service.config.CleanEnabled }
+
+func (service *PersistentService) ToggleClean() (bool, error) {
+	enabled := service.config.ToggleClean()
+	return enabled, service.SaveConfig()
+}
+
+func (service *PersistentService) SetDebugEnabled(enabled bool, output string) error {
+	service.config.SetDebugEnabled(enabled, output)
+	return service.SaveConfig()
+}
+
+func (service *PersistentService) GetDebugEnabled() bool { return service.config.DebugEnabled }
+
+func (service *PersistentService) ToggleDebug() (bool, error) {
+	enabled := service.config.ToggleDebug()
+	return enabled, service.SaveConfig()
+}
+
+func (service *PersistentService) SetForceEnabled(enabled bool) error {
+	service.config.SetForceEnabled(enabled)
+	return service.SaveConfig()
+}
+
+func (service *PersistentService) GetForceEnabled() bool { return service.config.ForceEnabled }
+
+func (service *PersistentService) ToggleForce() (bool, error) {
+	enabled := service.config.ToggleForce()
+	return enabled, service.SaveConfig()
+}
+
+func (service *PersistentService) GetStatus() map[string]interface{} {
+	return service.config.GetStatus()
+}
+
+func (service *PersistentService) ResetToDefaults() error {
+	service.config = DefaultPersistentConfig()
+	return service.SaveConfig()
+}
+
+func (service *PersistentService) GetConfigPath() string { return service.store.Path() }
+
+func (service *PersistentService) LoadFromFile() error {
+	if service.storeErr != nil {
+		return service.storeErr
+	}
+	service.config = loadConfig(service.store)
+	return nil
+}
+
+func (service *PersistentService) ExportConfig(path string) error {
+	if service.factory == nil {
+		return fmt.Errorf("persistent store factory is not configured")
+	}
+	store, err := service.factory.Open(path)
 	if err != nil {
-		homeDir = os.TempDir()
+		return fmt.Errorf("open export store: %w", err)
 	}
-
-	configDir := filepath.Join(homeDir, configs.ConfigDirName)
-	configFile := filepath.Join(configDir, configs.ConfigFileName)
-
-	// Ensure config directory exists
-	if err := os.MkdirAll(configDir, configs.ConfigDirPerms); err != nil {
-		// Fallback to temp directory if home directory fails
-		configDir = configs.TempDirFallback
-		configFile = filepath.Join(configDir, configs.FallbackConfigDir)
-	}
-
-	// Create YAML persister for file persistence
-	persister := &inyaml.Persister{File: configFile}
-
-	// Setup the persister
-	if err := persister.Setup(); err != nil {
-		// If setup fails, continue with default config
-		config := DefaultPersistentConfig()
-		return &PersistentService{
-			config:    config,
-			persister: persister,
-		}
-	}
-
-	// Load existing configuration or create default
-	config := DefaultPersistentConfig()
-
-	// Load from persister using key-value approach
-	if verboseLevel := persister.Get("verbose_level"); verboseLevel != "" {
-		if level, err := strconv.Atoi(verboseLevel); err == nil && level >= 0 && level <= 4 {
-			config.VerboseLevel = logger.LogLevel(level)
-		}
-	}
-
-	if verboseEnabled := persister.Get("verbose_enabled"); verboseEnabled != "" {
-		if enabled, err := strconv.ParseBool(verboseEnabled); err == nil {
-			config.VerboseEnabled = enabled
-		}
-	}
-
-	if cleanEnabled := persister.Get("clean_enabled"); cleanEnabled != "" {
-		if enabled, err := strconv.ParseBool(cleanEnabled); err == nil {
-			config.CleanEnabled = enabled
-		}
-	}
-
-	if debugEnabled := persister.Get("debug_enabled"); debugEnabled != "" {
-		if enabled, err := strconv.ParseBool(debugEnabled); err == nil {
-			config.DebugEnabled = enabled
-		}
-	}
-
-	if debugOutput := persister.Get("debug_output"); debugOutput != "" {
-		config.DebugOutput = debugOutput
-	}
-
-	if forceEnabled := persister.Get("force_enabled"); forceEnabled != "" {
-		if enabled, err := strconv.ParseBool(forceEnabled); err == nil {
-			config.ForceEnabled = enabled
-		}
-	}
-
-	return &PersistentService{
-		config:    config,
-		persister: persister,
-	}
-}
-
-// GetConfig returns the current persistent configuration
-func (ps *PersistentService) GetConfig() *PersistentConfig {
-	return ps.config
-}
-
-// SaveConfig saves the current configuration to persistent storage
-func (ps *PersistentService) SaveConfig() error {
-	// Update timestamp
-	ps.config.LastUpdated = time.Now()
-
-	// Save each field as key-value pairs
-	ps.persister.Set("verbose_level", strconv.Itoa(int(ps.config.VerboseLevel)))
-	ps.persister.Set("verbose_enabled", strconv.FormatBool(ps.config.VerboseEnabled))
-	ps.persister.Set("clean_enabled", strconv.FormatBool(ps.config.CleanEnabled))
-	ps.persister.Set("debug_enabled", strconv.FormatBool(ps.config.DebugEnabled))
-	ps.persister.Set("debug_output", ps.config.DebugOutput)
-	ps.persister.Set("force_enabled", strconv.FormatBool(ps.config.ForceEnabled))
-	ps.persister.Set("last_updated", ps.config.LastUpdated.Format(time.RFC3339))
-	ps.persister.Set("version", ps.config.Version)
-
+	writeConfig(store, service.config)
 	return nil
 }
 
-// SetVerboseLevel sets the verbose level and persists it
-func (ps *PersistentService) SetVerboseLevel(level logger.LogLevel) error {
-	ps.config.SetVerboseLevel(level)
-
-	// Persist to file
-	return ps.SaveConfig()
+func (service *PersistentService) ImportConfig(path string) error {
+	if service.factory == nil {
+		return fmt.Errorf("persistent store factory is not configured")
+	}
+	store, err := service.factory.Open(path)
+	if err != nil {
+		return fmt.Errorf("open import store: %w", err)
+	}
+	service.config = loadConfig(store)
+	return service.SaveConfig()
 }
 
-// GetVerboseLevel returns the current verbose level
-func (ps *PersistentService) GetVerboseLevel() logger.LogLevel {
-	return ps.config.VerboseLevel
-}
-
-// SetCleanEnabled sets the clean setting and persists it
-func (ps *PersistentService) SetCleanEnabled(enabled bool) error {
-	ps.config.SetCleanEnabled(enabled)
-
-	// Persist to file
-	return ps.SaveConfig()
-}
-
-// GetCleanEnabled returns the current clean setting
-func (ps *PersistentService) GetCleanEnabled() bool {
-	return ps.config.CleanEnabled
-}
-
-// ToggleClean toggles the clean setting and persists it
-func (ps *PersistentService) ToggleClean() (bool, error) {
-	enabled := ps.config.ToggleClean()
-
-	// Persist to file
-	err := ps.SaveConfig()
-	return enabled, err
-}
-
-// SetDebugEnabled sets the debug setting and persists it
-func (ps *PersistentService) SetDebugEnabled(enabled bool, output string) error {
-	ps.config.SetDebugEnabled(enabled, output)
-
-	// Persist to file
-	return ps.SaveConfig()
-}
-
-// GetDebugEnabled returns the current debug setting
-func (ps *PersistentService) GetDebugEnabled() bool {
-	return ps.config.DebugEnabled
-}
-
-// ToggleDebug toggles the debug setting and persists it
-func (ps *PersistentService) ToggleDebug() (bool, error) {
-	enabled := ps.config.ToggleDebug()
-
-	// Persist to file
-	err := ps.SaveConfig()
-	return enabled, err
-}
-
-// SetForceEnabled sets the force setting and persists it
-func (ps *PersistentService) SetForceEnabled(enabled bool) error {
-	ps.config.SetForceEnabled(enabled)
-
-	// Persist to file
-	return ps.SaveConfig()
-}
-
-// GetForceEnabled returns the current force setting
-func (ps *PersistentService) GetForceEnabled() bool {
-	return ps.config.ForceEnabled
-}
-
-// ToggleForce toggles the force setting and persists it
-func (ps *PersistentService) ToggleForce() (bool, error) {
-	enabled := ps.config.ToggleForce()
-
-	// Persist to file
-	err := ps.SaveConfig()
-	return enabled, err
-}
-
-// GetStatus returns the current status of all settings
-func (ps *PersistentService) GetStatus() map[string]interface{} {
-	return ps.config.GetStatus()
-}
-
-// ResetToDefaults resets all settings to defaults and persists them
-func (ps *PersistentService) ResetToDefaults() error {
-	ps.config = DefaultPersistentConfig()
-
-	// Persist to file
-	return ps.SaveConfig()
-}
-
-// GetConfigPath returns the path to the configuration file
-func (ps *PersistentService) GetConfigPath() string {
-	return ps.persister.File
-}
-
-// LoadFromFile loads configuration from the persistent file
-func (ps *PersistentService) LoadFromFile() error {
+func loadConfig(store Store) *PersistentConfig {
 	config := DefaultPersistentConfig()
-
-	// Load from persister using key-value approach
-	if verboseLevel := ps.persister.Get("verbose_level"); verboseLevel != "" {
-		if level, err := strconv.Atoi(verboseLevel); err == nil && level >= 0 && level <= 4 {
-			config.VerboseLevel = logger.LogLevel(level)
-		}
+	if level, err := strconv.Atoi(store.Get("verbose_level")); err == nil && level >= 0 && level <= 4 {
+		config.VerboseLevel = logger.LogLevel(level)
 	}
-
-	if verboseEnabled := ps.persister.Get("verbose_enabled"); verboseEnabled != "" {
-		if enabled, err := strconv.ParseBool(verboseEnabled); err == nil {
-			config.VerboseEnabled = enabled
-		}
+	if enabled, err := strconv.ParseBool(store.Get("verbose_enabled")); err == nil {
+		config.VerboseEnabled = enabled
 	}
-
-	if cleanEnabled := ps.persister.Get("clean_enabled"); cleanEnabled != "" {
-		if enabled, err := strconv.ParseBool(cleanEnabled); err == nil {
-			config.CleanEnabled = enabled
-		}
+	if enabled, err := strconv.ParseBool(store.Get("clean_enabled")); err == nil {
+		config.CleanEnabled = enabled
 	}
-
-	if debugEnabled := ps.persister.Get("debug_enabled"); debugEnabled != "" {
-		if enabled, err := strconv.ParseBool(debugEnabled); err == nil {
-			config.DebugEnabled = enabled
-		}
+	if enabled, err := strconv.ParseBool(store.Get("debug_enabled")); err == nil {
+		config.DebugEnabled = enabled
 	}
-
-	if debugOutput := ps.persister.Get("debug_output"); debugOutput != "" {
-		config.DebugOutput = debugOutput
+	if output := store.Get("debug_output"); output != "" {
+		config.DebugOutput = output
 	}
-
-	if forceEnabled := ps.persister.Get("force_enabled"); forceEnabled != "" {
-		if enabled, err := strconv.ParseBool(forceEnabled); err == nil {
-			config.ForceEnabled = enabled
-		}
+	if enabled, err := strconv.ParseBool(store.Get("force_enabled")); err == nil {
+		config.ForceEnabled = enabled
 	}
-
-	ps.config = config
-	return nil
+	return config
 }
 
-// ExportConfig exports the current configuration to a file
-func (ps *PersistentService) ExportConfig(path string) error {
-	exportPersister := &inyaml.Persister{File: path}
-	if err := exportPersister.Setup(); err != nil {
-		return fmt.Errorf("failed to setup export persister: %w", err)
-	}
-
-	// Save each field as key-value pairs
-	exportPersister.Set("verbose_level", strconv.Itoa(int(ps.config.VerboseLevel)))
-	exportPersister.Set("verbose_enabled", strconv.FormatBool(ps.config.VerboseEnabled))
-	exportPersister.Set("clean_enabled", strconv.FormatBool(ps.config.CleanEnabled))
-	exportPersister.Set("debug_enabled", strconv.FormatBool(ps.config.DebugEnabled))
-	exportPersister.Set("debug_output", ps.config.DebugOutput)
-	exportPersister.Set("force_enabled", strconv.FormatBool(ps.config.ForceEnabled))
-	exportPersister.Set("last_updated", ps.config.LastUpdated.Format(time.RFC3339))
-	exportPersister.Set("version", ps.config.Version)
-
-	return nil
+func writeConfig(store Store, config *PersistentConfig) {
+	store.Set("verbose_level", strconv.Itoa(int(config.VerboseLevel)))
+	store.Set("verbose_enabled", strconv.FormatBool(config.VerboseEnabled))
+	store.Set("clean_enabled", strconv.FormatBool(config.CleanEnabled))
+	store.Set("debug_enabled", strconv.FormatBool(config.DebugEnabled))
+	store.Set("debug_output", config.DebugOutput)
+	store.Set("force_enabled", strconv.FormatBool(config.ForceEnabled))
+	store.Set("last_updated", config.LastUpdated.Format(time.RFC3339))
+	store.Set("version", config.Version)
 }
 
-// ImportConfig imports configuration from a file
-func (ps *PersistentService) ImportConfig(path string) error {
-	importPersister := &inyaml.Persister{File: path}
-	if err := importPersister.Setup(); err != nil {
-		return fmt.Errorf("failed to setup import persister: %w", err)
-	}
+type memoryStore struct{ values map[string]string }
 
-	config := DefaultPersistentConfig()
-
-	// Load from persister using key-value approach
-	if verboseLevel := importPersister.Get("verbose_level"); verboseLevel != "" {
-		if level, err := strconv.Atoi(verboseLevel); err == nil && level >= 0 && level <= 4 {
-			config.VerboseLevel = logger.LogLevel(level)
-		}
-	}
-
-	if verboseEnabled := importPersister.Get("verbose_enabled"); verboseEnabled != "" {
-		if enabled, err := strconv.ParseBool(verboseEnabled); err == nil {
-			config.VerboseEnabled = enabled
-		}
-	}
-
-	if cleanEnabled := importPersister.Get("clean_enabled"); cleanEnabled != "" {
-		if enabled, err := strconv.ParseBool(cleanEnabled); err == nil {
-			config.CleanEnabled = enabled
-		}
-	}
-
-	if debugEnabled := importPersister.Get("debug_enabled"); debugEnabled != "" {
-		if enabled, err := strconv.ParseBool(debugEnabled); err == nil {
-			config.DebugEnabled = enabled
-		}
-	}
-
-	if debugOutput := importPersister.Get("debug_output"); debugOutput != "" {
-		config.DebugOutput = debugOutput
-	}
-
-	if forceEnabled := importPersister.Get("force_enabled"); forceEnabled != "" {
-		if enabled, err := strconv.ParseBool(forceEnabled); err == nil {
-			config.ForceEnabled = enabled
-		}
-	}
-
-	ps.config = config
-
-	// Persist to main config file
-	return ps.SaveConfig()
-}
+func newMemoryStore() *memoryStore               { return &memoryStore{values: map[string]string{}} }
+func (store *memoryStore) Get(key string) string { return store.values[key] }
+func (store *memoryStore) Set(key, value string) { store.values[key] = value }
+func (store *memoryStore) Path() string          { return "" }

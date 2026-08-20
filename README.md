@@ -88,6 +88,35 @@ autopdf clean on
 autopdf debug switch
 ```
 
+### Go Library
+
+Use `pkg/api.Engine` when embedding AutoPDF. It provides a context-aware,
+concurrency-safe contract without requiring imports from AutoPDF internals.
+
+```go
+engine, err := api.NewEngine()
+if err != nil {
+    return err
+}
+
+result, err := engine.Generate(ctx, api.Request{
+    TemplatePath: "document.tex",
+    OutputPath:   "output.pdf",
+    Variables: map[string]string{
+        "title": "Embedded AutoPDF",
+    },
+})
+if err != nil {
+    return err
+}
+
+fmt.Printf("generated %d bytes\n", len(result.PDF))
+```
+
+Custom renderers, caching layers, and test fakes can implement `api.Generator`
+and be installed with `api.WithGenerator`. See [Embedding AutoPDF](docs/embedding.md)
+for extension, logging, cancellation, and migration guidance.
+
 ### Configuration Examples
 
 #### Basic Configuration
@@ -127,16 +156,16 @@ variables:
 
 #### Basic Variables
 ```latex
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 ```
 
 #### Complex Variables
 ```latex
 % Direct access to nested properties
-Version: delim[[.vars.metadata.version]]
-Verbose: delim[[.vars.metadata.settings.verbose]]
+Version: delim[[.metadata.version]]
+Verbose: delim[[.metadata.settings.verbose]]
 
 % Range loops over arrays
 delim[[range .complex.metadata.tags]]

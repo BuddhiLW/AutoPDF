@@ -23,7 +23,7 @@ func TestConvertServiceCmd_Integration(t *testing.T) {
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
-		env.RestoreWorkingDir(originalDir)
+		require.NoError(t, env.RestoreWorkingDir(originalDir))
 	}()
 
 	// Change to test directory
@@ -33,7 +33,7 @@ func TestConvertServiceCmd_Integration(t *testing.T) {
 	// Create a test PDF file (we'll use the existing output.pdf from test-data if available)
 	testDataDir := testutil.DefaultTestConfig().GetTestDataDir()
 	var testPDF string
-	
+
 	if testDataDir != "" {
 		// Try to use existing PDF from test-data
 		existingPDF := filepath.Join(testDataDir, "out", "output.pdf")
@@ -46,7 +46,7 @@ func TestConvertServiceCmd_Integration(t *testing.T) {
 			require.NoError(t, err)
 		}
 	}
-	
+
 	// If no existing PDF, create a minimal test file (this won't actually convert but tests the command structure)
 	if testPDF == "" {
 		testPDF = filepath.Join(env.TestDir, "test.pdf")
@@ -154,15 +154,15 @@ func TestConvertServiceCmd_ArgumentParsing(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "PDF with unsupported format",
-			args: []string{"document.pdf", "invalid"},
-			expected: nil,
+			name:        "PDF with unsupported format",
+			args:        []string{"document.pdf", "invalid"},
+			expected:    nil,
 			expectError: true,
 		},
 		{
-			name: "no arguments",
-			args: []string{},
-			expected: nil,
+			name:        "no arguments",
+			args:        []string{},
+			expected:    nil,
 			expectError: true,
 		},
 	}

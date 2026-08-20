@@ -133,7 +133,7 @@ func (tpa *TemplateProcessorAdapter) getComplexVariables() map[string]interface{
 
 	// Convert the complex variables to a map that can be used in range loops
 	result := make(map[string]interface{})
-	for k, v := range tpa.config.Variables.VariableSet.GetVariables() {
+	for k, v := range tpa.config.Variables.GetVariables() {
 		result[k] = tpa.convertToMap(v)
 	}
 	return result

@@ -49,7 +49,6 @@ func (vra *VariableResolverAdapter) Resolve(variables *generation.TemplateVariab
 
 	vra.logger.DebugWithFields("Starting variable resolution",
 		"variable_count", variables.Len(),
-		"variable_keys", variables.Keys(),
 	)
 
 	// Delegate to TemplateVariables.Flatten() which uses the converter internally

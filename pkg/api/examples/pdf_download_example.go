@@ -111,7 +111,7 @@ func (client *PDFDownloadClient) GeneratePDF(req PDFGenerationRequest) (*PDFGene
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -149,7 +149,7 @@ func (client *PDFDownloadClient) GeneratePDFAsync(req PDFGenerationRequest) (*As
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -181,7 +181,7 @@ func (client *PDFDownloadClient) GetGenerationStatus(requestID string) (*Generat
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -216,7 +216,7 @@ func (client *PDFDownloadClient) DownloadFile(requestID, format, outputPath stri
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -233,7 +233,7 @@ func (client *PDFDownloadClient) DownloadFile(requestID, format, outputPath stri
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Copy response body to file
 	_, err = io.Copy(file, resp.Body)

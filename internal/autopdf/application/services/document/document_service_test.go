@@ -8,9 +8,13 @@ import (
 	"errors"
 	"testing"
 
+	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	apperrors "github.com/BuddhiLW/AutoPDF/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock implementations for testing
@@ -28,8 +32,8 @@ type MockLaTeXCompiler struct {
 	mock.Mock
 }
 
-func (m *MockLaTeXCompiler) Compile(ctx context.Context, content string, engine string, outputPath string) (string, error) {
-	args := m.Called(ctx, content, engine, outputPath)
+func (m *MockLaTeXCompiler) Compile(ctx context.Context, content string, opts ports.CompileOptions) (string, error) {
+	args := m.Called(ctx, content, opts)
 	return args.String(0), args.Error(1)
 }
 
@@ -46,6 +50,23 @@ type MockCleaner struct {
 	mock.Mock
 }
 
+func newTestDocumentService(mockTpl *MockTemplateProcessor, mockTex *MockLaTeXCompiler, mockConv *MockConverter, mockClean *MockCleaner) DocumentService {
+	return DocumentService{
+		TemplateProcessor: mockTpl,
+		LaTeXCompiler:     mockTex,
+		Converter:         mockConv,
+		Cleaner:           mockClean,
+		PathOps:           infraadapters.NewOSPathOperations(),
+		ErrorFactory:      apperrors.NewDomainErrorFactory(nil),
+	}
+}
+
+func compileOptions(outputPath string) ports.CompileOptions {
+	return ports.NewCompileOptions("pdflatex", outputPath, ".").
+		WithPasses(0).
+		WithJobName("output")
+}
+
 func (m *MockCleaner) Clean(ctx context.Context, pdfPath string) error {
 	args := m.Called(ctx, pdfPath)
 	return args.Error(0)
@@ -60,28 +81,22 @@ func TestDocumentService_Build_Success(t *testing.T) {
 	mockConv := new(MockConverter)
 	mockClean := new(MockCleaner)
 
-	svc := DocumentService{
-		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
-		Converter:         mockConv,
-		Cleaner:           mockClean,
-	}
+	svc := newTestDocumentService(mockTpl, mockTex, mockConv, mockClean)
 
 	ctx := context.Background()
 	variables := config.NewVariables()
-	variables.SetString("title", "Test")
+	require.NoError(t, variables.SetString("title", "Test"))
 
 	req := BuildRequest{
 		TemplatePath: "template.tex",
 		Variables:    variables,
 		Engine:       "pdflatex",
-		OutputPath:   "output.pdf",
-		DoConvert:    false,
+		OutputPath:   "output",
 		DoClean:      false,
 	}
 
 	mockTpl.On("Process", ctx, "template.tex", mock.Anything).Return("\\documentclass{article}...", nil)
-	mockTex.On("Compile", ctx, "\\documentclass{article}...", "pdflatex", "output.pdf").Return("output.pdf", nil)
+	mockTex.On("Compile", ctx, "\\documentclass{article}...", compileOptions("output.pdf")).Return("output.pdf", nil)
 
 	// Act
 	result, err := svc.Build(ctx, req)
@@ -102,16 +117,11 @@ func TestDocumentService_Build_TemplateProcessingFails(t *testing.T) {
 	mockConv := new(MockConverter)
 	mockClean := new(MockCleaner)
 
-	svc := DocumentService{
-		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
-		Converter:         mockConv,
-		Cleaner:           mockClean,
-	}
+	svc := newTestDocumentService(mockTpl, mockTex, mockConv, mockClean)
 
 	ctx := context.Background()
 	variables := config.NewVariables()
-	variables.SetString("title", "Test")
+	require.NoError(t, variables.SetString("title", "Test"))
 
 	req := BuildRequest{
 		TemplatePath: "template.tex",
@@ -128,7 +138,7 @@ func TestDocumentService_Build_TemplateProcessingFails(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.False(t, result.Success)
-	assert.Contains(t, result.Error.Error(), "template processing failed")
+	assert.Contains(t, result.Error.Error(), "TEMPLATE_PROCESSING_FAILED")
 	mockTpl.AssertExpectations(t)
 }
 
@@ -139,16 +149,11 @@ func TestDocumentService_Build_LaTeXCompilationFails(t *testing.T) {
 	mockConv := new(MockConverter)
 	mockClean := new(MockCleaner)
 
-	svc := DocumentService{
-		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
-		Converter:         mockConv,
-		Cleaner:           mockClean,
-	}
+	svc := newTestDocumentService(mockTpl, mockTex, mockConv, mockClean)
 
 	ctx := context.Background()
 	variables := config.NewVariables()
-	variables.SetString("title", "Test")
+	require.NoError(t, variables.SetString("title", "Test"))
 
 	req := BuildRequest{
 		TemplatePath: "template.tex",
@@ -158,7 +163,7 @@ func TestDocumentService_Build_LaTeXCompilationFails(t *testing.T) {
 	}
 
 	mockTpl.On("Process", ctx, "template.tex", mock.Anything).Return("\\documentclass{article}...", nil)
-	mockTex.On("Compile", ctx, "\\documentclass{article}...", "pdflatex", "output.pdf").Return("", errors.New("compilation error"))
+	mockTex.On("Compile", ctx, "\\documentclass{article}...", compileOptions("output.pdf")).Return("", errors.New("compilation error"))
 
 	// Act
 	result, err := svc.Build(ctx, req)
@@ -166,7 +171,7 @@ func TestDocumentService_Build_LaTeXCompilationFails(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.False(t, result.Success)
-	assert.Contains(t, result.Error.Error(), "LaTeX compilation failed")
+	assert.Contains(t, result.Error.Error(), "LATEX_COMPILATION_FAILED")
 	mockTpl.AssertExpectations(t)
 	mockTex.AssertExpectations(t)
 }
@@ -178,23 +183,17 @@ func TestDocumentService_Build_WithConversion(t *testing.T) {
 	mockConv := new(MockConverter)
 	mockClean := new(MockCleaner)
 
-	svc := DocumentService{
-		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
-		Converter:         mockConv,
-		Cleaner:           mockClean,
-	}
+	svc := newTestDocumentService(mockTpl, mockTex, mockConv, mockClean)
 
 	ctx := context.Background()
 	variables := config.NewVariables()
-	variables.SetString("title", "Test")
+	require.NoError(t, variables.SetString("title", "Test"))
 
 	req := BuildRequest{
 		TemplatePath: "template.tex",
 		Variables:    variables,
 		Engine:       "pdflatex",
 		OutputPath:   "output.pdf",
-		DoConvert:    true,
 		Conversion: ConversionSettings{
 			Enabled: true,
 			Formats: []string{"png", "jpg"},
@@ -202,7 +201,7 @@ func TestDocumentService_Build_WithConversion(t *testing.T) {
 	}
 
 	mockTpl.On("Process", ctx, "template.tex", mock.Anything).Return("\\documentclass{article}...", nil)
-	mockTex.On("Compile", ctx, "\\documentclass{article}...", "pdflatex", "output.pdf").Return("output.pdf", nil)
+	mockTex.On("Compile", ctx, "\\documentclass{article}...", compileOptions("output.pdf")).Return("output.pdf", nil)
 	mockConv.On("ConvertToImages", ctx, "output.pdf", []string{"png", "jpg"}).Return([]string{"output.png", "output.jpg"}, nil)
 
 	// Act
@@ -225,16 +224,11 @@ func TestDocumentService_Build_WithClean(t *testing.T) {
 	mockConv := new(MockConverter)
 	mockClean := new(MockCleaner)
 
-	svc := DocumentService{
-		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
-		Converter:         mockConv,
-		Cleaner:           mockClean,
-	}
+	svc := newTestDocumentService(mockTpl, mockTex, mockConv, mockClean)
 
 	ctx := context.Background()
 	variables := config.NewVariables()
-	variables.SetString("title", "Test")
+	require.NoError(t, variables.SetString("title", "Test"))
 
 	req := BuildRequest{
 		TemplatePath: "template.tex",
@@ -245,7 +239,7 @@ func TestDocumentService_Build_WithClean(t *testing.T) {
 	}
 
 	mockTpl.On("Process", ctx, "template.tex", mock.Anything).Return("\\documentclass{article}...", nil)
-	mockTex.On("Compile", ctx, "\\documentclass{article}...", "pdflatex", "output.pdf").Return("output.pdf", nil)
+	mockTex.On("Compile", ctx, "\\documentclass{article}...", compileOptions("output.pdf")).Return("output.pdf", nil)
 	mockClean.On("Clean", ctx, "output.pdf").Return(nil)
 
 	// Act

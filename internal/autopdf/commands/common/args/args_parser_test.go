@@ -23,9 +23,10 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			name: "minimal args - template only",
 			args: []string{"template.tex"},
 			expected: &BuildArgs{
-				TemplateFile: "template.tex",
-				ConfigFile:   "",
-				Options:      options.NewBuildOptions(),
+				TemplateFile:  "template.tex",
+				ConfigFile:    "",
+				Options:       options.NewBuildOptions(),
+				RemainingArgs: []string{},
 			},
 			expectError: false,
 		},
@@ -33,9 +34,10 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			name: "template and config",
 			args: []string{"template.tex", "config.yaml"},
 			expected: &BuildArgs{
-				TemplateFile: "template.tex",
-				ConfigFile:   "config.yaml",
-				Options:      options.NewBuildOptions(),
+				TemplateFile:  "template.tex",
+				ConfigFile:    "config.yaml",
+				Options:       options.NewBuildOptions(),
+				RemainingArgs: []string{},
 			},
 			expectError: false,
 		},
@@ -50,6 +52,7 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 					opts.EnableClean(".")
 					return opts
 				}(),
+				RemainingArgs: []string{},
 			},
 			expectError: false,
 		},
@@ -64,6 +67,7 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 					opts.EnableClean(".")
 					return opts
 				}(),
+				RemainingArgs: []string{},
 			},
 			expectError: false,
 		},

@@ -337,10 +337,9 @@ func ExampleIntegrationWithAutoPDF() {
 		Engine:       "pdflatex",
 		OutputPath:   "output.pdf",
 		Options: generation.PDFGenerationOptions{
-			DoConvert: false,
-			DoClean:   true,
-			Timeout:   30 * time.Second,
-			Verbose:   1,
+			DoClean: true,
+			Timeout: 30 * time.Second,
+			Verbose: 1,
 		},
 	}
 

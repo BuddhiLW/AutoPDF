@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGeneratePDF_ValidConfig(t *testing.T) {
@@ -14,7 +15,7 @@ func TestGeneratePDF_ValidConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a test template file
 	templateContent := `\documentclass{article}
@@ -30,8 +31,8 @@ delim[[.content]]
 
 	// Create test config
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title: API call")
-	variables.SetString("content", "Test Content: API call")
+	require.NoError(t, variables.SetString("title", "Test Title: API call"))
+	require.NoError(t, variables.SetString("content", "Test Content: API call"))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -55,7 +56,7 @@ delim[[.content]]
 func TestGeneratePDF_InvalidTemplate(t *testing.T) {
 	// Create test config with non-existent template
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  config.Template("/path/to/nonexistent/template.tex"),
@@ -73,7 +74,7 @@ func TestGeneratePDF_InvalidTemplate(t *testing.T) {
 func TestGeneratePDF_EmptyTemplate(t *testing.T) {
 	// Create test config with empty template
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  "",
@@ -94,7 +95,7 @@ func TestGeneratePDF_InvalidLaTeX(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a template with invalid LaTeX
 	templateContent := `\documentclass{article}
@@ -108,7 +109,7 @@ func TestGeneratePDF_InvalidLaTeX(t *testing.T) {
 
 	// Create test config
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -133,7 +134,7 @@ func TestGeneratePDF_WithVariables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a template with variables
 	templateContent := `\documentclass{article}
@@ -150,9 +151,9 @@ delim[[.content]]
 
 	// Create test config with variables
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Document")
-	variables.SetString("author", "Test Author")
-	variables.SetString("content", "This is a test document with variables.")
+	require.NoError(t, variables.SetString("title", "Test Document"))
+	require.NoError(t, variables.SetString("author", "Test Author"))
+	require.NoError(t, variables.SetString("content", "This is a test document with variables."))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -179,7 +180,7 @@ func TestGeneratePDF_WithCustomEngine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a test template file
 	templateContent := `\documentclass{article}
@@ -193,7 +194,7 @@ Hello, World!
 
 	// Create test config with custom engine
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -220,7 +221,7 @@ func TestGeneratePDF_WithOutputPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a test template file
 	templateContent := `\documentclass{article}
@@ -240,7 +241,7 @@ Hello, World!
 
 	// Create test config with output path
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -267,7 +268,7 @@ func TestGeneratePDF_WithConversion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a test template file
 	templateContent := `\documentclass{article}
@@ -281,7 +282,7 @@ Hello, World!
 
 	// Create test config with conversion enabled
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),
@@ -311,7 +312,7 @@ func TestGeneratePDF_ErrorHandling(t *testing.T) {
 
 	// Test with empty template path
 	variables := config.NewVariables()
-	variables.SetString("title", "Test Title")
+	require.NoError(t, variables.SetString("title", "Test Title"))
 
 	testCfg := &config.Config{
 		Template:  "",
@@ -334,7 +335,7 @@ func TestGeneratePDF_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { require.NoError(t, os.RemoveAll(tempDir)) }()
 
 	// Create a test template file
 	templateContent := `\documentclass{article}
@@ -351,9 +352,9 @@ delim[[.content]]
 
 	// Create test config
 	variables := config.NewVariables()
-	variables.SetString("title", "Integration Test Document")
-	variables.SetString("author", "Test Author")
-	variables.SetString("content", "This is an integration test for the GeneratePDF function.")
+	require.NoError(t, variables.SetString("title", "Integration Test Document"))
+	require.NoError(t, variables.SetString("author", "Test Author"))
+	require.NoError(t, variables.SetString("content", "This is an integration test for the GeneratePDF function."))
 
 	testCfg := &config.Config{
 		Template:  config.Template(templatePath),

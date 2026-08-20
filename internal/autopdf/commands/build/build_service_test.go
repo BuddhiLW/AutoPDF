@@ -22,7 +22,7 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
-		env.RestoreWorkingDir(originalDir)
+		require.NoError(t, env.RestoreWorkingDir(originalDir))
 	}()
 
 	// Change to test directory
@@ -30,15 +30,15 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name           string
-		args           []string
-		expectError    bool
-		expectedOutput []string
+		name              string
+		args              []string
+		expectError       bool
+		expectedOutput    []string
 		expectedNotOutput []string
 	}{
 		{
-			name: "basic build with template and config",
-			args: []string{env.TemplateFile, env.ConfigFile},
+			name:        "basic build with template and config",
+			args:        []string{env.TemplateFile, env.ConfigFile},
 			expectError: false,
 			expectedOutput: []string{
 				"out/output.pdf",
@@ -49,8 +49,8 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 			},
 		},
 		{
-			name: "build with clean flag",
-			args: []string{env.TemplateFile, env.ConfigFile, "clean"},
+			name:        "build with clean flag",
+			args:        []string{env.TemplateFile, env.ConfigFile, "clean"},
 			expectError: false,
 			expectedOutput: []string{
 				"out/output.pdf",
@@ -61,9 +61,9 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 			},
 		},
 		{
-			name: "build with template only (no config)",
-			args: []string{env.TemplateFile},
-			expectError: false,
+			name:           "build with template only (no config)",
+			args:           []string{env.TemplateFile},
+			expectError:    false,
 			expectedOutput: []string{
 				// When no config is provided, the system creates a default config
 				// and the output might be in the root directory, not in out/
@@ -74,9 +74,9 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 			},
 		},
 		{
-			name: "build with template and clean (no config)",
-			args: []string{env.TemplateFile, "clean"},
-			expectError: false,
+			name:           "build with template and clean (no config)",
+			args:           []string{env.TemplateFile, "clean"},
+			expectError:    false,
 			expectedOutput: []string{
 				// When no config is provided, the system creates a default config
 				// and the output might be in the root directory, not in out/
@@ -87,15 +87,15 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 			},
 		},
 		{
-			name: "build with non-existent template",
-			args: []string{"nonexistent.tex", env.ConfigFile},
-			expectError: false, // The system might create a default config and process successfully
+			name:           "build with non-existent template",
+			args:           []string{"nonexistent.tex", env.ConfigFile},
+			expectError:    false, // The system might create a default config and process successfully
 			expectedOutput: []string{},
 		},
 		{
-			name: "build with non-existent config",
-			args: []string{env.TemplateFile, "nonexistent.yaml"},
-			expectError: true,
+			name:           "build with non-existent config",
+			args:           []string{env.TemplateFile, "nonexistent.yaml"},
+			expectError:    true,
 			expectedOutput: []string{},
 		},
 	}
@@ -128,7 +128,7 @@ func TestBuildServiceCmd_Integration(t *testing.T) {
 			// Verify no unexpected files were created
 			outputFiles, err := env.GetOutputFiles()
 			require.NoError(t, err)
-			
+
 			// Log output files for debugging
 			t.Logf("Output files created: %v", outputFiles)
 		})
@@ -144,7 +144,7 @@ func TestBuildServiceCmd_WithConversion(t *testing.T) {
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
-		env.RestoreWorkingDir(originalDir)
+		require.NoError(t, env.RestoreWorkingDir(originalDir))
 	}()
 
 	// Change to test directory
@@ -189,7 +189,7 @@ func TestBuildServiceCmd_FileCleanup(t *testing.T) {
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
-		env.RestoreWorkingDir(originalDir)
+		require.NoError(t, env.RestoreWorkingDir(originalDir))
 	}()
 
 	// Change to test directory
@@ -206,7 +206,7 @@ func TestBuildServiceCmd_FileCleanup(t *testing.T) {
 	// Get list of all files created
 	outputFiles, err := env.GetOutputFiles()
 	require.NoError(t, err)
-	
+
 	// Log all files for debugging
 	t.Logf("All output files: %v", outputFiles)
 
@@ -224,6 +224,6 @@ func TestBuildServiceCmd_FileCleanup(t *testing.T) {
 	// Get final list of files
 	finalFiles, err := env.GetOutputFiles()
 	require.NoError(t, err)
-	
+
 	t.Logf("Final output files: %v", finalFiles)
 }

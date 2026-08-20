@@ -45,7 +45,6 @@ func DebugMiddleware(baseConfig *config.APIDebugConfig) func(http.Handler) http.
 				Verbose:   parseVerboseLevel(r.Header.Get("X-AutoPDF-Verbose")),
 				Force:     parseBoolHeader(r.Header.Get("X-AutoPDF-Force")),
 				RequestID: requestID,
-				DoConvert: parseBoolHeader(r.Header.Get("X-AutoPDF-Convert")),
 				Timeout:   parseTimeout(r.Header.Get("X-AutoPDF-Timeout")),
 				Conversion: generation.ConversionOptions{
 					// Formats will be handled by the API handler based on request body

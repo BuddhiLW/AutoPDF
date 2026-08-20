@@ -78,9 +78,11 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 		Variables:    &cfg.Variables, // Use complex variables from pkg/
 		Engine:       cfg.Engine.String(),
 		OutputPath:   cfg.Output.String(),
-		DoConvert:    cfg.Conversion.Enabled,
+		WorkingDir:   filepath.Dir(cfg.Template.String()),
 		DoClean:      args.Options.Clean.Enabled,
 		DebugEnabled: args.Options.Debug.Enabled, // Pass debug option for persistent concrete files
+		Passes:       cfg.Passes,
+		UseLatexmk:   cfg.UseLatexmk,
 		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,

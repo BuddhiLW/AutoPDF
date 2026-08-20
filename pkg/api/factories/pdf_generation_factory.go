@@ -4,12 +4,14 @@
 package factories
 
 import (
+	"context"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
 	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
+	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	external_pdf_service "github.com/BuddhiLW/AutoPDF/pkg/api/adapters/external_pdf_service"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters/pdf_validator"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters/template_processor"
@@ -29,12 +31,44 @@ type PDFGenerationServiceFactory struct {
 }
 
 // NewPDFGenerationServiceFactory creates a new factory
-func NewPDFGenerationServiceFactory(cfg *config.Config, logger *logger.LoggerAdapter, debugEnabled bool) *PDFGenerationServiceFactory {
+func NewPDFGenerationServiceFactory(cfg *config.Config, publicLogger api.Logger, debugEnabled bool) *PDFGenerationServiceFactory {
+	legacyLogger := logger.NewLoggerAdapter(logger.Silent, "stderr")
 	return &PDFGenerationServiceFactory{
 		config:       cfg,
-		logger:       logger,
+		logger:       legacyLogger,
 		debugEnabled: debugEnabled,
+		portLogger:   adaptPublicLogger(publicLogger),
 	}
+}
+
+type publicLoggerPort struct{ logger api.Logger }
+
+func adaptPublicLogger(logger api.Logger) autopdfports.Logger {
+	if logger == nil {
+		return nil
+	}
+	return &publicLoggerPort{logger: logger}
+}
+
+func publicFields(fields []autopdfports.LogField) []api.LogField {
+	result := make([]api.LogField, len(fields))
+	for index, field := range fields {
+		result[index] = api.NewLogField(field.Key, field.Value)
+	}
+	return result
+}
+
+func (adapter *publicLoggerPort) Debug(ctx context.Context, message string, fields ...autopdfports.LogField) {
+	adapter.logger.Debug(ctx, message, publicFields(fields)...)
+}
+func (adapter *publicLoggerPort) Info(ctx context.Context, message string, fields ...autopdfports.LogField) {
+	adapter.logger.Info(ctx, message, publicFields(fields)...)
+}
+func (adapter *publicLoggerPort) Warn(ctx context.Context, message string, fields ...autopdfports.LogField) {
+	adapter.logger.Warn(ctx, message, publicFields(fields)...)
+}
+func (adapter *publicLoggerPort) Error(ctx context.Context, message string, fields ...autopdfports.LogField) {
+	adapter.logger.Error(ctx, message, publicFields(fields)...)
 }
 
 // CreateApplicationService creates a PDF generation application service
@@ -81,11 +115,6 @@ func (f *PDFGenerationServiceFactory) CreatePDFValidator() generation.PDFValidat
 	return pdf_validator.NewPDFValidatorAdapter()
 }
 
-// SetPortLogger sets the ports.Logger for passing through to latexmk adapter
-func (f *PDFGenerationServiceFactory) SetPortLogger(logger autopdfports.Logger) {
-	f.portLogger = logger
-}
-
 // CreateExternalService creates an external PDF service
 func (f *PDFGenerationServiceFactory) CreateExternalService() generation.PDFGenerationService {
 	// Use portLogger if set (from cartas-backend), otherwise convert AutoPDF logger adapter
@@ -107,17 +136,17 @@ func (f *PDFGenerationServiceFactory) CreateCompleteService() *application.PDFGe
 type minimalWatchService struct{}
 
 func (m *minimalWatchService) StartWatching(config watch.WatchConfiguration) error {
-	return nil
+	return watch_service.ErrWatchModeUnavailable
 }
 
 func (m *minimalWatchService) StopWatching() error {
-	return nil
+	return watch_service.ErrWatchModeUnavailable
 }
 
 func (m *minimalWatchService) ConfigureExclusions(patterns []string) error {
-	return nil
+	return watch_service.ErrWatchModeUnavailable
 }
 
 func (m *minimalWatchService) ConfigureInterval(interval time.Duration) error {
-	return nil
+	return watch_service.ErrWatchModeUnavailable
 }

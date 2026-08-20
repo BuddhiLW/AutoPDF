@@ -63,7 +63,9 @@ func (w *WatchApplicationService) StartWatching(config watch.WatchConfiguration)
 
 	// Setup watcher directories
 	if err := w.setupWatcher(); err != nil {
-		w.StopWatching()
+		if stopErr := w.StopWatching(); stopErr != nil {
+			return fmt.Errorf("failed to setup watcher: %w (cleanup failed: %v)", err, stopErr)
+		}
 		return fmt.Errorf("failed to setup watcher: %w", err)
 	}
 

@@ -54,7 +54,7 @@ func RESTAPIServerExample() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"healthy","timestamp":"%s","service":"autopdf-struct-converter"}`,
+		_, _ = fmt.Fprintf(w, `{"status":"healthy","timestamp":"%s","service":"autopdf-struct-converter"}`,
 			time.Now().Format(time.RFC3339))
 	})
 
@@ -62,7 +62,7 @@ func RESTAPIServerExample() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `
+		_, _ = fmt.Fprintf(w, `
 <!DOCTYPE html>
 <html>
 <head>
@@ -285,7 +285,7 @@ func apiDocumentationHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	fmt.Fprintf(w, `%s`, formatJSON(docs))
+	_, _ = fmt.Fprintf(w, `%s`, formatJSON(docs))
 }
 
 // Test data handler
@@ -329,7 +329,7 @@ func testDataHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	fmt.Fprintf(w, `%s`, formatJSON(testData))
+	_, _ = fmt.Fprintf(w, `%s`, formatJSON(testData))
 }
 
 // Convert example handler
@@ -371,7 +371,7 @@ func convertExampleHandler(w http.ResponseWriter, r *http.Request) {
 	variables, err := converter.ConvertStruct(exampleData)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, `{"error": "Conversion failed: %s"}`, err.Error())
+		_, _ = fmt.Fprintf(w, `{"error": "Conversion failed: %s"}`, err.Error())
 		return
 	}
 
@@ -393,7 +393,7 @@ func convertExampleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `%s`, formatJSON(response))
+	_, _ = fmt.Fprintf(w, `%s`, formatJSON(response))
 }
 
 // Helper function to format JSON

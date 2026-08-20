@@ -87,9 +87,7 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 	// Only clean up temp file if not in debug mode
 	if !opts.Debug {
 		defer func() {
-			if err := lca.fileSystem.Remove(ctx, concreteFile); err != nil {
-				// Log cleanup error but don't fail
-			}
+			_ = lca.fileSystem.Remove(ctx, concreteFile)
 		}()
 	}
 
@@ -110,15 +108,14 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 
 	// Run multiple passes if requested
 	for pass := 1; pass <= opts.Passes; pass++ {
-		// Create command to run LaTeX
-		var cmdStr string
-		if outputDir == "." {
-			cmdStr = fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s %s", opts.Engine, baseName, concreteFile)
-		} else {
-			cmdStr = fmt.Sprintf("%s -interaction=nonstopmode -jobname=%s -output-directory=%s %s", opts.Engine, baseName, outputDir, concreteFile)
+		args := []string{"-interaction=nonstopmode", "-jobname=" + baseName}
+		if outputDir != "." {
+			args = append(args, "-output-directory="+outputDir)
 		}
+		args = append(args, concreteFile)
+		cmdStr := opts.Engine + " " + strings.Join(args, " ")
 
-		cmd := application.NewCommand("sh", []string{"-c", cmdStr}, workingDir).
+		cmd := application.NewCommand(opts.Engine, args, workingDir).
 			WithTimeout(5 * time.Minute)
 
 		// Run the LaTeX command

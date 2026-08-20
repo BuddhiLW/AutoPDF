@@ -107,7 +107,7 @@ func (vu *ValidationUtils) ValidatePDFContent(pdfPath string) (*ErrorDetails, er
 				AddContext(ContextKeyError, ErrPDFFileNotReadable),
 			err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Read PDF header
 	buffer := make([]byte, MinPDFHeaderLength)

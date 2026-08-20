@@ -172,19 +172,3 @@ func NewPDFValidationGuard() *PDFValidationGuard {
 func (g *PDFValidationGuard) ShouldValidatePDF(result generation.PDFGenerationResult) bool {
 	return result.Success && len(result.PDFPath) > 0
 }
-
-// ContentPreviewGuard guards content preview operations
-type ContentPreviewGuard struct{}
-
-// NewContentPreviewGuard creates a new content preview guard
-func NewContentPreviewGuard() *ContentPreviewGuard {
-	return &ContentPreviewGuard{}
-}
-
-// GetPreviewLength calculates appropriate preview length
-func (g *ContentPreviewGuard) GetPreviewLength(contentLength int) int {
-	if contentLength > DefaultContentPreviewLength {
-		return DefaultContentPreviewLength
-	}
-	return contentLength
-}

@@ -15,6 +15,7 @@ import (
 // PDFGenerationRequestBuilder builds PDF generation requests using the Builder pattern
 type PDFGenerationRequestBuilder struct {
 	request generation.PDFGenerationRequest
+	err     error
 }
 
 // NewPDFGenerationRequestBuilder creates a new builder
@@ -86,8 +87,7 @@ func (b *PDFGenerationRequestBuilder) WithVariable(key string, value interface{}
 func (b *PDFGenerationRequestBuilder) WithVariables(variables map[string]interface{}) *PDFGenerationRequestBuilder {
 	templateVars, err := generation.NewTemplateVariablesFromMap(variables)
 	if err != nil {
-		// Log error but don't fail - set empty variables
-		b.request.Variables = generation.NewTemplateVariables(nil)
+		b.err = fmt.Errorf("convert variables: %w", err)
 		return b
 	}
 	b.request.Variables = templateVars
@@ -111,8 +111,7 @@ func (b *PDFGenerationRequestBuilder) WithVariablesFromStruct(s interface{}) *PD
 
 	templateVars, err := generation.NewTemplateVariablesFromStruct(s, conv)
 	if err != nil {
-		// Log error but don't fail - set empty variables
-		b.request.Variables = generation.NewTemplateVariables(nil)
+		b.err = fmt.Errorf("convert struct variables: %w", err)
 		return b
 	}
 
@@ -126,12 +125,12 @@ func (b *PDFGenerationRequestBuilder) WithComplexVariable(key string, value map[
 	if b.request.Variables == nil {
 		b.request.Variables = generation.NewTemplateVariables(nil)
 	}
-	// Convert nested map to Variables and set
-	nestedVars, err := generation.NewTemplateVariablesFromMap(value)
-	if err == nil {
-		// Set as nested value - for now just merge
-		b.request.Variables.Merge(nestedVars)
+	nestedVars, err := generation.NewTemplateVariablesFromMap(map[string]interface{}{key: value})
+	if err != nil {
+		b.err = fmt.Errorf("convert complex variable %q: %w", key, err)
+		return b
 	}
+	b.request.Variables.Merge(nestedVars)
 	return b
 }
 
@@ -154,7 +153,6 @@ func (b *PDFGenerationRequestBuilder) WithArrayVariable(key string, values []int
 
 // WithConversion enables PDF to image conversion
 func (b *PDFGenerationRequestBuilder) WithConversion(enabled bool, formats ...string) *PDFGenerationRequestBuilder {
-	b.request.Options.DoConvert = enabled
 	b.request.Options.Conversion.Enabled = enabled
 	b.request.Options.Conversion.Formats = formats
 	return b
@@ -214,6 +212,25 @@ func (b *PDFGenerationRequestBuilder) Build() generation.PDFGenerationRequest {
 	return b.request
 }
 
+// BuildValidated returns conversion failures accumulated by fluent builder methods.
+func (b *PDFGenerationRequestBuilder) BuildValidated() (generation.PDFGenerationRequest, error) {
+	if b == nil {
+		return generation.PDFGenerationRequest{}, fmt.Errorf("PDF generation request builder must not be nil")
+	}
+	if b.err != nil {
+		return generation.PDFGenerationRequest{}, b.err
+	}
+	return b.request, nil
+}
+
+// Err reports the first construction error accumulated by the fluent builder.
+func (b *PDFGenerationRequestBuilder) Err() error {
+	if b == nil {
+		return fmt.Errorf("PDF generation request builder must not be nil")
+	}
+	return b.err
+}
+
 // PDFGenerationOptionsBuilder builds PDF generation options
 type PDFGenerationOptionsBuilder struct {
 	options generation.PDFGenerationOptions
@@ -238,7 +255,6 @@ func NewPDFGenerationOptionsBuilder() *PDFGenerationOptionsBuilder {
 
 // EnableConversion enables PDF to image conversion
 func (b *PDFGenerationOptionsBuilder) EnableConversion(formats ...string) *PDFGenerationOptionsBuilder {
-	b.options.DoConvert = true
 	b.options.Conversion.Enabled = true
 	b.options.Conversion.Formats = formats
 	return b
@@ -246,7 +262,6 @@ func (b *PDFGenerationOptionsBuilder) EnableConversion(formats ...string) *PDFGe
 
 // DisableConversion disables PDF to image conversion
 func (b *PDFGenerationOptionsBuilder) DisableConversion() *PDFGenerationOptionsBuilder {
-	b.options.DoConvert = false
 	b.options.Conversion.Enabled = false
 	b.options.Conversion.Formats = []string{}
 	return b
@@ -296,6 +311,7 @@ func (b *PDFGenerationOptionsBuilder) Build() generation.PDFGenerationOptions {
 // ConfigBuilder builds configuration objects
 type ConfigBuilder struct {
 	config *config.Config
+	err    error
 }
 
 // NewConfigBuilder creates a new config builder
@@ -327,14 +343,25 @@ func (b *ConfigBuilder) WithEngine(engine string) *ConfigBuilder {
 
 // WithVariable sets a simple variable
 func (b *ConfigBuilder) WithVariable(key, value string) *ConfigBuilder {
-	b.config.Variables.SetString(key, value)
+	if err := b.config.Variables.SetString(key, value); err != nil {
+		b.err = fmt.Errorf("set variable %q: %w", key, err)
+	}
 	return b
 }
 
 // WithComplexVariable sets a complex variable
 func (b *ConfigBuilder) WithComplexVariable(key string, value map[string]interface{}) *ConfigBuilder {
-	// Convert map to Variable and set it
-	// This would need proper implementation based on the Variable interface
+	variables, err := generation.NewTemplateVariablesFromMap(map[string]interface{}{key: value})
+	if err != nil {
+		b.err = fmt.Errorf("convert complex variable %q: %w", key, err)
+		return b
+	}
+	variable, ok := variables.Get(key)
+	if !ok {
+		b.err = fmt.Errorf("convert complex variable %q: value missing after conversion", key)
+		return b
+	}
+	b.config.Variables.Set(key, variable)
 	return b
 }
 
@@ -348,4 +375,23 @@ func (b *ConfigBuilder) WithConversion(enabled bool, formats ...string) *ConfigB
 // Build constructs the final config
 func (b *ConfigBuilder) Build() *config.Config {
 	return b.config
+}
+
+// BuildValidated returns construction failures accumulated by the builder.
+func (b *ConfigBuilder) BuildValidated() (*config.Config, error) {
+	if b == nil {
+		return nil, fmt.Errorf("config builder must not be nil")
+	}
+	if b.err != nil {
+		return nil, b.err
+	}
+	return b.config, nil
+}
+
+// Err reports the first construction error accumulated by the fluent builder.
+func (b *ConfigBuilder) Err() error {
+	if b == nil {
+		return fmt.Errorf("config builder must not be nil")
+	}
+	return b.err
 }

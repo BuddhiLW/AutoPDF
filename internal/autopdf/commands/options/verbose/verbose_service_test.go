@@ -115,7 +115,7 @@ func TestLoggerAdapter_Creation(t *testing.T) {
 func TestLoggerAdapter_AutoPDFFlowLogging(t *testing.T) {
 	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
 	require.NotNil(t, logger)
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Test configuration building logging
 	configPath := "/path/to/config.yaml"

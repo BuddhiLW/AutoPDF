@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
@@ -253,7 +252,12 @@ func (api *PDFGenerationAPI) GeneratePDF(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	pdfRequest := builder.Build()
+	pdfRequest, err := builder.BuildValidated()
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, PDFGenerationResponse{Success: false, RequestID: requestID, Message: err.Error()})
+		return
+	}
 
 	// Generate PDF
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -380,7 +384,12 @@ func (api *PDFGenerationAPI) GeneratePDFFromStruct(w http.ResponseWriter, r *htt
 		}
 	}
 
-	pdfRequest := builder.Build()
+	pdfRequest, err := builder.BuildValidated()
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, PDFGenerationResponse{Success: false, RequestID: requestID, Message: err.Error()})
+		return
+	}
 
 	// Generate PDF
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
@@ -437,22 +446,11 @@ func (api *PDFGenerationAPI) GeneratePDFFromStruct(w http.ResponseWriter, r *htt
 // GeneratePDFAsync generates a PDF asynchronously
 // POST /api/v1/pdf/generate/async
 func (api *PDFGenerationAPI) GeneratePDFAsync(w http.ResponseWriter, r *http.Request) {
-	// Similar to GeneratePDF but returns immediately with status URL
-	// Implementation would use a job queue or background processing
-
-	requestID := r.Context().Value(middleware.RequestIDContextKey).(string)
-
-	// TODO: Implement async processing
-	// For now, return a placeholder response
-	response := AsyncPDFGenerationResponse{
-		Success:   true,
-		RequestID: requestID,
-		Message:   "PDF generation started",
-		StatusURL: fmt.Sprintf("/api/v1/pdf/status/%s", requestID),
-		WatchMode: false, // TODO: Implement watch mode for async requests
-	}
-
-	render.JSON(w, r, response)
+	render.Status(r, http.StatusNotImplemented)
+	render.JSON(w, r, map[string]interface{}{
+		"success": false,
+		"error":   "asynchronous generation is not supported",
+	})
 }
 
 // GetGenerationStatus gets the status of an async generation
@@ -468,24 +466,12 @@ func (api *PDFGenerationAPI) GetGenerationStatus(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO: Implement status checking from job queue
-	// For now, return a placeholder response
-	response := GenerationStatusResponse{
+	render.Status(r, http.StatusNotImplemented)
+	render.JSON(w, r, GenerationStatusResponse{
 		RequestID: requestID,
-		Status:    "completed",
-		Progress:  100,
-		Message:   "Generation completed",
-		Files: []GeneratedFile{
-			{
-				Type:        "pdf",
-				Size:        1024,
-				DownloadURL: fmt.Sprintf("/api/v1/pdf/download/%s", requestID),
-				ExpiresAt:   time.Now().Add(24 * time.Hour).Format(time.RFC3339),
-			},
-		},
-	}
-
-	render.JSON(w, r, response)
+		Status:    "unsupported",
+		Error:     "asynchronous generation status is not supported",
+	})
 }
 
 // DownloadFile downloads a generated file
@@ -497,18 +483,11 @@ func (api *PDFGenerationAPI) DownloadFile(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: Retrieve file from storage/cache
-	// For now, return a placeholder PDF
-	pdfBytes := []byte("%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n72 720 Td\n(Hello World) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000204 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n297\n%%EOF")
-
-	// Set headers for PDF download
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"document_%s.pdf\"", requestID))
-	w.Header().Set("Content-Length", strconv.Itoa(len(pdfBytes)))
-	w.Header().Set("X-Request-ID", requestID)
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-
-	w.Write(pdfBytes)
+	render.Status(r, http.StatusNotImplemented)
+	render.JSON(w, r, map[string]string{
+		"request_id": requestID,
+		"error":      "generated-file storage is not configured",
+	})
 }
 
 // DownloadFileFormat downloads a generated file in specific format
@@ -522,32 +501,25 @@ func (api *PDFGenerationAPI) DownloadFileFormat(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Validate format
-	validFormats := map[string]string{
-		"png":  "image/png",
-		"jpeg": "image/jpeg",
-		"jpg":  "image/jpeg",
-		"svg":  "image/svg+xml",
+	validFormats := map[string]struct{}{
+		"png":  {},
+		"jpeg": {},
+		"jpg":  {},
+		"svg":  {},
 	}
 
-	contentType, exists := validFormats[format]
+	_, exists := validFormats[format]
 	if !exists {
 		http.Error(w, "Invalid format. Supported: png, jpeg, svg", http.StatusBadRequest)
 		return
 	}
 
-	// TODO: Retrieve converted file from storage/cache
-	// For now, return a placeholder image
-	imageBytes := []byte("placeholder image data")
-
-	// Set headers for image download
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"document_%s.%s\"", requestID, format))
-	w.Header().Set("Content-Length", strconv.Itoa(len(imageBytes)))
-	w.Header().Set("X-Request-ID", requestID)
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-
-	w.Write(imageBytes)
+	render.Status(r, http.StatusNotImplemented)
+	render.JSON(w, r, map[string]string{
+		"request_id": requestID,
+		"format":     format,
+		"error":      "generated-file storage is not configured",
+	})
 }
 
 // ValidateTemplate validates a LaTeX template
@@ -572,14 +544,12 @@ func (api *PDFGenerationAPI) ValidateTemplate(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// TODO: Implement template validation
-	// For now, return a placeholder response
-	response := TemplateValidationResponse{
-		Valid:    true,
-		Warnings: []string{"Template validation not fully implemented"},
+	if err := api.appService.ValidateTemplate(req.TemplatePath); err != nil {
+		render.Status(r, http.StatusUnprocessableEntity)
+		render.JSON(w, r, TemplateValidationResponse{Valid: false, Errors: []string{err.Error()}})
+		return
 	}
-
-	render.JSON(w, r, response)
+	render.JSON(w, r, TemplateValidationResponse{Valid: true})
 }
 
 // GetTemplateVariables extracts variables from a template
@@ -595,11 +565,15 @@ func (api *PDFGenerationAPI) GetTemplateVariables(w http.ResponseWriter, r *http
 		return
 	}
 
-	// TODO: Implement template variable extraction
-	// For now, return a placeholder response
+	variables, err := api.appService.GetTemplateVariables(templatePath)
+	if err != nil {
+		render.Status(r, http.StatusUnprocessableEntity)
+		render.JSON(w, r, TemplateVariablesResponse{Variables: []string{}, Count: 0})
+		return
+	}
 	response := TemplateVariablesResponse{
-		Variables: []string{"title", "author", "date", "content"},
-		Count:     4,
+		Variables: variables,
+		Count:     len(variables),
 	}
 
 	render.JSON(w, r, response)

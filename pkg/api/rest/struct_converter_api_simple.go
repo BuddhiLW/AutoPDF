@@ -158,7 +158,7 @@ func (api *SimpleStructConverterAPI) ConvertStruct(w http.ResponseWriter, r *htt
 	response.Metadata["variable_count"] = len(result)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ConvertStructFlattened converts a struct to flattened AutoPDF variables
@@ -219,7 +219,7 @@ func (api *SimpleStructConverterAPI) ConvertStructFlattened(w http.ResponseWrite
 	response.Metadata["flattened"] = true
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ConvertStructForTemplate converts a struct optimized for template usage
@@ -280,7 +280,7 @@ func (api *SimpleStructConverterAPI) ConvertStructForTemplate(w http.ResponseWri
 	response.Metadata["optimized_for"] = "templates"
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // GetConverterConfig returns the current converter configuration
@@ -304,7 +304,7 @@ func (api *SimpleStructConverterAPI) GetConverterConfig(w http.ResponseWriter, r
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(config)
+	_ = json.NewEncoder(w).Encode(config)
 }
 
 // ValidateStruct validates a struct for conversion
@@ -345,7 +345,7 @@ func (api *SimpleStructConverterAPI) ValidateStruct(w http.ResponseWriter, r *ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // PreviewConversion provides a preview of struct conversion with limited output
@@ -411,7 +411,7 @@ func (api *SimpleStructConverterAPI) PreviewConversion(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // HealthCheck provides a health check endpoint
@@ -429,7 +429,7 @@ func (api *SimpleStructConverterAPI) HealthCheck(w http.ResponseWriter, r *http.
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // buildConverterWithOptions builds a converter with the specified options

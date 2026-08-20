@@ -5,10 +5,13 @@ package watch_service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 )
+
+var ErrWatchModeUnavailable = errors.New("watch mode is unavailable: no watch manager configured")
 
 // WatchModeManagerAdapter implements generation.WatchModeManager interface
 type WatchModeManagerAdapter struct {
@@ -24,51 +27,25 @@ func NewWatchModeManagerAdapter(logger *logger.LoggerAdapter) *WatchModeManagerA
 
 // StartWatchMode starts a watch mode for the given request
 func (wmma *WatchModeManagerAdapter) StartWatchMode(ctx context.Context, req generation.PDFGenerationRequest) error {
-	wmma.logger.DebugWithFields("Starting watch mode via manager",
-		"template_path", req.TemplatePath,
-		"output_path", req.OutputPath,
-	)
-
-	// For now, just log the request - could be enhanced with actual watch logic
-	wmma.logger.InfoWithFields("Watch mode started",
-		"template_path", req.TemplatePath,
-		"output_path", req.OutputPath,
-		"engine", req.Engine,
-		"watch_mode", req.Options.WatchMode,
-		"debug", req.Options.Debug.Enabled,
-	)
-
-	return nil
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+	}
+	return ErrWatchModeUnavailable
 }
 
 // StopWatchMode stops a specific watch mode
 func (wmma *WatchModeManagerAdapter) StopWatchMode(watchID string) error {
-	wmma.logger.DebugWithFields("Stopping watch mode via manager",
-		"watch_id", watchID,
-	)
-
-	wmma.logger.InfoWithFields("Watch mode stopped", "watch_id", watchID)
-	return nil
+	return ErrWatchModeUnavailable
 }
 
 // StopAllWatchModes stops all active watch modes
 func (wmma *WatchModeManagerAdapter) StopAllWatchModes() error {
-	wmma.logger.DebugWithFields("Stopping all watch modes via manager")
-
-	wmma.logger.InfoWithFields("All watch modes stopped")
-	return nil
+	return ErrWatchModeUnavailable
 }
 
 // GetActiveWatches returns information about active watch modes
 func (wmma *WatchModeManagerAdapter) GetActiveWatches() map[string]generation.WatchInstanceInfo {
-	wmma.logger.DebugWithFields("Retrieving active watches via manager")
-
-	// For now, return empty map - could be enhanced with actual watch tracking
-	activeWatches := make(map[string]generation.WatchInstanceInfo)
-
-	wmma.logger.DebugWithFields("Retrieved active watches via manager",
-		"count", len(activeWatches),
-	)
-
-	return activeWatches
+	return map[string]generation.WatchInstanceInfo{}
 }

@@ -50,7 +50,7 @@ func ExampleComplexVariables() {
 		&config.StringVariable{Value: "bar1"},
 		&config.StringVariable{Value: "bar2"},
 	}
-	fooMap.Set("bar", barArray)
+	_ = fooMap.Set("bar", barArray)
 
 	// Set zet as an array of numbers
 	zetArray := config.NewSliceVariable()
@@ -59,7 +59,7 @@ func ExampleComplexVariables() {
 		&config.NumberVariable{Value: 2},
 		&config.NumberVariable{Value: 3},
 	}
-	fooMap.Set("zet", zetArray)
+	_ = fooMap.Set("zet", zetArray)
 
 	// Set the foo map
 	cfg.Variables.Set("foo", fooMap)
@@ -72,9 +72,8 @@ func ExampleComplexVariables() {
 	}
 	cfg.Variables.Set("foo_bar", fooBarArray)
 
-	// Create logger and API service
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
+	// Create API service
+	apiService := services.NewPDFGenerationAPIService(cfg, nil, false) // Default debug to false for examples
 
 	// Example 1: Using builder pattern with complex variables
 	ctx := context.Background()
@@ -117,9 +116,8 @@ func ExampleBuilderPattern() {
 		Variables: *config.NewVariables(),
 	}
 
-	// Create logger and API service
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
+	// Create API service
+	apiService := services.NewPDFGenerationAPIService(cfg, nil, false) // Default debug to false for examples
 
 	// Build request using builder pattern
 	options := services.NewPDFGenerationOptions("template.tex", "output.pdf").
@@ -160,9 +158,8 @@ func ExampleTemplateVariables() {
 		Variables: *config.NewVariables(),
 	}
 
-	// Create logger and API service
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
+	// Create API service
+	apiService := services.NewPDFGenerationAPIService(cfg, nil, false) // Default debug to false for examples
 
 	// Extract variables from template
 	variables, err := apiService.GetTemplateVariables("template.tex")
@@ -207,7 +204,7 @@ func ExampleVariableFlattening() {
 
 	// Set complex variables
 	for key, value := range complexVars {
-		cfg.Variables.SetString(key, fmt.Sprintf("%v", value))
+		_ = cfg.Variables.SetString(key, fmt.Sprintf("%v", value))
 	}
 
 	// Flatten variables
@@ -258,9 +255,8 @@ func ExampleTemplateProcessing() {
 		Variables: *config.NewVariables(),
 	}
 
-	// Create logger and API service
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
-	apiService := services.NewPDFGenerationAPIService(cfg, testLogger, false) // Default debug to false for examples
+	// Create API service
+	apiService := services.NewPDFGenerationAPIService(cfg, nil, false) // Default debug to false for examples
 
 	// Generate PDF
 	ctx := context.Background()
@@ -319,7 +315,6 @@ func ExampleDebuggingCapabilities() {
 		Verbose:   2,
 		Force:     false,
 		RequestID: "demo-request-123",
-		DoConvert: false,
 		Timeout:   30 * time.Second,
 		Conversion: generation.ConversionOptions{
 			Enabled: false,
@@ -339,7 +334,7 @@ func ExampleDebuggingCapabilities() {
 		AddContext("line_number", "42")
 
 	// Log the error with structured logging
-	errorDetails.LogError(requestLogger)
+	errorDetails.LogError(api.NewNoopLogger())
 
 	fmt.Println("Error logged with structured logging - check log files for details")
 }
@@ -347,9 +342,6 @@ func ExampleDebuggingCapabilities() {
 // ExampleMalformedConfigHandling demonstrates error handling for malformed configurations
 func ExampleMalformedConfigHandling() {
 	fmt.Println("\n=== Malformed Configuration Error Handling Demo ===")
-
-	// Create a logger for error demonstration
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
 
 	// 1. Missing required template file
 	fmt.Println("\n1. Missing Template File Error:")
@@ -359,7 +351,7 @@ func ExampleMalformedConfigHandling() {
 		AddContext("operation", "template_validation").
 		WithError(fmt.Errorf("template file does not exist"))
 
-	missingTemplateError.LogErrorWithMessage(testLogger, "Template validation failed")
+	missingTemplateError.LogErrorWithMessage(api.NewNoopLogger(), "Template validation failed")
 
 	// 2. Invalid variable configuration
 	fmt.Println("\n2. Invalid Variable Configuration Error:")
@@ -370,7 +362,7 @@ func ExampleMalformedConfigHandling() {
 		AddContext("actual_type", "complex_object").
 		WithError(fmt.Errorf("variable 'invalid_var' has unsupported type"))
 
-	invalidVarError.LogErrorWithMessage(testLogger, "Variable validation failed")
+	invalidVarError.LogErrorWithMessage(api.NewNoopLogger(), "Variable validation failed")
 
 	// 3. Malformed YAML configuration
 	fmt.Println("\n3. Malformed YAML Configuration Error:")
@@ -381,7 +373,7 @@ func ExampleMalformedConfigHandling() {
 		AddContext("column_number", "8").
 		WithError(fmt.Errorf("yaml: line 15: found character that cannot start any token"))
 
-	yamlError.LogErrorWithMessage(testLogger, "Configuration parsing failed")
+	yamlError.LogErrorWithMessage(api.NewNoopLogger(), "Configuration parsing failed")
 
 	// 4. Template syntax errors
 	fmt.Println("\n4. Template Syntax Error:")
@@ -392,7 +384,7 @@ func ExampleMalformedConfigHandling() {
 		AddContext("error_context", "\\begin{document} without \\documentclass").
 		WithError(fmt.Errorf("LaTeX compilation failed: missing \\documentclass"))
 
-	templateSyntaxError.LogErrorWithMessage(testLogger, "Template compilation failed")
+	templateSyntaxError.LogErrorWithMessage(api.NewNoopLogger(), "Template compilation failed")
 
 	// 5. Variable resolution errors
 	fmt.Println("\n5. Variable Resolution Error:")
@@ -403,14 +395,12 @@ func ExampleMalformedConfigHandling() {
 		AddContext("available_variables", "title,author,date").
 		WithError(fmt.Errorf("variable 'undefined_var' not found in template"))
 
-	varResolutionError.LogErrorWithMessage(testLogger, "Variable resolution failed")
+	varResolutionError.LogErrorWithMessage(api.NewNoopLogger(), "Variable resolution failed")
 }
 
 // ExampleTemplateValidationErrors demonstrates template validation and error reporting
 func ExampleTemplateValidationErrors() {
 	fmt.Println("\n=== Template Validation Error Demo ===")
-
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
 
 	// 1. Template with undefined variables
 	fmt.Println("\n1. Template with Undefined Variables:")
@@ -421,7 +411,7 @@ func ExampleTemplateValidationErrors() {
 		AddContext("template_content_preview", "\\title{delim[[vars.missing_title]]}\n\\author{delim[[vars.missing_author]]}").
 		WithError(fmt.Errorf("template contains undefined variables"))
 
-	undefinedVarsError.LogErrorWithMessage(testLogger, "Template validation failed - undefined variables")
+	undefinedVarsError.LogErrorWithMessage(api.NewNoopLogger(), "Template validation failed - undefined variables")
 
 	// 2. Template with malformed variable syntax
 	fmt.Println("\n2. Template with Malformed Variable Syntax:")
@@ -433,7 +423,7 @@ func ExampleTemplateValidationErrors() {
 		AddContext("actual_syntax", "delim[[vars.title}").
 		WithError(fmt.Errorf("malformed variable syntax: missing closing delimiter"))
 
-	malformedSyntaxError.LogErrorWithMessage(testLogger, "Template validation failed - malformed syntax")
+	malformedSyntaxError.LogErrorWithMessage(api.NewNoopLogger(), "Template validation failed - malformed syntax")
 
 	// 3. Template with LaTeX compilation errors
 	fmt.Println("\n3. Template with LaTeX Compilation Errors:")
@@ -445,7 +435,7 @@ func ExampleTemplateValidationErrors() {
 		AddContext("suggestion", "Did you mean \\maketitle?").
 		WithError(fmt.Errorf("LaTeX compilation failed"))
 
-	latexCompilationError.LogErrorWithMessage(testLogger, "Template compilation failed")
+	latexCompilationError.LogErrorWithMessage(api.NewNoopLogger(), "Template compilation failed")
 
 	// 4. Template with missing packages
 	fmt.Println("\n4. Template with Missing LaTeX Packages:")
@@ -457,14 +447,12 @@ func ExampleTemplateValidationErrors() {
 		AddContext("suggestion", "Install geometry package or remove usage").
 		WithError(fmt.Errorf("LaTeX package 'geometry' not found"))
 
-	missingPackageError.LogErrorWithMessage(testLogger, "Template validation failed - missing package")
+	missingPackageError.LogErrorWithMessage(api.NewNoopLogger(), "Template validation failed - missing package")
 }
 
 // ExampleVariableValidationErrors demonstrates variable validation and error reporting
 func ExampleVariableValidationErrors() {
 	fmt.Println("\n=== Variable Validation Error Demo ===")
-
-	testLogger := logger.NewLoggerAdapter(logger.Debug, "stdout")
 
 	// 1. Variables with wrong types
 	fmt.Println("\n1. Variables with Wrong Types:")
@@ -477,7 +465,7 @@ func ExampleVariableValidationErrors() {
 		AddContext("template_usage", "delim[[vars.page_count]]").
 		WithError(fmt.Errorf("variable 'page_count' expected number, got string"))
 
-	wrongTypeError.LogErrorWithMessage(testLogger, "Variable type validation failed")
+	wrongTypeError.LogErrorWithMessage(api.NewNoopLogger(), "Variable type validation failed")
 
 	// 2. Variables with invalid values
 	fmt.Println("\n2. Variables with Invalid Values:")
@@ -489,7 +477,7 @@ func ExampleVariableValidationErrors() {
 		AddContext("template_usage", "delim[[vars.email]]").
 		WithError(fmt.Errorf("variable 'email' has invalid format"))
 
-	invalidValueError.LogErrorWithMessage(testLogger, "Variable value validation failed")
+	invalidValueError.LogErrorWithMessage(api.NewNoopLogger(), "Variable value validation failed")
 
 	// 3. Missing required variables
 	fmt.Println("\n3. Missing Required Variables:")
@@ -500,7 +488,7 @@ func ExampleVariableValidationErrors() {
 		AddContext("available_variables", "author,date,content").
 		WithError(fmt.Errorf("required variable 'title' is missing"))
 
-	missingRequiredError.LogErrorWithMessage(testLogger, "Required variable validation failed")
+	missingRequiredError.LogErrorWithMessage(api.NewNoopLogger(), "Required variable validation failed")
 
 	// 4. Variables with circular references
 	fmt.Println("\n4. Variables with Circular References:")
@@ -510,7 +498,7 @@ func ExampleVariableValidationErrors() {
 		AddContext("circular_variable", "var_a").
 		WithError(fmt.Errorf("circular reference detected in variable chain"))
 
-	circularRefError.LogErrorWithMessage(testLogger, "Variable reference validation failed")
+	circularRefError.LogErrorWithMessage(api.NewNoopLogger(), "Variable reference validation failed")
 }
 
 // ExampleDebuggingWorkflow demonstrates a complete debugging workflow
@@ -519,9 +507,9 @@ func ExampleDebuggingWorkflow() {
 
 	// 1. Set up debug environment
 	fmt.Println("\n1. Setting up Debug Environment:")
-	os.Setenv("AUTOPDF_API_DEBUG", "true")
-	os.Setenv("AUTOPDF_API_LOG_DIR", "/tmp/autopdf-debug-workflow")
-	os.Setenv("AUTOPDF_API_CONCRETE_DIR", "/tmp/autopdf-concrete-workflow")
+	_ = os.Setenv("AUTOPDF_API_DEBUG", "true")
+	_ = os.Setenv("AUTOPDF_API_LOG_DIR", "/tmp/autopdf-debug-workflow")
+	_ = os.Setenv("AUTOPDF_API_CONCRETE_DIR", "/tmp/autopdf-concrete-workflow")
 
 	debugConfig := apiconfig.LoadDebugConfigFromEnv()
 	fmt.Printf("Debug environment configured: %+v\n", debugConfig)
@@ -595,7 +583,7 @@ This document has some issues:
 		AddContext("line_numbers", "12,13,15").
 		WithError(fmt.Errorf("template validation failed with multiple issues"))
 
-	templateValidationError.LogErrorWithMessage(requestLogger, "Template validation failed")
+	templateValidationError.LogErrorWithMessage(api.NewNoopLogger(), "Template validation failed")
 
 	// 6. Create concrete file for debugging
 	fmt.Println("\n6. Creating Concrete File for Debugging:")
@@ -651,12 +639,12 @@ This document has some issues:
 		AddContext("suggestions", "missing_var: Add 'missing_var' to variables or remove from template,malformed_syntax: Fix syntax: delim[[vars.title]] (add missing closing bracket),undefined_command: Remove \\undefinedcommand or define it").
 		AddContext("auto_fix_available", "true")
 
-	recoverySuggestions.LogErrorWithMessage(requestLogger, "Error recovery suggestions provided")
+	recoverySuggestions.LogErrorWithMessage(api.NewNoopLogger(), "Error recovery suggestions provided")
 
 	// 8. Cleanup
 	fmt.Println("\n8. Cleanup:")
-	os.Remove(templatePath)
-	os.Remove(concretePath)
+	_ = os.Remove(templatePath)
+	_ = os.Remove(concretePath)
 	fmt.Println("Temporary files cleaned up")
 
 	fmt.Println("\n=== Debugging Workflow Complete ===")
@@ -712,7 +700,6 @@ func ExampleHTTPMiddlewareDebugging() {
 		Verbose:   3,
 		Force:     false,
 		RequestID: requestID,
-		DoConvert: true,
 		Timeout:   45 * time.Second,
 		Conversion: generation.ConversionOptions{
 			Enabled: true,
@@ -751,7 +738,7 @@ func ExampleHTTPMiddlewareDebugging() {
 		"verbose_level", options.Verbose,
 		"clean_enabled", options.DoClean,
 		"force_enabled", options.Force,
-		"convert_enabled", options.DoConvert,
+		"convert_enabled", options.Conversion.Enabled,
 		"timeout", options.Timeout,
 	)
 

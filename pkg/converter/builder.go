@@ -4,6 +4,7 @@
 package converter
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 )
@@ -12,6 +13,7 @@ import (
 type ConverterBuilder struct {
 	registry *ConverterRegistry
 	options  ConversionOptions
+	err      error
 }
 
 // NewConverterBuilder creates a new ConverterBuilder with default options
@@ -28,6 +30,10 @@ func NewConverterBuilder() *ConverterBuilder {
 
 // WithRegistry sets the converter registry
 func (b *ConverterBuilder) WithRegistry(r *ConverterRegistry) *ConverterBuilder {
+	if r == nil {
+		b.err = fmt.Errorf("converter registry must not be nil")
+		return b
+	}
 	b.registry = r
 	return b
 }
@@ -52,15 +58,30 @@ func (b *ConverterBuilder) WithOmitEmpty(omit bool) *ConverterBuilder {
 
 // WithBuiltinConverters registers all built-in converters
 func (b *ConverterBuilder) WithBuiltinConverters() *ConverterBuilder {
-	// Register built-in converters
-	RegisterBuiltinConverters(b.registry)
+	if b.err != nil {
+		return b
+	}
+	if err := RegisterBuiltinConverters(b.registry); err != nil {
+		b.err = fmt.Errorf("register built-in converters: %w", err)
+	}
 	return b
 }
 
 // WithCustomConverter registers a custom converter for a specific type
 func (b *ConverterBuilder) WithCustomConverter(typ interface{}, converter Converter) *ConverterBuilder {
-	// This will be implemented when we have the reflect package imported
-	// For now, we'll add a method that takes the type as a parameter
+	if b.err != nil {
+		return b
+	}
+	var reflectedType reflect.Type
+	switch value := typ.(type) {
+	case reflect.Type:
+		reflectedType = value
+	default:
+		reflectedType = reflect.TypeOf(typ)
+	}
+	if err := b.registry.Register(reflectedType, converter); err != nil {
+		b.err = fmt.Errorf("register custom converter: %w", err)
+	}
 	return b
 }
 
@@ -70,8 +91,13 @@ func (b *ConverterBuilder) WithTimeFormat(format string) *ConverterBuilder {
 	timeType := reflect.TypeOf(time.Time{})
 	timePtrType := reflect.TypeOf((*time.Time)(nil))
 
-	b.registry.Register(timeType, NewTimeConverterWithFormat(format))
-	b.registry.Register(timePtrType, NewTimePtrConverterWithFormat(format))
+	if err := b.registry.Register(timeType, NewTimeConverterWithFormat(format)); err != nil {
+		b.err = fmt.Errorf("register time converter: %w", err)
+		return b
+	}
+	if err := b.registry.Register(timePtrType, NewTimePtrConverterWithFormat(format)); err != nil {
+		b.err = fmt.Errorf("register time pointer converter: %w", err)
+	}
 
 	return b
 }
@@ -82,8 +108,13 @@ func (b *ConverterBuilder) WithDurationFormat(format string) *ConverterBuilder {
 	durationType := reflect.TypeOf(time.Duration(0))
 	durationPtrType := reflect.TypeOf((*time.Duration)(nil))
 
-	b.registry.Register(durationType, NewDurationConverterWithFormat(format))
-	b.registry.Register(durationPtrType, NewDurationPtrConverterWithFormat(format))
+	if err := b.registry.Register(durationType, NewDurationConverterWithFormat(format)); err != nil {
+		b.err = fmt.Errorf("register duration converter: %w", err)
+		return b
+	}
+	if err := b.registry.Register(durationPtrType, NewDurationPtrConverterWithFormat(format)); err != nil {
+		b.err = fmt.Errorf("register duration pointer converter: %w", err)
+	}
 
 	return b
 }
@@ -95,19 +126,47 @@ func (b *ConverterBuilder) WithSliceSeparator(separator string) *ConverterBuilde
 	intSliceType := reflect.TypeOf([]int{})
 	floatSliceType := reflect.TypeOf([]float64{})
 
-	b.registry.Register(stringSliceType, NewStringSliceConverterWithSeparator(separator))
-	b.registry.Register(intSliceType, NewIntSliceConverterWithSeparator(separator))
-	b.registry.Register(floatSliceType, NewFloatSliceConverterWithSeparator(separator))
+	if err := b.registry.Register(stringSliceType, NewStringSliceConverterWithSeparator(separator)); err != nil {
+		b.err = fmt.Errorf("register string slice converter: %w", err)
+		return b
+	}
+	if err := b.registry.Register(intSliceType, NewIntSliceConverterWithSeparator(separator)); err != nil {
+		b.err = fmt.Errorf("register int slice converter: %w", err)
+		return b
+	}
+	if err := b.registry.Register(floatSliceType, NewFloatSliceConverterWithSeparator(separator)); err != nil {
+		b.err = fmt.Errorf("register float slice converter: %w", err)
+	}
 
 	return b
 }
 
 // Build creates the StructConverter with the configured options
 func (b *ConverterBuilder) Build() *StructConverter {
+	converter, _ := b.BuildValidated()
+	return converter
+}
+
+// BuildValidated returns construction failures instead of silently omitting capabilities.
+func (b *ConverterBuilder) BuildValidated() (*StructConverter, error) {
+	if b == nil {
+		return nil, fmt.Errorf("converter builder must not be nil")
+	}
+	if b.err != nil {
+		return nil, b.err
+	}
 	return &StructConverter{
 		registry: b.registry,
 		options:  b.options,
+	}, nil
+}
+
+// Err reports the first construction error accumulated by the fluent builder.
+func (b *ConverterBuilder) Err() error {
+	if b == nil {
+		return fmt.Errorf("converter builder must not be nil")
 	}
+	return b.err
 }
 
 // BuildWithDefaults creates a StructConverter with sensible defaults

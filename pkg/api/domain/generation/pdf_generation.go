@@ -6,9 +6,12 @@ package generation
 import (
 	"context"
 	"time"
+
+	"github.com/BuddhiLW/AutoPDF/pkg/api/model"
 )
 
-// PDFGenerationRequest represents a request to generate a PDF
+// PDFGenerationRequest represents a request to generate a PDF.
+// Deprecated: use api.Request through api.Engine for new integrations.
 type PDFGenerationRequest struct {
 	TemplatePath string
 	Variables    *TemplateVariables
@@ -17,9 +20,9 @@ type PDFGenerationRequest struct {
 	Options      PDFGenerationOptions
 }
 
-// PDFGenerationOptions contains optional settings for PDF generation
+// PDFGenerationOptions contains optional settings for PDF generation.
+// Deprecated: configure api.Request directly for new integrations.
 type PDFGenerationOptions struct {
-	DoConvert  bool
 	DoClean    bool
 	Conversion ConversionOptions
 	Timeout    time.Duration
@@ -42,13 +45,11 @@ type DebugOptions struct {
 	RequestID          string
 }
 
-// ConversionOptions contains settings for PDF to image conversion
-type ConversionOptions struct {
-	Enabled bool
-	Formats []string
-}
+// ConversionOptions contains settings for PDF to image conversion.
+type ConversionOptions = model.ConversionOptions
 
-// PDFGenerationResult represents the result of PDF generation
+// PDFGenerationResult represents the result of PDF generation.
+// Deprecated: use api.Result through api.Engine for new integrations.
 type PDFGenerationResult struct {
 	PDFPath    string
 	ImagePaths []string
@@ -57,14 +58,8 @@ type PDFGenerationResult struct {
 	Metadata   PDFMetadata
 }
 
-// PDFMetadata contains metadata about a PDF file
-type PDFMetadata struct {
-	FileSize    int64
-	PageCount   int
-	GeneratedAt time.Time
-	Engine      string
-	Template    string
-}
+// PDFMetadata contains metadata about a PDF file.
+type PDFMetadata = model.PDFMetadata
 
 // PDFGenerationService defines the interface for PDF generation
 type PDFGenerationService interface {

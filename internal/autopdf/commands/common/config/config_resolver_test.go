@@ -106,7 +106,7 @@ func TestConfigResolver_ResolveConfigFile(t *testing.T) {
 			originalDir, err := os.Getwd()
 			require.NoError(t, err)
 			defer func() {
-				env.RestoreWorkingDir(originalDir)
+				require.NoError(t, env.RestoreWorkingDir(originalDir))
 			}()
 
 			// Change to test directory

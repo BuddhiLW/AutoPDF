@@ -10,12 +10,13 @@ import (
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 	builder := NewServiceBuilder()
 	variables := config.NewVariables()
-	variables.SetString("key", "value")
+	require.NoError(t, variables.SetString("key", "value"))
 
 	cfg := &config.Config{
 		Template:  config.Template("template.tex"),
@@ -40,13 +41,15 @@ func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 func TestServiceBuilder_BuildRequest(t *testing.T) {
 	builder := NewServiceBuilder()
 	variables := config.NewVariables()
-	variables.SetString("key", "value")
+	require.NoError(t, variables.SetString("key", "value"))
 
 	cfg := &config.Config{
-		Template:  config.Template("template.tex"),
-		Variables: *variables,
-		Engine:    config.Engine("pdflatex"),
-		Output:    config.Output("output"),
+		Template:   config.Template("template.tex"),
+		Variables:  *variables,
+		Engine:     config.Engine("pdflatex"),
+		Output:     config.Output("output"),
+		Passes:     2,
+		UseLatexmk: true,
 		Conversion: config.Conversion{
 			Enabled: true,
 			Formats: []string{"jpeg"},
@@ -66,10 +69,13 @@ func TestServiceBuilder_BuildRequest(t *testing.T) {
 
 	assert.Equal(t, "template.tex", req.TemplatePath)
 	assert.Equal(t, "config.yaml", req.ConfigPath)
-	assert.Equal(t, map[string]string{"key": "value"}, req.Variables)
+	assert.NotNil(t, req.Variables)
+	assert.Equal(t, map[string]string{"key": "value"}, req.Variables.Flatten())
 	assert.Equal(t, "pdflatex", req.Engine)
 	assert.Equal(t, "output", req.OutputPath)
-	assert.True(t, req.DoConvert)
+	assert.Equal(t, ".", req.WorkingDir)
+	assert.Equal(t, 2, req.Passes)
+	assert.True(t, req.UseLatexmk)
 	assert.True(t, req.DoClean)
 	assert.True(t, req.Conversion.Enabled)
 	assert.Equal(t, []string{"jpeg"}, req.Conversion.Formats)
