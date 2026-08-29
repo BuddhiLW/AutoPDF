@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/compilation"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/compilation"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/parallel"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

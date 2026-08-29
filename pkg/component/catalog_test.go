@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/component"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/component"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 func definition(t *testing.T, key component.Key, mode document.CompositionMode, content string) component.Definition {

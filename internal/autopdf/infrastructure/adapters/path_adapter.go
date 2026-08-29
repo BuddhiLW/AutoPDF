@@ -6,7 +6,7 @@ package adapters
 import (
 	"path/filepath"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // OSPathOperations implements PathOperations using the standard library

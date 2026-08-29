@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/model"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/model"
 )
 
 // PDFGenerationRequest represents a request to generate a PDF.

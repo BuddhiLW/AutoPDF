@@ -1,4 +1,4 @@
-module github.com/BuddhiLW/AutoPDF
+module github.com/BuddhiLW/AutoPDF/v2
 
 go 1.25.14
 

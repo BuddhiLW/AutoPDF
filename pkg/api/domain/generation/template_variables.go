@@ -6,8 +6,8 @@ package generation
 import (
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/converter"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/converter"
 )
 
 // TemplateVariables is a Domain Value Object representing variables for template processing

@@ -6,12 +6,12 @@ package variable_resolver
 import (
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/converter"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/converter"
 )
 
 // VariableResolverAdapter implements domain.VariableResolver

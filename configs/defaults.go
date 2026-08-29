@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 )
 
 // DefaultConfigName is now defined in constants.go

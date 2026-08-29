@@ -6,9 +6,9 @@ package document
 import (
 	"context"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	apperrors "github.com/BuddhiLW/AutoPDF/pkg/errors"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	apperrors "github.com/BuddhiLW/AutoPDF/v2/pkg/errors"
 )
 
 // DocumentService orchestrates the document generation workflow

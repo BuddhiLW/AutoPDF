@@ -4,9 +4,9 @@
 package result
 
 import (
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/wiring"
 )
 
 // ResultHandler handles the output of build results

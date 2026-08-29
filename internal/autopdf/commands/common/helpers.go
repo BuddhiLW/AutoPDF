@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 	"github.com/rwxrob/bonzai"
 )
 

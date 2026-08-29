@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 var (

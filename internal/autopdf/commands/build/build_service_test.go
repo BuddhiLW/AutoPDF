@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/testutil"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

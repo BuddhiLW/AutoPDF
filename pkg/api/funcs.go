@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // GeneratePDF generates a PDF using the internal application layer

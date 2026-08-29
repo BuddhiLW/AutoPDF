@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 // Builtins returns minimal target-neutral definitions covering each layout

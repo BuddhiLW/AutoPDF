@@ -9,11 +9,11 @@ import (
 	"os"
 	"time"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/watch"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 )
 
 // PDFOrchestrationService encapsulates all orchestration concerns

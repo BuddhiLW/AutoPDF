@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/component"
-	"github.com/BuddhiLW/AutoPDF/pkg/composition"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/component"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/composition"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 var ErrProjectionGeneratorRequired = errors.New("api: projection generator must not be nil")

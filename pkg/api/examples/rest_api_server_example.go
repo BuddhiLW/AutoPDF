@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/rest"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/converter"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/rest"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/converter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"

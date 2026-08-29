@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
 )
 
 // DebuggerAdapter adapts debug functionality to the application.DebuggerPort interface

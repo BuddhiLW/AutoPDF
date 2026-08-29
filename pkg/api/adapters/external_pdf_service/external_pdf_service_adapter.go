@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"time"
 
-	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	autopdfports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // TODO: This file needs to be updated after internal application layer restructuring

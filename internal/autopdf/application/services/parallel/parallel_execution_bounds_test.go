@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/parallel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

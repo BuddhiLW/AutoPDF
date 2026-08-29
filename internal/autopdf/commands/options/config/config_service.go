@@ -6,9 +6,9 @@ package config
 import (
 	"context"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
-	resultPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/result"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common"
+	resultPkg "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/result"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/wiring"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"

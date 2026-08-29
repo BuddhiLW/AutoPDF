@@ -6,7 +6,7 @@ package domain
 import (
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 )
 
 // PDFMetadata is now defined in domain/generation package

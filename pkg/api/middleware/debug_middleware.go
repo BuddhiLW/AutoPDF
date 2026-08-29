@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 	"github.com/google/uuid"
 )
 

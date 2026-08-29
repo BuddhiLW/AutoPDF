@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

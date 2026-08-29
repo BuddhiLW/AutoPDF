@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 )
 
 func BenchmarkPreviewEventSerialization(b *testing.B) {

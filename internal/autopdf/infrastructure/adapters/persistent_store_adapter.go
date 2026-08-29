@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/persistent"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/persistent"
 	"github.com/rwxrob/bonzai/persisters/inyaml"
 )
 

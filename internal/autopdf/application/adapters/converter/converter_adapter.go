@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // ConverterAdapter wraps the existing PDF converter

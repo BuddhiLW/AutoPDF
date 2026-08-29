@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 	"go.uber.org/zap"
 )
 

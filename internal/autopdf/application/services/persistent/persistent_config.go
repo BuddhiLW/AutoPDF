@@ -6,8 +6,8 @@ package persistent
 import (
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 )
 
 // PersistentConfig represents the persistent configuration for AutoPDF CLI

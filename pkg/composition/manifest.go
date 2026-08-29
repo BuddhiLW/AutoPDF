@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/component"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/component"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 // Fragment is one content-addressed projection of a component.

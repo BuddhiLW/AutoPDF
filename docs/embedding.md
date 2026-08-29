@@ -66,4 +66,4 @@ configuration objects by default.
 
 Compatibility functions remain available for existing callers and route through
 the canonical engine. Compatibility subpackages may be deprecated in a future
-major release; new programs should import only `github.com/BuddhiLW/AutoPDF/pkg/api`.
+major release; new programs should import only `github.com/BuddhiLW/AutoPDF/v2/pkg/api`.

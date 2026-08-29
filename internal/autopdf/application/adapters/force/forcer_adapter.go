@@ -6,7 +6,7 @@ package force
 import (
 	"os"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
 )
 
 // ForcerAdapter adapts force operations to the application.ForcerPort interface

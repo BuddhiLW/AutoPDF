@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
 
 	// Legacy tex functionality now integrated into adapters
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // ConfigResolver handles config file resolution and template path resolution

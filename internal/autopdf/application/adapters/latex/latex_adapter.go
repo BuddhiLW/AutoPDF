@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	application "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	application "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // LaTeXCompilerAdapter wraps the existing LaTeX compiler

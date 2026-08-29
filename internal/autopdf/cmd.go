@@ -5,13 +5,13 @@
 package autopdf
 
 import (
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/build"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/convert"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/clean"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/debug"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/force"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/verbose"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/options/watch"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/build"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/convert"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/clean"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/debug"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/force"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/verbose"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/watch"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -21,7 +21,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  `autopdf`,
 	Alias: `apdf`,
-	Vers:  `v1.5.0`,
+	Vers:  `v2.0.0`,
 	Short: `generate pdfs from latex templates`,
 	Long: `
 The autopdf tool helps generate pdfs from latex templates. It simplifies common latex

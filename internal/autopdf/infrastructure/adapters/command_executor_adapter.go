@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	application "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	application "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // OSCommandExecutor implements CommandExecutor using os/exec package

@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/testutil"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/testutil"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

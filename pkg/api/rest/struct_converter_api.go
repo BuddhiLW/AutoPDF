@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/converter"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/converter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )

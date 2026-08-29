@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/BuddhiLW/AutoPDF/internal/autopdf"
+import "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf"
 
 // tree grown from branch
 func main() { autopdf.Cmd.Exec() }

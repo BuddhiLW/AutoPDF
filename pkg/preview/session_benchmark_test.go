@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 )
 
 func BenchmarkWarmPreviewFeedback(b *testing.B) {

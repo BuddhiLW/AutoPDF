@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // SliceConverter converts slices and arrays

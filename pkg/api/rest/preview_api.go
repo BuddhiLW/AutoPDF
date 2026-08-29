@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	rootapi "github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	rootapi "github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )

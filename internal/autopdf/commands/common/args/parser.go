@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/options"
 )
 
 // BuildArgs represents the parsed arguments for the build command

@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/adapters"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/model"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/model"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 var (

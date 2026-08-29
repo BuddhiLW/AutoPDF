@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/watch"
 	"github.com/fsnotify/fsnotify"
 )
 

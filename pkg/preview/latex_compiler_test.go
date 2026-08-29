@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 type runnerFunc func(context.Context, preview.Process) (preview.ProcessOutput, error)

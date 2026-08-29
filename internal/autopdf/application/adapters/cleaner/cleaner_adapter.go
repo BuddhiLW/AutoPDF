@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/configs"
 )
 
 // CleanerAdapter wraps the existing cleaner

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/parallel"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 )
 
 // DefaultTemplateExtensions are the suffixes a LaTeX strategy claims.

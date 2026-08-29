@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/converter"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/converter"
 )
 
 // Example structs for demonstration

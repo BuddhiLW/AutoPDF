@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 )
 
 func ExampleEngine() {

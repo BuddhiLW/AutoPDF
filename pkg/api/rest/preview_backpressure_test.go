@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

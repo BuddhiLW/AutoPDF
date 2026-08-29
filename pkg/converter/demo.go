@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // DemoStruct demonstrates the struct conversion feature

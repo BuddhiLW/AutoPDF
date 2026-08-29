@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	application "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	application "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // FontValidatorAdapter implements ports.FontValidator using fc-list

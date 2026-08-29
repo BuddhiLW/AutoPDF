@@ -3,7 +3,7 @@ package composition
 import (
 	"sync"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 // Cache stores immutable fragments by promoted component input hash.

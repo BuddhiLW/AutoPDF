@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/pattern_matcher"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/pattern_matcher"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"

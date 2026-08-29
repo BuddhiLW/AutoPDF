@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 var (

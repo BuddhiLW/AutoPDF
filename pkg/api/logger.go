@@ -6,7 +6,7 @@ package api
 import (
 	"context"
 
-	autopdfports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	autopdfports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // Logger is a public interface for logging within AutoPDF

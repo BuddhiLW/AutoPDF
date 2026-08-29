@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
-	documentService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
-	configPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/config"
-	wiringPkg "github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common/wiring"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
+	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
+	configPkg "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/config"
+	wiringPkg "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/wiring"
 )
 
 // DocumentRebuildAdapter implements RebuildService port

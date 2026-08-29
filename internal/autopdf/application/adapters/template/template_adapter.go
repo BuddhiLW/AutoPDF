@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // TemplateProcessorAdapter wraps the existing template engine

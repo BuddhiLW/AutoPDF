@@ -11,10 +11,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // TemplateProcessorAdapter implements domain.TemplateProcessingService

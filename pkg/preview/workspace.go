@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 func (session *Session) materialize(ctx context.Context, projection latex.Projection) ([]string, error) {

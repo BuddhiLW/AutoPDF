@@ -6,8 +6,8 @@ package adapters
 import (
 	"context"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	application "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	application "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"go.uber.org/zap"
 )
 

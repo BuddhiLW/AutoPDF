@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 )
 
 func BenchmarkLaTeXPreviewWarmTwoPage(b *testing.B) {

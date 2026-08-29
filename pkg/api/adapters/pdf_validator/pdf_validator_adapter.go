@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/file"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/file"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 )
 
 // PDFValidatorAdapter implements domain.PDFValidator

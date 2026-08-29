@@ -3,7 +3,7 @@
 <div align="center">
 <img src="./.gitassets/logo.png" alt="AutoPDF Logo" width="300" height="300" class="center">
 
-<img data-badge="GoDoc" src="https://godoc.org/github.com/BuddhiLW/AutoPDF?status.svg">
+<img data-badge="GoDoc" src="https://godoc.org/github.com/BuddhiLW/AutoPDF/v2?status.svg">
 <img data-badge="License" src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
 
 **A powerful tool that creates PDFs using LaTeX and Go's templating syntax with advanced features.**
@@ -32,7 +32,7 @@ Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW). Using [Bonzai](htt
 ## Install
 
 ```bash
-go install github.com/BuddhiLW/AutoPDF/cmd/autopdf@latest
+go install github.com/BuddhiLW/AutoPDF/v2/cmd/autopdf@latest
 ```
 
 ## Features
@@ -129,11 +129,42 @@ adopters can add components without replacing their current PDF boundary.
 Interactive sessions keep TeX auxiliary state warm, cancel superseded builds,
 use focused `\\includeonly` builds for section components, fingerprint rendered
 pages, and rasterize or transmit only changed pages. The optional HTTP adapter
-adds monotonic revisions and replayable server-sent events for browser clients.
+adds monotonic revisions and replayable events for browser clients over either
+server-sent events or WebSocket.
 
 - [Component composition and fast previews](docs/component-composition.md)
+- [Streaming transports: SSE, WebSocket, HTTP/2](docs/streaming-transports.md)
 - [Preview latency budgets and measurement](docs/preview-performance.md)
 - [Embedding AutoPDF](docs/embedding.md)
+
+### Streaming transports
+
+The preview adapter serves one event feed through several wire formats, so a
+client picks the transport that suits it without changing replay semantics:
+
+```go
+api, _ := rest.NewPreviewAPI(rest.PreviewAPIOptions{
+    Engine:          engine,
+    CompilerFactory: factory,
+})
+
+router := chi.NewRouter()
+rest.RegisterPreviewRoutes(router, api)
+
+// HTTP/2 over TLS and cleartext (h2c), with timeouts that do not
+// truncate long-lived streams.
+server, _ := rest.NewServer(rest.ServerOptions{Addr: ":8080", Handler: router})
+server.ListenAndServe()
+```
+
+| Route | Transport |
+| --- | --- |
+| `GET /sessions/{id}/events` | Server-sent events, `Last-Event-ID` replay |
+| `GET /sessions/{id}/ws` | WebSocket, `?after=` replay |
+
+Both share the same cursor, history ring, and ordering. Revision submission is
+bounded per session and answers `429` when the queue is saturated, so a fast
+client receives backpressure instead of accumulating server-side work.
 
 ### Configuration Examples
 
@@ -233,7 +264,7 @@ The `test/` directory contains comprehensive examples:
 
 1. **Install AutoPDF**:
    ```bash
-   go install github.com/BuddhiLW/AutoPDF/cmd/autopdf@latest
+   go install github.com/BuddhiLW/AutoPDF/v2/cmd/autopdf@latest
    ```
 
 2. **Try Basic Example**:

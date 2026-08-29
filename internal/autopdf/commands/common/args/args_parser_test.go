@@ -6,7 +6,7 @@ package args
 import (
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/options"
 	"github.com/stretchr/testify/assert"
 )
 

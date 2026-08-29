@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/composition"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/composition"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 func manifest() composition.RenderManifest {

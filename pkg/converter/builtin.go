@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // TimeConverter converts time.Time to string

@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 	"github.com/stretchr/testify/assert"
 )
 

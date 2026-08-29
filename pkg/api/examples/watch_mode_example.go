@@ -9,12 +9,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/services"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	infraadapters "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/infrastructure/adapters"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/application"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/builders"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/services"
 )
 
 // WatchModeExample demonstrates how to use watch mode with PDF generation

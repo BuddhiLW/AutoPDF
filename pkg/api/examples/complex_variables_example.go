@@ -11,14 +11,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	apilogger "github.com/BuddhiLW/AutoPDF/pkg/api/adapters/logger"
-	apiconfig "github.com/BuddhiLW/AutoPDF/pkg/api/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/middleware"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/services"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	apilogger "github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters/logger"
+	apiconfig "github.com/BuddhiLW/AutoPDF/v2/pkg/api/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/middleware"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/services"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // ExampleComplexVariables demonstrates how to use complex variables with AutoPDF

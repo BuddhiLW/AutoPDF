@@ -7,9 +7,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/watch"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 )
 
 // WatchServiceAdapter implements generation.WatchService interface

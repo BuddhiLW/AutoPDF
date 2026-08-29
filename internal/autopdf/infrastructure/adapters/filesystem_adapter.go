@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // OSFileSystem implements ports.FileSystem using the standard library's os package

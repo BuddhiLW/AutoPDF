@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
 // LatexmkCompilerAdapter implements LaTeXCompiler using latexmk

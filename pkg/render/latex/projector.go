@@ -11,8 +11,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/composition"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/composition"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
 )
 
 var (

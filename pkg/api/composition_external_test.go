@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/document"
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/document"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 func documentSpec() document.DocumentSpec {

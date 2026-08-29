@@ -8,8 +8,8 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 func nestedTemplateVariables(value string) *generation.TemplateVariables {

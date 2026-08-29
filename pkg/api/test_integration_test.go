@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apilogger "github.com/BuddhiLW/AutoPDF/pkg/api/adapters/logger"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/config"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/middleware"
+	apilogger "github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

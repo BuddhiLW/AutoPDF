@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/parallel"
 )
 
 // ParallelCompilationService implements the ParallelCompiler interface

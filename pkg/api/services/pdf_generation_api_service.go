@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/api"
-	apiapplication "github.com/BuddhiLW/AutoPDF/pkg/api/application"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
-	"github.com/BuddhiLW/AutoPDF/pkg/api/factories"
-	"github.com/BuddhiLW/AutoPDF/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	apiapplication "github.com/BuddhiLW/AutoPDF/v2/pkg/api/application"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/builders"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/factories"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
 // PDFGenerationAPIService provides a clean API for PDF generation

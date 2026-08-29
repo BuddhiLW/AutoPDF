@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	rootapi "github.com/BuddhiLW/AutoPDF/pkg/api"
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
+	rootapi "github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
 	"github.com/coder/websocket"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"

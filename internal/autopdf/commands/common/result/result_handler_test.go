@@ -6,7 +6,7 @@ package result
 import (
 	"testing"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/document"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
 	"github.com/stretchr/testify/assert"
 )
 

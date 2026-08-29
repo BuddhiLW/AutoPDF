@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/pkg/preview"
-	"github.com/BuddhiLW/AutoPDF/pkg/render/latex"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/preview"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 func TestWarmPreviewOrchestrationLatencyBudget(t *testing.T) {
