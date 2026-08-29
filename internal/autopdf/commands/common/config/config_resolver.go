@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
 
 	// Legacy tex functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/pkg/config"
@@ -106,7 +105,7 @@ func (cr *ConfigResolver) LoadConfig(configFile string) (*config.Config, error) 
 
 // LoadConfigWithLogging loads configuration with integrated logging
 func (cr *ConfigResolver) LoadConfigWithLogging(ctx context.Context, templateFile, providedConfigFile string) (*config.Config, error) {
-	logger := getLoggerFromContext(ctx)
+	logger := configs.GetLoggerFromContext(ctx)
 
 	// Log start
 	logger.InfoWithFields("Starting AutoPDF build process", "template_file", templateFile, "config_file", providedConfigFile)
@@ -139,18 +138,4 @@ func (cr *ConfigResolver) LoadConfigWithLogging(ctx context.Context, templateFil
 	logger.LogDataMapping(cfg.Template.String(), cfg.Variables.Flatten())
 
 	return cfg, nil
-}
-
-// contextKey is a custom type for context keys to avoid collisions
-type contextKey string
-
-const loggerKey contextKey = "logger"
-
-// getLoggerFromContext extracts logger from context
-func getLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
-	if loggerAdapter, ok := ctx.Value(loggerKey).(*logger.LoggerAdapter); ok {
-		return loggerAdapter
-	}
-	// Fallback to default logger
-	return logger.NewLoggerAdapter(logger.Detailed, "stdout")
 }

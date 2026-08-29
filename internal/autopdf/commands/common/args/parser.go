@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	"github.com/BuddhiLW/AutoPDF/configs"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/options"
 )
 
@@ -153,7 +153,7 @@ func (ap *ArgsParser) isSubcommand(arg string) bool {
 
 // ParseBuildArgsWithLogging parses build arguments with integrated logging
 func (ap *ArgsParser) ParseBuildArgsWithLogging(ctx context.Context, args []string) (*BuildArgs, error) {
-	logger := getLoggerFromContext(ctx)
+	logger := configs.GetLoggerFromContext(ctx)
 
 	logger.Debug("Parsing command line arguments")
 	buildArgs, err := ap.ParseBuildArgsWithDelegation(args)
@@ -173,7 +173,7 @@ func (ap *ArgsParser) ParseBuildArgsWithLogging(ctx context.Context, args []stri
 
 // ParseConvertArgsWithLogging parses convert arguments with integrated logging
 func (ap *ArgsParser) ParseConvertArgsWithLogging(ctx context.Context, args []string) (*ConvertArgs, error) {
-	logger := getLoggerFromContext(ctx)
+	logger := configs.GetLoggerFromContext(ctx)
 
 	logger.Debug("Parsing convert arguments")
 	convertParser := NewConvertArgsParser()
@@ -189,20 +189,6 @@ func (ap *ArgsParser) ParseConvertArgsWithLogging(ctx context.Context, args []st
 	)
 
 	return convertArgs, nil
-}
-
-// contextKey is a custom type for context keys to avoid collisions
-type contextKey string
-
-const loggerKey contextKey = "logger"
-
-// getLoggerFromContext extracts logger from context
-func getLoggerFromContext(ctx context.Context) *logger.LoggerAdapter {
-	if loggerAdapter, ok := ctx.Value(loggerKey).(*logger.LoggerAdapter); ok {
-		return loggerAdapter
-	}
-	// Fallback to default logger
-	return logger.NewLoggerAdapter(logger.Detailed, "stdout")
 }
 
 // isOption checks if an argument is an option (starts with known option names)
