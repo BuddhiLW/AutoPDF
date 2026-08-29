@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
+	"time"
 
 	rootapi "github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/document"
@@ -32,12 +31,22 @@ type PreviewCompilerFactoryFunc func() (preview.Compiler, error)
 
 func (function PreviewCompilerFactoryFunc) NewCompiler() (preview.Compiler, error) { return function() }
 
-// PreviewAPIOptions configures the browser-facing SSE transport.
+// PreviewAPIOptions configures the browser-facing streaming transports.
 type PreviewAPIOptions struct {
 	Engine          *rootapi.DocumentEngine
 	CompilerFactory PreviewCompilerFactory
 	SessionOptions  preview.Options
 	HistoryLimit    int
+
+	// Heartbeat is how often an idle stream signals liveness. Defaults to
+	// DefaultStreamHeartbeat.
+	Heartbeat time.Duration
+	// RetryHint tells SSE clients how long to wait before reconnecting.
+	// Defaults to DefaultStreamRetry.
+	RetryHint time.Duration
+	// OriginPatterns lists host patterns permitted to open a WebSocket. Empty
+	// means same-origin only, which is what a browser preview needs.
+	OriginPatterns []string
 }
 
 // PreviewAPI owns revisioned preview sessions. Mount Routes at a stable prefix,
@@ -47,6 +56,9 @@ type PreviewAPI struct {
 	compilerFactory PreviewCompilerFactory
 	sessionOptions  preview.Options
 	historyLimit    int
+	heartbeat       time.Duration
+	retryHint       time.Duration
+	originPatterns  []string
 
 	mu       sync.RWMutex
 	sessions map[string]*previewTransportSession
@@ -63,10 +75,18 @@ func NewPreviewAPI(options PreviewAPIOptions) (*PreviewAPI, error) {
 	if options.HistoryLimit <= 0 {
 		options.HistoryLimit = 32
 	}
+	if options.Heartbeat <= 0 {
+		options.Heartbeat = DefaultStreamHeartbeat
+	}
+	if options.RetryHint <= 0 {
+		options.RetryHint = DefaultStreamRetry
+	}
 	return &PreviewAPI{
 		engine: options.Engine, compilerFactory: options.CompilerFactory,
 		sessionOptions: options.SessionOptions, historyLimit: options.HistoryLimit,
-		sessions: make(map[string]*previewTransportSession),
+		heartbeat: options.Heartbeat, retryHint: options.RetryHint,
+		originPatterns: options.OriginPatterns,
+		sessions:       make(map[string]*previewTransportSession),
 	}, nil
 }
 
@@ -77,6 +97,7 @@ func (api *PreviewAPI) Routes() chi.Router {
 	router.Post("/sessions", api.createSession)
 	router.Put("/sessions/{sessionID}/revisions/{revision}", api.submitRevision)
 	router.Get("/sessions/{sessionID}/events", api.streamEvents)
+	router.Get("/sessions/{sessionID}/ws", api.streamWebSocket)
 	router.Delete("/sessions/{sessionID}", api.closeSession)
 	return router
 }
@@ -210,41 +231,15 @@ func (api *PreviewAPI) streamEvents(writer http.ResponseWriter, request *http.Re
 		writeJSON(writer, http.StatusNotFound, map[string]string{"error": "preview session not found"})
 		return
 	}
-	flusher, ok := writer.(http.Flusher)
-	if !ok {
+	sink, err := newSSESink(writer, api.retryHint)
+	if err != nil {
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "streaming unsupported"})
 		return
 	}
-	after := eventCursor(request)
-	writer.Header().Set("Content-Type", "text/event-stream")
-	writer.Header().Set("Cache-Control", "no-cache")
-	writer.Header().Set("Connection", "keep-alive")
-	writer.WriteHeader(http.StatusOK)
-	flusher.Flush()
-	for {
-		events, wait, closed := transport.eventsAfter(after)
-		for _, event := range events {
-			data, err := json.Marshal(event)
-			if err != nil {
-				return
-			}
-			if _, err := fmt.Fprintf(writer, "id: %d\nevent: %s\ndata: %s\n\n", event.ID, event.Type, data); err != nil {
-				return
-			}
-			after = event.ID
-		}
-		if len(events) > 0 {
-			flusher.Flush()
-		}
-		if closed {
-			return
-		}
-		select {
-		case <-request.Context().Done():
-			return
-		case <-wait:
-		}
-	}
+	_ = pumpEvents(request.Context(), transport, sink, streamOptions{
+		after:     eventCursor(request),
+		heartbeat: api.heartbeat,
+	})
 }
 
 func (api *PreviewAPI) closeSession(writer http.ResponseWriter, request *http.Request) {
@@ -328,15 +323,6 @@ func (session *previewTransportSession) eventsAfter(after uint64) ([]PreviewEven
 		}
 	}
 	return events, session.notify, session.closed
-}
-
-func eventCursor(request *http.Request) uint64 {
-	value := request.Header.Get("Last-Event-ID")
-	if value == "" {
-		value = request.URL.Query().Get("after")
-	}
-	cursor, _ := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
-	return cursor
 }
 
 func writeJSON(writer http.ResponseWriter, status int, value any) {
