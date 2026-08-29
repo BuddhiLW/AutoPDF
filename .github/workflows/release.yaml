@@ -32,7 +32,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24.0"
+          go-version-file: "go.mod"
 
       - name: Build binary
         env:
@@ -56,6 +56,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist/
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -65,7 +66,7 @@ jobs:
           artifacts: dist/*
           generateReleaseNotes: true
           body: |
-            ## Autopdf ${{ github.ref_name }}
+            ## AutoPDF ${{ github.ref_name }}
 
             ### Downloads
             - Linux: `autopdf-linux-amd64`, `autopdf-linux-arm64`

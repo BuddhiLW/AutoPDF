@@ -12,4 +12,9 @@
 // Subpackages under api/domain, api/application, api/adapters, api/builders,
 // api/factories, and api/services are compatibility layers. New integrations
 // should not depend on them.
+//
+// For component documents, construct a DocumentEngine. It maps immutable
+// semantic components to cached fragments, deterministic LaTeX projections,
+// production generators, and revisioned preview sessions without changing the
+// legacy Engine.Generate boundary.
 package api

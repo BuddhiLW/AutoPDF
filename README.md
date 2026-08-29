@@ -47,6 +47,8 @@ go install github.com/BuddhiLW/AutoPDF/cmd/autopdf@latest
 ### 🔧 **Advanced Features**
 - **Complex Variables**: Nested objects, arrays, and mixed data types
 - **For Loops**: Range loops over arrays and objects
+- **Component Documents**: Immutable semantic trees compiled into deterministic LaTeX fragments
+- **Live Preview Pipeline**: Revisioned, cancellable previews that send changed pages only
 - **Persistent Settings**: CLI settings that survive across sessions
 - **Structured Logging**: Detailed logging with zap integration
 - **Configuration Management**: Export/import configurations
@@ -116,6 +118,22 @@ fmt.Printf("generated %d bytes\n", len(result.PDF))
 Custom renderers, caching layers, and test fakes can implement `api.Generator`
 and be installed with `api.WithGenerator`. See [Embedding AutoPDF](docs/embedding.md)
 for extension, logging, cancellation, and migration guidance.
+
+### Component documents and live previews
+
+For structured editors, `api.DocumentEngine` turns a renderer-independent
+`document.DocumentSpec` into cached fragments and a deterministic LaTeX
+projection. Production generation still returns the existing `api.Result`, so
+adopters can add components without replacing their current PDF boundary.
+
+Interactive sessions keep TeX auxiliary state warm, cancel superseded builds,
+use focused `\\includeonly` builds for section components, fingerprint rendered
+pages, and rasterize or transmit only changed pages. The optional HTTP adapter
+adds monotonic revisions and replayable server-sent events for browser clients.
+
+- [Component composition and fast previews](docs/component-composition.md)
+- [Preview latency budgets and measurement](docs/preview-performance.md)
+- [Embedding AutoPDF](docs/embedding.md)
 
 ### Configuration Examples
 

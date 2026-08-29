@@ -21,8 +21,8 @@ func TestCmd_Structure(t *testing.T) {
 		t.Errorf("Expected Cmd.Alias to be 'apdf', got '%s'", Cmd.Alias)
 	}
 
-	if Cmd.Vers != "v1.3.3" {
-		t.Errorf("Expected Cmd.Vers to be 'v1.3.3', got '%s'", Cmd.Vers)
+	if Cmd.Vers != "v1.4.0" {
+		t.Errorf("Expected Cmd.Vers to be 'v1.4.0', got '%s'", Cmd.Vers)
 	}
 }
 
