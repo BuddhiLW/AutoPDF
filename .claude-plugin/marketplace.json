@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "autopdf",
+  "description": "Skills for building on AutoPDF: LaTeX-to-PDF generation, Go embedding, template authoring, and live preview transports.",
+  "owner": {
+    "name": "BuddhiLW",
+    "url": "https://github.com/BuddhiLW"
+  },
+  "plugins": [
+    {
+      "name": "autopdf",
+      "description": "Generate PDFs from LaTeX templates. CLI, Go library embedding, template syntax, and live preview over SSE/WebSocket/HTTP2.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

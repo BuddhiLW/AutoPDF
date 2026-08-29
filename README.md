@@ -35,6 +35,27 @@ Built with ❤️ by [BuddhiLW](https://github.com/BuddhiLW). Using [Bonzai](htt
 go install github.com/BuddhiLW/AutoPDF/v2/cmd/autopdf@latest
 ```
 
+## Building on AutoPDF with Claude Code
+
+AutoPDF ships skills that teach a coding agent how to integrate it, so a project
+adopting AutoPDF does not have to feed it documentation by hand:
+
+```
+/plugin marketplace add BuddhiLW/AutoPDF
+/plugin install autopdf@autopdf
+```
+
+| Skill | Covers |
+| --- | --- |
+| `autopdf` | Install, CLI, YAML config, choosing an integration path |
+| `autopdf-embed` | Go library: `api.Engine`, testing without LaTeX, logging, v1→v2 |
+| `autopdf-templates` | `delim[[ ]]` syntax, nested values, loops, escaping |
+| `autopdf-preview` | Component documents, preview sessions, SSE/WebSocket/HTTP2 |
+
+They load on demand, so a project that only generates PDFs never pays for the
+preview documentation. See [skills/](skills/) to vendor them into a single
+project instead.
+
 ## Features
 
 ### 🚀 **Core Features**
