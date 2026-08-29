@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/configs"
+	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/compilation"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/result_collector"
 	parallelService "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/services/parallel"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/commands/common"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/parallel"
+	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
@@ -59,15 +61,23 @@ func executeMultipleProcess(ctx context.Context, args []string) error {
 	configFile := args[0]
 	templateFiles := args[1:]
 
+	// Compilation is dispatched through the CompilationStrategy port; the
+	// public engine is the concretion behind it.
+	engine, err := api.NewEngine()
+	if err != nil {
+		return fmt.Errorf("failed to build generation engine: %w", err)
+	}
+	strategy := compilation.NewEngineStrategy(engine)
+
 	// Create domain services
 	resultCollector := result_collector.NewResultCollectorAdapter()
-	orchestrator := parallelService.NewParallelExecutionOrchestrator()
+	orchestrator := parallelService.NewParallelExecutionOrchestrator(strategy)
 
 	// Create parallel compilation service
 	parallelSvc := parallelService.NewParallelCompilationService(
 		orchestrator,
 		resultCollector,
-		nil, // strategies would be injected here
+		[]parallel.CompilationStrategy{strategy},
 	)
 
 	// Create parallel compilation request
