@@ -85,83 +85,193 @@ func (p *ParallelCompilationService) createCompilationTasks(
 	return tasks
 }
 
+const (
+	// DefaultMaxWorkers is the compilation concurrency used until
+	// ConfigureConcurrency says otherwise.
+	DefaultMaxWorkers = 4
+	// DefaultTaskTimeout bounds a single compilation that carries no timeout
+	// of its own.
+	DefaultTaskTimeout = 30 * time.Second
+)
+
 // ParallelExecutionOrchestratorImpl implements the ParallelExecutionOrchestrator interface
 type ParallelExecutionOrchestratorImpl struct {
+	strategies []parallel.CompilationStrategy
 	maxWorkers int
 	timeout    time.Duration
 }
 
-// NewParallelExecutionOrchestrator creates a new parallel execution orchestrator
-func NewParallelExecutionOrchestrator() *ParallelExecutionOrchestratorImpl {
+// NewParallelExecutionOrchestrator creates a new parallel execution orchestrator.
+// Strategies are the abstractions compilation is dispatched through; an
+// orchestrator built without any fails every task as unhandled.
+func NewParallelExecutionOrchestrator(strategies ...parallel.CompilationStrategy) *ParallelExecutionOrchestratorImpl {
 	return &ParallelExecutionOrchestratorImpl{
-		maxWorkers: 4,
-		timeout:    30 * time.Second,
+		strategies: strategies,
+		maxWorkers: DefaultMaxWorkers,
+		timeout:    DefaultTaskTimeout,
 	}
 }
 
-// ExecuteParallel executes tasks in parallel
+// compilationJob pairs a task with its position, so outcomes can be written to
+// a pre-sized slice rather than collected through channels sized by the input.
+type compilationJob struct {
+	index int
+	task  parallel.CompilationTask
+}
+
+// compilationOutcome is the result of one task: exactly one of result/failure
+// is meaningful, selected by failed.
+type compilationOutcome struct {
+	result  parallel.BuildResult
+	failure parallel.BuildFailure
+	failed  bool
+}
+
+// workerCount derives how many workers to start. Pure: never more workers than
+// there is work for, and never fewer than one when there is work.
+func workerCount(maxWorkers, taskCount int) int {
+	if taskCount <= 0 {
+		return 0
+	}
+	if maxWorkers < 1 {
+		maxWorkers = 1
+	}
+	if maxWorkers > taskCount {
+		return taskCount
+	}
+	return maxWorkers
+}
+
+// effectiveTimeout derives the deadline for one task. Pure. A task timeout of
+// zero means "unset", not "already due": context.WithTimeout(ctx, 0) returns an
+// expired context, so an unset timeout falls back to the configured one.
+func effectiveTimeout(taskTimeout, configured time.Duration) time.Duration {
+	if taskTimeout > 0 {
+		return taskTimeout
+	}
+	if configured > 0 {
+		return configured
+	}
+	return DefaultTaskTimeout
+}
+
+// runTask executes one compilation. This is the boundary: the only step that
+// reaches a compilation strategy, and the only place effects occur.
+func (o *ParallelExecutionOrchestratorImpl) runTask(
+	ctx context.Context,
+	task parallel.CompilationTask,
+) compilationOutcome {
+	startedAt := time.Now()
+
+	failure := func(err error) compilationOutcome {
+		return compilationOutcome{
+			failed: true,
+			failure: parallel.BuildFailure{
+				TemplateFile: task.TemplateFile,
+				Error:        err,
+				Duration:     time.Since(startedAt),
+				Timestamp:    time.Now(),
+			},
+		}
+	}
+
+	strategy := o.findCompilationStrategy(task.TemplateFile)
+	if strategy == nil {
+		return failure(fmt.Errorf("no compilation strategy found for %q", task.TemplateFile))
+	}
+
+	taskCtx, cancel := context.WithTimeout(ctx, effectiveTimeout(task.Timeout, o.timeout))
+	defer cancel()
+
+	result, err := strategy.Compile(taskCtx, task.TemplateFile, task.ConfigFile)
+	if err != nil {
+		return failure(err)
+	}
+	if result == nil {
+		return failure(fmt.Errorf("strategy returned no result for %q", task.TemplateFile))
+	}
+
+	build := *result
+	if build.Duration == 0 {
+		build.Duration = time.Since(startedAt)
+	}
+	if build.Timestamp.IsZero() {
+		build.Timestamp = time.Now()
+	}
+	return compilationOutcome{result: build}
+}
+
+// ExecuteParallel runs tasks through a bounded worker pool.
+//
+// The pool bounds goroutine CREATION, not merely execution: exactly
+// workerCount goroutines exist regardless of how many tasks are queued.
+// Acquiring a semaphore inside a per-task goroutine would bound only progress,
+// leaving one parked goroutine per task.
 func (o *ParallelExecutionOrchestratorImpl) ExecuteParallel(
 	ctx context.Context,
 	tasks []parallel.CompilationTask,
 ) (*parallel.ParallelCompilationResult, error) {
-	var wg sync.WaitGroup
-	resultChan := make(chan parallel.BuildResult, len(tasks))
-	errorChan := make(chan parallel.BuildFailure, len(tasks))
-
-	// Create worker pool
-	semaphore := make(chan struct{}, o.maxWorkers)
-
-	for _, task := range tasks {
-		wg.Add(1)
-		go func(task parallel.CompilationTask) {
-			defer wg.Done()
-			semaphore <- struct{}{}        // Acquire semaphore
-			defer func() { <-semaphore }() // Release semaphore
-
-			// Execute task with timeout
-			taskCtx, cancel := context.WithTimeout(ctx, task.Timeout)
-			defer cancel()
-
-			// Find appropriate strategy
-			strategy := o.findCompilationStrategy(task.TemplateFile)
-			if strategy == nil {
-				errorChan <- parallel.BuildFailure{
-					TemplateFile: task.TemplateFile,
-					Error:        fmt.Errorf("no compilation strategy found"),
-					Timestamp:    time.Now(),
-				}
-				return
-			}
-
-			// Execute compilation
-			result, err := strategy.Compile(taskCtx, task.TemplateFile, task.ConfigFile)
-			if err != nil {
-				errorChan <- parallel.BuildFailure{
-					TemplateFile: task.TemplateFile,
-					Error:        err,
-					Timestamp:    time.Now(),
-				}
-			} else {
-				resultChan <- *result
-			}
-		}(task)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
-	// Wait for all tasks to complete
-	wg.Wait()
-	close(resultChan)
-	close(errorChan)
-
-	// Collect results
-	var successfulBuilds []parallel.BuildResult
-	var failedBuilds []parallel.BuildFailure
-
-	for result := range resultChan {
-		successfulBuilds = append(successfulBuilds, result)
+	outcomes := make([]compilationOutcome, len(tasks))
+	workers := workerCount(o.maxWorkers, len(tasks))
+	if workers == 0 {
+		return &parallel.ParallelCompilationResult{}, nil
 	}
 
-	for failure := range errorChan {
-		failedBuilds = append(failedBuilds, failure)
+	jobs := make(chan compilationJob)
+	var pool sync.WaitGroup
+	for worker := 0; worker < workers; worker++ {
+		pool.Add(1)
+		go func() {
+			defer pool.Done()
+			for job := range jobs {
+				outcomes[job.index] = o.runTask(ctx, job.task)
+			}
+		}()
+	}
+
+	// Dispatch. An unbuffered channel applies backpressure: dispatch advances
+	// only as fast as a worker takes work, so a cancelled run stops feeding
+	// the pool instead of draining the whole backlog.
+	cancelled := false
+	for index, task := range tasks {
+		select {
+		case <-ctx.Done():
+			cancelled = true
+		case jobs <- compilationJob{index: index, task: task}:
+		}
+		if cancelled {
+			break
+		}
+	}
+	close(jobs)
+	pool.Wait()
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	return collectOutcomes(outcomes), nil
+}
+
+// collectOutcomes folds per-task outcomes into the aggregate result, preserving
+// task order. Pure.
+func collectOutcomes(outcomes []compilationOutcome) *parallel.ParallelCompilationResult {
+	successfulBuilds := make([]parallel.BuildResult, 0, len(outcomes))
+	failedBuilds := make([]parallel.BuildFailure, 0, len(outcomes))
+
+	for _, outcome := range outcomes {
+		if outcome.failed {
+			failedBuilds = append(failedBuilds, outcome.failure)
+			continue
+		}
+		successfulBuilds = append(successfulBuilds, outcome.result)
 	}
 
 	return &parallel.ParallelCompilationResult{
@@ -169,7 +279,7 @@ func (o *ParallelExecutionOrchestratorImpl) ExecuteParallel(
 		FailedBuilds:     failedBuilds,
 		SuccessCount:     len(successfulBuilds),
 		FailureCount:     len(failedBuilds),
-	}, nil
+	}
 }
 
 // ConfigureConcurrency sets the maximum number of concurrent workers
@@ -190,9 +300,13 @@ func (o *ParallelExecutionOrchestratorImpl) ConfigureTimeout(timeout time.Durati
 	return nil
 }
 
-// findCompilationStrategy finds the appropriate compilation strategy
+// findCompilationStrategy returns the first injected strategy that claims the
+// template, or nil when none does. Pure over the strategy set.
 func (o *ParallelExecutionOrchestratorImpl) findCompilationStrategy(templateFile string) parallel.CompilationStrategy {
-	// This would be injected with actual strategies
-	// For now, return nil to indicate no strategy found
+	for _, strategy := range o.strategies {
+		if strategy != nil && strategy.CanHandle(templateFile) {
+			return strategy
+		}
+	}
 	return nil
 }
