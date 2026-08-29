@@ -47,6 +47,9 @@ type PreviewAPIOptions struct {
 	// OriginPatterns lists host patterns permitted to open a WebSocket. Empty
 	// means same-origin only, which is what a browser preview needs.
 	OriginPatterns []string
+	// RevisionQueueDepth bounds revisions awaiting publication per session.
+	// Defaults to DefaultRevisionQueueDepth.
+	RevisionQueueDepth int
 }
 
 // PreviewAPI owns revisioned preview sessions. Mount Routes at a stable prefix,
@@ -59,6 +62,7 @@ type PreviewAPI struct {
 	heartbeat       time.Duration
 	retryHint       time.Duration
 	originPatterns  []string
+	queueDepth      int
 
 	mu       sync.RWMutex
 	sessions map[string]*previewTransportSession
@@ -81,11 +85,15 @@ func NewPreviewAPI(options PreviewAPIOptions) (*PreviewAPI, error) {
 	if options.RetryHint <= 0 {
 		options.RetryHint = DefaultStreamRetry
 	}
+	if options.RevisionQueueDepth <= 0 {
+		options.RevisionQueueDepth = DefaultRevisionQueueDepth
+	}
 	return &PreviewAPI{
 		engine: options.Engine, compilerFactory: options.CompilerFactory,
 		sessionOptions: options.SessionOptions, historyLimit: options.HistoryLimit,
 		heartbeat: options.Heartbeat, retryHint: options.RetryHint,
 		originPatterns: options.OriginPatterns,
+		queueDepth:     options.RevisionQueueDepth,
 		sessions:       make(map[string]*previewTransportSession),
 	}, nil
 }
@@ -151,16 +159,83 @@ type PreviewEvent struct {
 	Error    string          `json:"error,omitempty"`
 }
 
+// DefaultRevisionQueueDepth bounds how many submitted revisions may await
+// publication per session. It is the backpressure point: revision submission is
+// client-driven, so without a bound a fast typist's keystrokes become unbounded
+// server-side work.
+const DefaultRevisionQueueDepth = 64
+
+// pendingRevision is one submitted revision awaiting its compilation result.
+type pendingRevision struct {
+	revision uint64
+	results  <-chan preview.Result
+}
+
 type previewTransportSession struct {
 	session      *preview.Session
 	historyLimit int
+
+	// pending is drained in order by exactly one publisher goroutine per
+	// session, so goroutine count tracks sessions rather than revisions.
+	pending chan pendingRevision
 
 	mu            sync.Mutex
 	lastSubmitted uint64
 	nextEventID   uint64
 	history       []PreviewEvent
 	closed        bool
+	pendingClosed bool
 	notify        chan struct{}
+}
+
+// enqueue offers a revision to the session's publisher, reporting false when
+// the queue is full rather than blocking the HTTP handler or spawning work.
+// Holding mu across the offer is what makes it safe against closePending: a
+// send racing a close would panic.
+func (session *previewTransportSession) enqueue(revision pendingRevision) bool {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.pendingClosed {
+		return false
+	}
+	select {
+	case session.pending <- revision:
+		return true
+	default:
+		return false
+	}
+}
+
+// closePending ends the publisher goroutine. Idempotent.
+func (session *previewTransportSession) closePending() {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	if session.pendingClosed {
+		return
+	}
+	session.pendingClosed = true
+	close(session.pending)
+}
+
+// publishResults drains submitted revisions in order and turns each into an
+// event. One goroutine per session, started at creation and ended when the
+// session closes.
+func (session *previewTransportSession) publishResults() {
+	for entry := range session.pending {
+		result := <-entry.results
+		result.Revision = entry.revision
+		if errors.Is(result.Err, preview.ErrSuperseded) || errors.Is(result.Err, preview.ErrClosed) {
+			continue // canceled older work must never repaint the browser
+		}
+		result.PDF = nil // browser transport receives changed pages, not the full PDF
+		event := PreviewEvent{Type: "result", Revision: entry.revision, Result: &result}
+		if result.Err != nil {
+			event.Type = "error"
+			event.Error = result.Err.Error()
+			event.Result.Err = nil
+		}
+		session.publish(event)
+	}
 }
 
 func (api *PreviewAPI) createSession(writer http.ResponseWriter, request *http.Request) {
@@ -175,10 +250,16 @@ func (api *PreviewAPI) createSession(writer http.ResponseWriter, request *http.R
 		return
 	}
 	id := uuid.NewString()
-	transport := &previewTransportSession{session: session, historyLimit: api.historyLimit, notify: make(chan struct{})}
+	transport := &previewTransportSession{
+		session:      session,
+		historyLimit: api.historyLimit,
+		notify:       make(chan struct{}),
+		pending:      make(chan pendingRevision, api.queueDepth),
+	}
 	api.mu.Lock()
 	api.sessions[id] = transport
 	api.mu.Unlock()
+	go transport.publishResults()
 	go api.observeClosure(id, transport)
 	writeJSON(writer, http.StatusCreated, previewSessionResponse{SessionID: id, EventsURL: "/sessions/" + id + "/events"})
 }
@@ -207,21 +288,12 @@ func (api *PreviewAPI) submitRevision(writer http.ResponseWriter, request *http.
 		return
 	}
 	resultChannel := api.engine.Preview(context.WithoutCancel(request.Context()), transport.session, body.Document, rootapi.ProjectionOptions{FocusSections: body.FocusSections})
-	go func() {
-		result := <-resultChannel
-		result.Revision = revision
-		if errors.Is(result.Err, preview.ErrSuperseded) || errors.Is(result.Err, preview.ErrClosed) {
-			return // canceled older work must never repaint the browser
-		}
-		result.PDF = nil // browser transport receives changed pages, not the full PDF
-		event := PreviewEvent{Type: "result", Revision: revision, Result: &result}
-		if result.Err != nil {
-			event.Type = "error"
-			event.Error = result.Err.Error()
-			event.Result.Err = nil
-		}
-		transport.publish(event)
-	}()
+	if !transport.enqueue(pendingRevision{revision: revision, results: resultChannel}) {
+		writeJSON(writer, http.StatusTooManyRequests, map[string]string{
+			"error": "preview queue is full; slow down revision submission",
+		})
+		return
+	}
 	writeJSON(writer, http.StatusAccepted, previewRevisionResponse{SessionID: id, Revision: revision, Accepted: true})
 }
 
@@ -264,6 +336,7 @@ func (api *PreviewAPI) lookup(id string) (*previewTransportSession, bool) {
 
 func (api *PreviewAPI) observeClosure(id string, transport *previewTransportSession) {
 	<-transport.session.Done()
+	transport.closePending() // ends the publisher goroutine
 	transport.publish(PreviewEvent{Type: "closed", Revision: transport.currentRevision()})
 	transport.markClosed()
 	api.mu.Lock()
