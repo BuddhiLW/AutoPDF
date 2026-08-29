@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	infraadapters "github.com/BuddhiLW/AutoPDF/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/builders"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
@@ -20,11 +21,12 @@ import (
 func WatchModeExample() {
 	fmt.Println("=== Watch Mode Example ===")
 
-	// Create logger
-	logger := logger.NewLoggerAdapter(logger.Detailed, "stdout")
+	// Create logger and bridge it to the Logger port the services depend on
+	loggerAdapter := logger.NewLoggerAdapter(logger.Detailed, "stdout")
+	portLogger := infraadapters.NewLoggerPortAdapter(loggerAdapter)
 
 	// Create watch mode manager
-	servicesWatchManager := services.NewWatchModeManager(logger)
+	servicesWatchManager := services.NewWatchModeManager(portLogger)
 
 	// Create adapter to match the application interface
 	watchManager := &WatchModeManagerAdapter{
@@ -46,7 +48,7 @@ func WatchModeExample() {
 		mockExternalService,
 		nil, // watchService (not needed for this example)
 		watchManager,
-		logger,
+		portLogger,
 		false, // Default debug to false for examples
 	)
 

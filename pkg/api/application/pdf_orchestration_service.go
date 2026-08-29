@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
 	"github.com/BuddhiLW/AutoPDF/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain"
@@ -23,7 +23,7 @@ type PDFOrchestrationService struct {
 	variableResolver generation.VariableResolver
 	pdfValidator     generation.PDFValidator
 	externalService  generation.PDFGenerationService
-	logger           *logger.LoggerAdapter
+	logger           ports.Logger
 
 	// Encapsulated services
 	watchService generation.WatchService
@@ -41,8 +41,12 @@ func NewPDFOrchestrationService(
 	externalService generation.PDFGenerationService,
 	watchService watch.WatchService,
 	watchManager generation.WatchModeManager,
-	logger *logger.LoggerAdapter,
+	logger ports.Logger,
 ) *PDFOrchestrationService {
+	if logger == nil {
+		logger = ports.NewNoOpLogger()
+	}
+
 	// Initialize guards
 	requestGuard := NewRequestValidationGuard(templateService, variableResolver)
 	pdfValidationGuard := NewPDFValidationGuard()
@@ -73,12 +77,12 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		variableCount = req.Variables.Len()
 	}
 
-	s.logger.InfoWithFields("Starting PDF generation",
-		"template_path", req.TemplatePath,
-		"engine", req.Engine,
-		"output_path", req.OutputPath,
-		"variable_count", variableCount,
-		"debug_enabled", req.Options.Debug.Enabled,
+	s.logger.Info(ctx, "Starting PDF generation",
+		ports.NewLogField("template_path", req.TemplatePath),
+		ports.NewLogField("engine", req.Engine),
+		ports.NewLogField("output_path", req.OutputPath),
+		ports.NewLogField("variable_count", variableCount),
+		ports.NewLogField("debug_enabled", req.Options.Debug.Enabled),
 	)
 
 	// Step 1: Validate the request using guard
@@ -90,8 +94,8 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 	}
 
 	// Step 2: Resolve complex variables to simple key-value pairs
-	s.logger.DebugWithFields("Starting variable resolution",
-		"input_variable_count", variableCount,
+	s.logger.Debug(ctx, "Starting variable resolution",
+		ports.NewLogField("input_variable_count", variableCount),
 	)
 
 	simpleVariables, err := s.variableResolver.Resolve(req.Variables)
@@ -109,12 +113,12 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		}, err
 	}
 
-	s.logger.DebugWithFields("Variable resolution completed",
-		"resolved_variable_count", len(simpleVariables),
+	s.logger.Debug(ctx, "Variable resolution completed",
+		ports.NewLogField("resolved_variable_count", len(simpleVariables)),
 	)
 
 	// Step 3: Process template without logging variable names or values.
-	s.logger.DebugWithFields("Processing template", "variable_count", len(simpleVariables))
+	s.logger.Debug(ctx, "Processing template", ports.NewLogField("variable_count", len(simpleVariables)))
 
 	processedContent, err := s.templateService.Process(ctx, req.TemplatePath, simpleVariables)
 	if err != nil {
@@ -151,8 +155,8 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	// Log size only; processed content may contain secrets or personal data.
 	contentLen := len(processedContent)
-	s.logger.DebugWithFields("Processed template content",
-		"content_length", contentLen,
+	s.logger.Debug(ctx, "Processed template content",
+		ports.NewLogField("content_length", contentLen),
 	)
 
 	if _, err := tempFile.WriteString(processedContent); err != nil {
@@ -173,8 +177,8 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 	}
 
 	// Log temporary file path
-	s.logger.InfoWithFields("Using temporary template file",
-		"temp_file", tempFile.Name(),
+	s.logger.Info(ctx, "Using temporary template file",
+		ports.NewLogField("temp_file", tempFile.Name()),
 	)
 
 	// Step 4: Generate PDF using external service with processed template
@@ -229,23 +233,23 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		result.Metadata = metadata
 	}
 
-	s.logger.InfoWithFields("PDF generation completed",
-		"success", result.Success,
-		"pdf_path", result.PDFPath,
-		"image_count", len(result.ImagePaths),
+	s.logger.Info(ctx, "PDF generation completed",
+		ports.NewLogField("success", result.Success),
+		ports.NewLogField("pdf_path", result.PDFPath),
+		ports.NewLogField("image_count", len(result.ImagePaths)),
 	)
 
 	// Step 6: Handle watch mode if enabled using encapsulated service
 	if s.watchService.ShouldStartWatchMode(req, result) {
 		if err := s.watchService.StartWatchMode(ctx, req); err != nil {
-			s.logger.ErrorWithFields("Failed to start watch mode",
-				"error", err,
-				"template_path", req.TemplatePath,
+			s.logger.Error(ctx, "Failed to start watch mode",
+				ports.NewLogField("error", err),
+				ports.NewLogField("template_path", req.TemplatePath),
 			)
 			// Don't fail the generation, just log the error
 		} else {
-			s.logger.InfoWithFields("Watch mode started successfully",
-				"template_path", req.TemplatePath,
+			s.logger.Info(ctx, "Watch mode started successfully",
+				ports.NewLogField("template_path", req.TemplatePath),
 			)
 		}
 	}

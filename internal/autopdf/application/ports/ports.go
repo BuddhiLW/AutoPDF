@@ -248,3 +248,23 @@ type LogField struct {
 func NewLogField(key string, value interface{}) LogField {
 	return LogField{Key: key, Value: value}
 }
+
+// NoOpLogger is the null-object implementation of Logger. It discards every
+// message. Callers use it in place of a nil Logger so that an unconfigured
+// dependency degrades to silence rather than to a nil-interface panic.
+type NoOpLogger struct{}
+
+// NewNoOpLogger returns a Logger that discards all messages.
+func NewNoOpLogger() Logger { return &NoOpLogger{} }
+
+// Debug discards the message.
+func (n *NoOpLogger) Debug(ctx context.Context, msg string, fields ...LogField) {}
+
+// Info discards the message.
+func (n *NoOpLogger) Info(ctx context.Context, msg string, fields ...LogField) {}
+
+// Warn discards the message.
+func (n *NoOpLogger) Warn(ctx context.Context, msg string, fields ...LogField) {}
+
+// Error discards the message.
+func (n *NoOpLogger) Error(ctx context.Context, msg string, fields ...LogField) {}

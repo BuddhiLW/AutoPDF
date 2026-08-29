@@ -95,7 +95,7 @@ func (f *PDFGenerationServiceFactory) CreateApplicationService() *application.PD
 		externalService,
 		watchServiceAdapter,
 		watchManager,
-		f.logger,
+		f.resolvePortLogger(),
 		f.debugEnabled,
 	)
 }
@@ -115,16 +115,20 @@ func (f *PDFGenerationServiceFactory) CreatePDFValidator() generation.PDFValidat
 	return pdf_validator.NewPDFValidatorAdapter()
 }
 
+// resolvePortLogger returns the Logger port this factory injects into the
+// services it builds: an externally supplied port takes precedence, otherwise
+// the factory's own LoggerAdapter is bridged to the port. Never returns nil.
+func (f *PDFGenerationServiceFactory) resolvePortLogger() autopdfports.Logger {
+	if f.portLogger != nil {
+		return f.portLogger
+	}
+	// NewLoggerPortAdapter yields a no-op Logger when f.logger is nil.
+	return infraadapters.NewLoggerPortAdapter(f.logger)
+}
+
 // CreateExternalService creates an external PDF service
 func (f *PDFGenerationServiceFactory) CreateExternalService() generation.PDFGenerationService {
-	// Use portLogger if set (from cartas-backend), otherwise convert AutoPDF logger adapter
-	var portLogger autopdfports.Logger
-	if f.portLogger != nil {
-		portLogger = f.portLogger
-	} else if f.logger != nil {
-		portLogger = infraadapters.NewLoggerPortAdapter(f.logger)
-	}
-	return external_pdf_service.NewExternalPDFServiceAdapterWithLogger(f.config, f.debugEnabled, portLogger)
+	return external_pdf_service.NewExternalPDFServiceAdapterWithLogger(f.config, f.debugEnabled, f.resolvePortLogger())
 }
 
 // CreateCompleteService creates a complete service with all dependencies

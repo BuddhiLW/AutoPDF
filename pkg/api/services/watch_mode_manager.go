@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 )
@@ -22,7 +22,7 @@ var ErrWatchModeUnavailable = errors.New("watch mode is unavailable: no watch se
 type WatchModeManager struct {
 	activeWatches map[string]*WatchInstance
 	mutex         sync.RWMutex
-	logger        *logger.LoggerAdapter
+	logger        ports.Logger
 }
 
 // WatchInstance represents an active watch mode instance
@@ -38,7 +38,10 @@ type WatchInstance struct {
 }
 
 // NewWatchModeManager creates a new watch mode manager
-func NewWatchModeManager(logger *logger.LoggerAdapter) *WatchModeManager {
+func NewWatchModeManager(logger ports.Logger) *WatchModeManager {
+	if logger == nil {
+		logger = ports.NewNoOpLogger()
+	}
 	return &WatchModeManager{
 		activeWatches: make(map[string]*WatchInstance),
 		logger:        logger,
@@ -75,11 +78,11 @@ func (m *WatchModeManager) StopWatchMode(watchID string) error {
 	// Remove from active watches
 	delete(m.activeWatches, watchID)
 
-	m.logger.InfoWithFields("Watch mode stopped",
-		"watch_id", watchID,
-		"template_path", instance.TemplatePath,
-		"duration", time.Since(instance.StartedAt),
-		"active_watches", len(m.activeWatches),
+	m.logger.Info(context.Background(), "Watch mode stopped",
+		ports.NewLogField("watch_id", watchID),
+		ports.NewLogField("template_path", instance.TemplatePath),
+		ports.NewLogField("duration", time.Since(instance.StartedAt)),
+		ports.NewLogField("active_watches", len(m.activeWatches)),
 	)
 
 	return nil
@@ -90,18 +93,20 @@ func (m *WatchModeManager) StopAllWatchModes() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	stopped := len(m.activeWatches)
+
 	for watchID, instance := range m.activeWatches {
 		instance.Cancel()
-		m.logger.InfoWithFields("Stopped watch mode",
-			"watch_id", watchID,
-			"template_path", instance.TemplatePath,
+		m.logger.Info(context.Background(), "Stopped watch mode",
+			ports.NewLogField("watch_id", watchID),
+			ports.NewLogField("template_path", instance.TemplatePath),
 		)
 	}
 
 	m.activeWatches = make(map[string]*WatchInstance)
 
-	m.logger.InfoWithFields("All watch modes stopped",
-		"total_stopped", len(m.activeWatches),
+	m.logger.Info(context.Background(), "All watch modes stopped",
+		ports.NewLogField("total_stopped", stopped),
 	)
 
 	return nil

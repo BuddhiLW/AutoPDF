@@ -49,4 +49,3 @@ func (f *FontValidatorAdapter) ValidateFonts(ctx context.Context, fontNames []st
 
 	return result, nil
 }
-

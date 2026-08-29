@@ -20,7 +20,7 @@ type LoggerPortAdapter struct {
 // NewLoggerPortAdapter creates a new adapter from LoggerAdapter
 func NewLoggerPortAdapter(adapter *logger.LoggerAdapter) application.Logger {
 	if adapter == nil {
-		return &NoOpLogger{}
+		return application.NewNoOpLogger()
 	}
 	return &LoggerPortAdapter{adapter: adapter}
 }
@@ -57,18 +57,3 @@ func (l *LoggerPortAdapter) convertFields(fields ...application.LogField) []zap.
 	}
 	return zapFields
 }
-
-// NoOpLogger is a no-op logger implementation for when no logger is provided
-type NoOpLogger struct{}
-
-// Debug does nothing
-func (n *NoOpLogger) Debug(ctx context.Context, msg string, fields ...application.LogField) {}
-
-// Info does nothing
-func (n *NoOpLogger) Info(ctx context.Context, msg string, fields ...application.LogField) {}
-
-// Warn does nothing
-func (n *NoOpLogger) Warn(ctx context.Context, msg string, fields ...application.LogField) {}
-
-// Error does nothing
-func (n *NoOpLogger) Error(ctx context.Context, msg string, fields ...application.LogField) {}

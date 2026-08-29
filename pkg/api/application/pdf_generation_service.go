@@ -6,7 +6,7 @@ package application
 import (
 	"context"
 
-	"github.com/BuddhiLW/AutoPDF/internal/autopdf/application/adapters/logger"
+	ports "github.com/BuddhiLW/AutoPDF/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/internal/autopdf/domain/watch"
 	"github.com/BuddhiLW/AutoPDF/pkg/api/domain/generation"
 )
@@ -24,7 +24,7 @@ func NewPDFGenerationApplicationService(
 	externalService generation.PDFGenerationService,
 	watchService watch.WatchService,
 	watchManager generation.WatchModeManager,
-	logger *logger.LoggerAdapter,
+	logger ports.Logger,
 	debugEnabled bool, // Accept debug flag
 ) *PDFGenerationApplicationService {
 	// Initialize orchestration service with all dependencies
