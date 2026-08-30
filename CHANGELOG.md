@@ -3,6 +3,39 @@
 Notable AutoPDF changes are documented here. Versions follow Semantic
 Versioning.
 
+## [2.1.0] - 2026-08-29
+
+### Added
+
+- **A `beamer` render target**, compiling a `DocumentSpec` into a Beamer
+  presentation. `pkg/render/beamer` registers definitions for `section`,
+  `text`, `span`, `link`, `heading`, `bullets`, `code`, `quote`, `table`,
+  `image`, `columns`, `cards`, `card`, `callout`, `kicker`,
+  `media-placeholder`, `notes`, `rule` and `scene`, and projects them to one
+  `\include`d file per frame.
+- **`api.ManifestProjector`**, the seam a render target implements to choose
+  its document shape. A target supplies its own catalog and projector; `pkg/api`
+  names none of them, which `test/architecture/render_target_openness_test.go`
+  enforces. `DocumentEngineConfig.Projector` selects one, defaulting to the
+  existing article-shaped LaTeX projection.
+- **`autopdf deck`**, building a PDF presentation from a DocumentSpec, and
+  **`autopdf deck watch`**, rebuilding on every save with a debounce and an
+  optional regeneration command. Paired with
+  [plato](https://github.com/BuddhiLW/plato), one Markdown or Org source
+  produces both a Reveal deck and a Beamer PDF — see
+  [docs/plato-integration.md](docs/plato-integration.md).
+- `beamer.Options.Files` carries auxiliary files, such as a generated `.sty`,
+  into the private compile workspace.
+- An `autopdf-plato` skill, and `test/plato_integration`, a shared fixture
+  corpus whose gate reports drift between the two document IRs.
+
+### Fixed
+
+- Unprintable graphics no longer abort a build. pdflatex treats an unknown
+  graphics extension as fatal, so a single GIF or SVG produced no PDF at all;
+  they now render as a visible placeholder, as video, audio and embeds already
+  did.
+
 ## [2.0.0] - 2026-08-29
 
 ### Removed
@@ -101,6 +134,7 @@ Versioning.
   remain unchanged.
 - Component composition and preview APIs are additive.
 
+[2.1.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.3.3...v1.4.0

@@ -22,7 +22,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  `autopdf`,
 	Alias: `apdf`,
-	Vers:  `v2.0.0`,
+	Vers:  `v2.1.0`,
 	Short: `generate pdfs from latex templates`,
 	Long: `
 The autopdf tool helps generate pdfs from latex templates. It simplifies common latex
