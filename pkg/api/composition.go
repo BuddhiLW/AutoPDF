@@ -14,6 +14,13 @@ import (
 
 var ErrProjectionGeneratorRequired = errors.New("api: projection generator must not be nil")
 
+// ManifestProjector maps a composed manifest to LaTeX source files. A
+// rendering target supplies its own implementation together with its catalog;
+// this engine never enumerates targets.
+type ManifestProjector interface {
+	ProjectManifest(manifest composition.RenderManifest, focusSections []string) (latex.Projection, error)
+}
+
 // DocumentEngineConfig controls pure composition. The existing Engine and its
 // Request/Result PDF boundary remain unchanged.
 type DocumentEngineConfig struct {
@@ -22,6 +29,19 @@ type DocumentEngineConfig struct {
 	Cache           composition.Cache
 	Values          map[string]any
 	TrustedPreamble []byte
+	// Projector overrides the default article-shaped LaTeX projection. Leave
+	// it nil for the built-in one.
+	Projector ManifestProjector
+}
+
+// latexProjector is the default projection: an article of \input fragments.
+type latexProjector struct{ trustedPreamble []byte }
+
+func (projector latexProjector) ProjectManifest(manifest composition.RenderManifest, focusSections []string) (latex.Projection, error) {
+	return latex.Project(manifest, latex.Options{
+		TrustedPreamble: append([]byte(nil), projector.trustedPreamble...),
+		FocusSections:   append([]string(nil), focusSections...),
+	})
 }
 
 // ProjectionOptions contains request-scoped projection choices.
@@ -47,6 +67,7 @@ type DocumentEngine struct {
 	catalog         *component.Catalog
 	composer        *composition.Composer
 	trustedPreamble []byte
+	projector       ManifestProjector
 }
 
 // NewDocumentEngine constructs a facade around an immutable component catalog.
@@ -59,9 +80,14 @@ func NewDocumentEngine(catalog *component.Catalog, config DocumentEngineConfig) 
 	if err != nil {
 		return nil, fmt.Errorf("api: create document engine: %w", err)
 	}
+	projector := config.Projector
+	if projector == nil {
+		projector = latexProjector{trustedPreamble: config.TrustedPreamble}
+	}
 	return &DocumentEngine{
 		catalog: catalog, composer: composer,
 		trustedPreamble: append([]byte(nil), config.TrustedPreamble...),
+		projector:       projector,
 	}, nil
 }
 
@@ -106,10 +132,7 @@ func (engine *DocumentEngine) Project(ctx context.Context, spec document.Documen
 	if err != nil {
 		return latex.Projection{}, err
 	}
-	return latex.Project(manifest, latex.Options{
-		TrustedPreamble: append([]byte(nil), engine.trustedPreamble...),
-		FocusSections:   append([]string(nil), options.FocusSections...),
-	})
+	return engine.projector.ProjectManifest(manifest, options.FocusSections)
 }
 
 // Generate reaches the production effect boundary while returning the same
