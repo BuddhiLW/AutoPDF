@@ -51,6 +51,7 @@ adopting AutoPDF does not have to feed it documentation by hand:
 | `autopdf-embed` | Go library: `api.Engine`, testing without LaTeX, logging, v1→v2 |
 | `autopdf-templates` | `delim[[ ]]` syntax, nested values, loops, escaping |
 | `autopdf-preview` | Component documents, preview sessions, SSE/WebSocket/HTTP2 |
+| `autopdf-plato` | Slides from Markdown/Org, Beamer, adding a render target |
 
 They load on demand, so a project that only generates PDFs never pays for the
 preview documentation. See [skills/](skills/) to vendor them into a single
@@ -186,6 +187,31 @@ server.ListenAndServe()
 Both share the same cursor, history ring, and ordering. Revision submission is
 bounded per session and answers `429` when the queue is saturated, so a fast
 client receives backpressure instead of accumulating server-side work.
+
+### Presentations from Markdown or Org
+
+A `beamer` render target compiles a `DocumentSpec` into a PDF deck. Pair it with
+[plato](https://github.com/BuddhiLW/plato), which parses Markdown and Org into
+that spec, and one source produces both a Reveal deck and a Beamer PDF:
+
+```bash
+plato spec talk.org -o talk.json
+autopdf deck talk.json talk.pdf assets=./public theme=metropolis
+```
+
+Rebuilding on every save:
+
+```bash
+autopdf deck watch talk.json talk.pdf \
+  watch=talk.org command="plato spec talk.org -o talk.json"
+```
+
+AutoPDF never parses the source itself — `command` is a shell hook, so any front
+end that emits a `DocumentSpec` works the same way. A render target supplies its
+own catalog and an `api.ManifestProjector`; adding one is a new package rather
+than a change to `pkg/api`.
+
+- [AutoPDF × plato: the vocabulary, the degradations, the drift gate](docs/plato-integration.md)
 
 ### Configuration Examples
 

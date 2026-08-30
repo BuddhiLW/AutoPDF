@@ -1,6 +1,6 @@
 # AutoPDF skills for Claude Code
 
-Four skills that teach a coding agent how to build on AutoPDF. They load on
+Five skills that teach a coding agent how to build on AutoPDF. They load on
 demand, so a project that only generates PDFs never pays for the preview
 documentation.
 
@@ -10,6 +10,7 @@ documentation.
 | `autopdf-embed` | Go library: `api.Engine`, testing without LaTeX, logging, v1→v2 |
 | `autopdf-templates` | `delim[[ ]]` syntax, nested values, loops, escaping |
 | `autopdf-preview` | Component documents, preview sessions, SSE/WebSocket/HTTP2 |
+| `autopdf-plato` | Slides from Markdown/Org via plato, Beamer, adding a render target |
 
 ## Install
 
