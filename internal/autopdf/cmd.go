@@ -7,6 +7,7 @@ package autopdf
 import (
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/build"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/convert"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/deck"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/clean"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/debug"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/force"
@@ -35,6 +36,7 @@ operations and workflow management.
 
 # Commands:
 - build:    Process template and compile to PDF
+- deck:     Build a PDF presentation from a DocumentSpec
 - convert:  Convert PDF to images
 - clean:    Remove LaTeX auxiliary files
 - verbose:  Set verbose logging level
@@ -50,6 +52,7 @@ about each command.
 		help.Cmd,
 		vars.Cmd,
 		build.BuildServiceCmd,     // Use new service-based build command
+		deck.DeckServiceCmd,       // Build a presentation from a DocumentSpec
 		convert.ConvertServiceCmd, // Use new service-based convert command
 		clean.CleanServiceCmd,     // Use new service-based clean command
 		verbose.VerboseServiceCmd, // Use new service-based verbose command
