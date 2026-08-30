@@ -72,6 +72,7 @@ Examples:
 type request struct {
 	specPath   string
 	outputPath string
+	stylePath  string
 	target     Target
 	settings   Settings
 	focus      []string
@@ -119,7 +120,6 @@ func parseRequest(args []string) (request, error) {
 		Date:         options["date"],
 		Theme:        options["theme"],
 		ColorTheme:   options["colortheme"],
-		StyleFile:    options["style"],
 		GraphicsPath: options["assets"],
 		AspectRatio:  options["aspect"],
 		ShowNotes:    isEnabled(options["notes"]),
@@ -131,6 +131,8 @@ func parseRequest(args []string) (request, error) {
 		}
 		parsed.settings.GraphicsPath = absolute
 	}
+	parsed.stylePath = options["style"]
+	parsed.settings.StyleFile = strings.TrimSuffix(filepath.Base(parsed.stylePath), ".sty")
 
 	if focus := options["focus"]; focus != "" {
 		for _, id := range strings.Split(focus, ",") {
@@ -176,6 +178,16 @@ func executeDeckProcess(ctx context.Context, args []string) error {
 	spec, err := document.Decode(data)
 	if err != nil {
 		return fmt.Errorf("decode document spec: %w", err)
+	}
+
+	// The compile runs in a private workspace, so a style file is carried into
+	// the projection rather than referenced where it sits.
+	if parsed.stylePath != "" {
+		style, err := os.ReadFile(parsed.stylePath)
+		if err != nil {
+			return fmt.Errorf("read style file: %w", err)
+		}
+		parsed.settings.StyleContent = style
 	}
 
 	engine, err := NewEngine(parsed.target, parsed.settings, 0)

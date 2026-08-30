@@ -61,9 +61,13 @@ type Options struct {
 	// ColorTheme is the Beamer colour theme, or a style file's colour theme
 	// generated from plato's design tokens.
 	ColorTheme string
-	// StyleFile is a .sty to \usepackage after the theme, which is how a
-	// token-generated palette reaches the document.
+	// StyleFile is a .sty to \usepackage after the theme, named without its
+	// extension. The file itself must reach the workspace, either through
+	// Files or through the TeX search path.
 	StyleFile string
+	// Files are extra workspace-relative files carried into the projection,
+	// such as the .sty StyleFile names.
+	Files []latex.File
 	// TrustedPreamble is appended verbatim. It is trusted: callers must not
 	// route document content through it.
 	TrustedPreamble []byte
@@ -119,6 +123,15 @@ func Project(manifest composition.RenderManifest, options Options) (latex.Projec
 		return latex.Projection{}, err
 	}
 	projection.Files = append(projection.Files, latex.File{Path: projection.Main, Content: main})
+	for _, file := range options.Files {
+		if strings.TrimSpace(file.Path) == "" {
+			return latex.Projection{}, fmt.Errorf("%w: extra file with no path", ErrInvalidManifest)
+		}
+		projection.Files = append(projection.Files, latex.File{
+			Path:    file.Path,
+			Content: append([]byte(nil), file.Content...),
+		})
+	}
 	sort.Slice(projection.Files, func(i, j int) bool { return projection.Files[i].Path < projection.Files[j].Path })
 	projection.Hash = hashProjection(projection)
 	return projection, nil

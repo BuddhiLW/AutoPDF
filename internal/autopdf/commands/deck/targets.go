@@ -12,6 +12,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/component"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/beamer"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 // Target names one rendering target and supplies the two halves an engine
@@ -30,6 +31,7 @@ type Settings struct {
 	Theme        string
 	ColorTheme   string
 	StyleFile    string
+	StyleContent []byte
 	GraphicsPath string
 	AspectRatio  string
 	ShowNotes    bool
@@ -43,7 +45,7 @@ var Targets = map[string]Target{
 		Name:    beamer.Target,
 		Catalog: beamer.Catalog,
 		Projector: func(settings Settings) api.ManifestProjector {
-			return beamer.NewProjector(beamer.Options{
+			options := beamer.Options{
 				Title:        settings.Title,
 				Author:       settings.Author,
 				Date:         settings.Date,
@@ -53,7 +55,14 @@ var Targets = map[string]Target{
 				GraphicsPath: settings.GraphicsPath,
 				AspectRatio:  settings.AspectRatio,
 				ShowNotes:    settings.ShowNotes,
-			})
+			}
+			if len(settings.StyleContent) > 0 {
+				options.Files = []latex.File{{
+					Path:    settings.StyleFile + ".sty",
+					Content: settings.StyleContent,
+				}}
+			}
+			return beamer.NewProjector(options)
 		},
 	},
 }
