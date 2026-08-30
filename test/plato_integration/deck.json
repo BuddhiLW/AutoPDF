@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "kind": "section",
+      "variant": "default",
+      "props": {
+        "level": 1,
+        "title": "Revenue"
+      },
+      "children": [
+        {
+          "kind": "text",
+          "variant": "default",
+          "children": [
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "Up "
+              },
+              "id": "b0-0-0"
+            },
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "86%",
+                "marks": [
+                  "strong"
+                ]
+              },
+              "id": "b0-0-1"
+            },
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": " year over year, with a_b and 100% of the pipeline — see "
+              },
+              "id": "b0-0-2"
+            },
+            {
+              "kind": "link",
+              "variant": "default",
+              "props": {
+                "text": "the report",
+                "href": "https://example.com/q3"
+              },
+              "id": "b0-0-3"
+            },
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "."
+              },
+              "id": "b0-0-4"
+            }
+          ],
+          "id": "b0-0"
+        },
+        {
+          "kind": "bullets",
+          "variant": "default",
+          "props": {
+            "items": [
+              "New logos: 42",
+              "Churn: 1.8%"
+            ]
+          },
+          "id": "b0-1"
+        },
+        {
+          "kind": "notes",
+          "variant": "default",
+          "props": {
+            "text": "mention the pipeline change"
+          },
+          "id": "b0-2"
+        }
+      ],
+      "id": "b0"
+    },
+    {
+      "kind": "section",
+      "variant": "default",
+      "props": {
+        "level": 2,
+        "title": "Detail"
+      },
+      "children": [
+        {
+          "kind": "text",
+          "variant": "default",
+          "children": [
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "Quarterly figures follow."
+              },
+              "id": "b1-0-0"
+            }
+          ],
+          "id": "b1-0"
+        },
+        {
+          "kind": "table",
+          "variant": "default",
+          "props": {
+            "head": [
+              "Quarter",
+              "Revenue",
+              "Delta"
+            ],
+            "rows": [
+              [
+                "Q3 2026",
+                "27.6",
+                "+25%"
+              ],
+              [
+                "Q4 2026",
+                "34.2",
+                "+86%"
+              ]
+            ]
+          },
+          "id": "b1-1"
+        }
+      ],
+      "style": {
+        "stackOf": "Revenue"
+      },
+      "id": "b1"
+    },
+    {
+      "kind": "section",
+      "variant": "default",
+      "props": {
+        "level": 1,
+        "title": "Shipping"
+      },
+      "children": [
+        {
+          "kind": "code",
+          "variant": "default",
+          "props": {
+            "source": "(defn deck->spec [document]\n  (spec/document->spec document {:theme \"acme\"}))",
+            "language": "clojure"
+          },
+          "id": "b2-0"
+        },
+        {
+          "kind": "quote",
+          "variant": "default",
+          "children": [
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "The unexamined deck is not worth presenting."
+              },
+              "id": "b2-1-0"
+            }
+          ],
+          "id": "b2-1"
+        },
+        {
+          "kind": "heading",
+          "variant": "default",
+          "props": {
+            "level": 3
+          },
+          "children": [
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "A smaller heading"
+              },
+              "id": "b2-2-0"
+            }
+          ],
+          "id": "b2-2"
+        },
+        {
+          "kind": "image",
+          "variant": "default",
+          "props": {
+            "src": "assets/acme/chart.png",
+            "alt": "Quarterly revenue",
+            "caption": "USD millions"
+          },
+          "id": "b2-3"
+        },
+        {
+          "kind": "image",
+          "variant": "default",
+          "props": {
+            "src": "assets/acme/loop.gif",
+            "alt": "Ambient loop"
+          },
+          "id": "b2-4"
+        }
+      ],
+      "id": "b2"
+    },
+    {
+      "kind": "section",
+      "variant": "default",
+      "props": {
+        "level": 1,
+        "title": "Media"
+      },
+      "children": [
+        {
+          "kind": "media-placeholder",
+          "variant": "default",
+          "props": {
+            "mediaType": "video",
+            "src": "assets/acme/demo.mp4"
+          },
+          "id": "b3-0"
+        }
+      ],
+      "id": "b3"
+    },
+    {
+      "kind": "section",
+      "variant": "default",
+      "props": {
+        "level": 1
+      },
+      "children": [
+        {
+          "kind": "text",
+          "variant": "default",
+          "children": [
+            {
+              "kind": "span",
+              "variant": "default",
+              "props": {
+                "text": "Everything above this rule is one frame."
+              },
+              "id": "b4-0-0"
+            }
+          ],
+          "id": "b4-0"
+        }
+      ],
+      "id": "b4"
+    }
+  ],
+  "id": "Plato Integration Fixture"
+}
