@@ -18,6 +18,23 @@ func TestOutputDefaultsToTheSpecName(t *testing.T) {
 	assert.Equal(t, 2, parsed.passes)
 }
 
+func TestNoStyleMeansNoStyleFile(t *testing.T) {
+	// filepath.Base("") is ".", which reaches the preamble as \usepackage{.}
+	// and stops the build with "File `..sty' not found".
+	parsed, err := parseRequest([]string{"talk.json"})
+	require.NoError(t, err)
+	assert.Empty(t, parsed.stylePath)
+	assert.Empty(t, parsed.settings.StyleFile)
+}
+
+func TestStyleFileDropsItsDirectoryAndExtension(t *testing.T) {
+	parsed, err := parseRequest([]string{"talk.json", "style=../theme/acme-beamer.sty"})
+	require.NoError(t, err)
+	assert.Equal(t, "../theme/acme-beamer.sty", parsed.stylePath)
+	assert.Equal(t, "acme-beamer", parsed.settings.StyleFile,
+		"\\usepackage takes a package name, not a path")
+}
+
 func TestSecondBareArgumentIsTheOutput(t *testing.T) {
 	parsed, err := parseRequest([]string{"talk.json", "out/deck.pdf"})
 	require.NoError(t, err)

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
@@ -60,11 +61,48 @@ Examples:
 	Comp: comp.Cmds,
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
+		watchCmd,
 	},
 	Do: func(cmd *bonzai.Cmd, args ...string) error {
 		ctx, logger := common.CreateStandardLoggerContext()
 		defer func() { _ = logger.Sync() }()
 		return executeDeckProcess(ctx, args)
+	},
+}
+
+// watchCmd rebuilds the deck whenever its source changes.
+var watchCmd = &bonzai.Cmd{
+	Name:    `watch`,
+	Alias:   `w`,
+	Short:   `rebuild the deck when its source changes`,
+	Usage:   `SPEC.json [OUTPUT.pdf] [KEY=VALUE...]`,
+	MinArgs: 1,
+	MaxArgs: 14,
+	Long: `
+The watch command rebuilds a deck each time a file changes, so a PDF viewer
+that reloads on change shows the deck as it is written.
+
+Additional options:
+
+  watch=FILE        the file to watch (default: the spec)
+  command=CMD       shell command run before each rebuild
+  poll=DURATION     how often to check (default: 400ms)
+  debounce=DURATION quiet period before rebuilding (default: 250ms)
+
+To follow a Markdown or Org source, watch it and regenerate the spec:
+
+  autopdf deck watch talk.json talk.pdf \
+    watch=talk.org command="plato spec talk.org -o talk.json"
+
+AutoPDF never parses the source itself; any front end that can emit a
+DocumentSpec works the same way.
+`,
+	Comp: comp.Cmds,
+	Cmds: []*bonzai.Cmd{help.Cmd},
+	Do: func(cmd *bonzai.Cmd, args ...string) error {
+		ctx, logger := common.CreateStandardLoggerContext()
+		defer func() { _ = logger.Sync() }()
+		return executeWatchProcess(ctx, args)
 	},
 }
 
@@ -78,6 +116,7 @@ type request struct {
 	focus      []string
 	engine     string
 	passes     int
+	watch      watchOptions
 }
 
 // parseRequest promotes raw arguments into a validated request.
@@ -131,8 +170,25 @@ func parseRequest(args []string) (request, error) {
 		}
 		parsed.settings.GraphicsPath = absolute
 	}
-	parsed.stylePath = options["style"]
-	parsed.settings.StyleFile = strings.TrimSuffix(filepath.Base(parsed.stylePath), ".sty")
+	if parsed.stylePath = options["style"]; parsed.stylePath != "" {
+		parsed.settings.StyleFile = strings.TrimSuffix(filepath.Base(parsed.stylePath), ".sty")
+	}
+
+	parsed.watch = watchOptions{WatchPath: options["watch"], Command: options["command"]}
+	if parsed.watch.WatchPath == "" {
+		parsed.watch.WatchPath = parsed.specPath
+	}
+	for key, target := range map[string]*time.Duration{
+		"poll": &parsed.watch.PollInterval, "debounce": &parsed.watch.Debounce,
+	} {
+		if value := options[key]; value != "" {
+			duration, err := time.ParseDuration(value)
+			if err != nil || duration <= 0 {
+				return request{}, fmt.Errorf("%s must be a positive duration, got %q", key, value)
+			}
+			*target = duration
+		}
+	}
 
 	if focus := options["focus"]; focus != "" {
 		for _, id := range strings.Split(focus, ",") {
@@ -170,41 +226,7 @@ func executeDeckProcess(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	data, err := os.ReadFile(parsed.specPath)
-	if err != nil {
-		return fmt.Errorf("read document spec: %w", err)
-	}
-	spec, err := document.Decode(data)
-	if err != nil {
-		return fmt.Errorf("decode document spec: %w", err)
-	}
-
-	// The compile runs in a private workspace, so a style file is carried into
-	// the projection rather than referenced where it sits.
-	if parsed.stylePath != "" {
-		style, err := os.ReadFile(parsed.stylePath)
-		if err != nil {
-			return fmt.Errorf("read style file: %w", err)
-		}
-		parsed.settings.StyleContent = style
-	}
-
-	engine, err := NewEngine(parsed.target, parsed.settings, 0)
-	if err != nil {
-		return err
-	}
-	generator, err := api.NewProjectionGenerator(api.ProjectionGeneratorOptions{
-		OutputPath:  parsed.outputPath,
-		LaTeXEngine: parsed.engine,
-		Passes:      parsed.passes,
-	})
-	if err != nil {
-		return fmt.Errorf("create projection generator: %w", err)
-	}
-
-	result, err := engine.Generate(ctx, spec,
-		api.ProjectionOptions{FocusSections: parsed.focus}, generator)
+	result, spec, err := buildDeck(ctx, parsed)
 	if err != nil {
 		return err
 	}
@@ -212,4 +234,72 @@ func executeDeckProcess(ctx context.Context, args []string) error {
 	fmt.Printf("wrote %s (%d bytes, %d frames)\n",
 		parsed.outputPath, len(result.PDF), len(spec.Blocks))
 	return nil
+}
+
+// buildDeck reads the spec and its style file, then compiles.
+func buildDeck(ctx context.Context, parsed request) (api.Result, document.DocumentSpec, error) {
+	data, err := os.ReadFile(parsed.specPath)
+	if err != nil {
+		return api.Result{}, document.DocumentSpec{}, fmt.Errorf("read document spec: %w", err)
+	}
+	spec, err := document.Decode(data)
+	if err != nil {
+		return api.Result{}, document.DocumentSpec{}, fmt.Errorf("decode document spec: %w", err)
+	}
+
+	// The compile runs in a private workspace, so a style file is carried into
+	// the projection rather than referenced where it sits.
+	if parsed.stylePath != "" {
+		style, err := os.ReadFile(parsed.stylePath)
+		if err != nil {
+			return api.Result{}, spec, fmt.Errorf("read style file: %w", err)
+		}
+		parsed.settings.StyleContent = style
+	}
+
+	engine, err := NewEngine(parsed.target, parsed.settings, 0)
+	if err != nil {
+		return api.Result{}, spec, err
+	}
+	generator, err := api.NewProjectionGenerator(api.ProjectionGeneratorOptions{
+		OutputPath:  parsed.outputPath,
+		LaTeXEngine: parsed.engine,
+		Passes:      parsed.passes,
+	})
+	if err != nil {
+		return api.Result{}, spec, fmt.Errorf("create projection generator: %w", err)
+	}
+
+	result, err := engine.Generate(ctx, spec,
+		api.ProjectionOptions{FocusSections: parsed.focus}, generator)
+	return result, spec, err
+}
+
+// executeWatchProcess rebuilds the deck whenever the watched file settles.
+func executeWatchProcess(ctx context.Context, args []string) error {
+	parsed, err := parseRequest(args)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("watching %s -> %s\n", parsed.watch.WatchPath, parsed.outputPath)
+	if parsed.watch.Command != "" {
+		fmt.Printf("regenerating with: %s\n", parsed.watch.Command)
+	}
+
+	err = runWatch(ctx, parsed.watch, func(ctx context.Context, revision uint64) error {
+		started := time.Now()
+		result, spec, err := buildDeck(ctx, parsed)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("[%d] %s (%d bytes, %d frames, %s)\n",
+			revision, parsed.outputPath, len(result.PDF), len(spec.Blocks),
+			time.Since(started).Round(time.Millisecond))
+		return nil
+	})
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return nil
+	}
+	return err
 }
