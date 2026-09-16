@@ -71,12 +71,15 @@ func (cr *ConfigResolver) ResolveTemplatePath(cfg *config.Config, templateFile, 
 
 // createDefaultConfig creates a default configuration file
 func (cr *ConfigResolver) createDefaultConfig(templateFile string) error {
-	// Create a basic default config
+	// The scaffolded variable set covers every key the shipped sample template
+	// reads, which is the set configs/sample-config.yaml carries. Under strict
+	// rendering an omitted key refuses the build rather than printing a blank.
 	defaultConfig := `template: "` + templateFile + `"
 variables:
   title: "My Document"
   author: "AutoPDF User"
   date: "` + time.Now().Format("2006-01-02") + `"
+  content: "Replace this with your document body."
 engine: "pdflatex"
 output: ""
 conversion:

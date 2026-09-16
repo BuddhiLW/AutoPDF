@@ -15,19 +15,36 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/strict"
 )
 
 // TemplateProcessorAdapter implements domain.TemplateProcessingService
 type TemplateProcessorAdapter struct {
-	config *config.Config
-	logger *logger.LoggerAdapter
+	config  *config.Config
+	logger  *logger.LoggerAdapter
+	auditor strict.Auditor
 }
 
-// NewTemplateProcessorAdapter creates a new template processor adapter
+// NewTemplateProcessorAdapter creates a template processor adapter that
+// refuses to render a template whose variable reads are not satisfied.
 func NewTemplateProcessorAdapter(cfg *config.Config, logger *logger.LoggerAdapter) *TemplateProcessorAdapter {
+	return NewTemplateProcessorAdapterWithAuditor(cfg, logger, strict.Default())
+}
+
+// NewTemplateProcessorAdapterWithAuditor creates a template processor adapter
+// that takes its verdict on unsatisfied variable reads from auditor.
+func NewTemplateProcessorAdapterWithAuditor(
+	cfg *config.Config,
+	logger *logger.LoggerAdapter,
+	auditor strict.Auditor,
+) *TemplateProcessorAdapter {
+	if auditor == nil {
+		auditor = strict.Default()
+	}
 	return &TemplateProcessorAdapter{
-		config: cfg,
-		logger: logger,
+		config:  cfg,
+		logger:  logger,
+		auditor: auditor,
 	}
 }
 
@@ -70,7 +87,7 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 	)
 
 	// Process template with variables
-	processedContent, err := tpa.processTemplate(string(content), variables)
+	processedContent, err := tpa.processTemplate(templatePath, string(content), variables)
 	if err != nil {
 		tpa.logger.ErrorWithFields("Failed to process template",
 			"template_path", templatePath,
@@ -175,13 +192,11 @@ func (tpa *TemplateProcessorAdapter) GetTemplateVariables(templatePath string) (
 	return variables, nil
 }
 
-// processTemplate processes template content with variables using Go's text/template
-func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables map[string]string) (string, error) {
-	// Import text/template at the top of the file
-	// We need to use Go's text/template to support conditionals, loops, and dot notation
-
+// processTemplate processes template content with variables using Go's text/template.
+// It refuses to render when the audit finds an unsatisfied variable read.
+func (tpa *TemplateProcessorAdapter) processTemplate(templatePath, content string, variables map[string]string) (string, error) {
 	// Convert flattened variables back to nested structure for template execution
-	templateData := tpa.reconstructNestedStructure(variables)
+	templateData := strict.Bindings(tpa.reconstructNestedStructure(variables))
 
 	// Create template with custom delimiters
 	tmpl, err := tpa.createTemplate(content)
@@ -189,9 +204,15 @@ func (tpa *TemplateProcessorAdapter) processTemplate(content string, variables m
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
 
+	refs := strict.References(tmpl, content)
+	if verdict := tpa.auditor.Audit(templatePath, refs, templateData); !verdict.OK() {
+		return "", verdict.Err()
+	}
+	strict.FillWaived(templateData, refs)
+
 	// Execute template
 	var buf strings.Builder
-	if err := tmpl.Execute(&buf, templateData); err != nil {
+	if err := tmpl.Execute(&buf, map[string]interface{}(templateData)); err != nil {
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 
@@ -206,11 +227,15 @@ func (tpa *TemplateProcessorAdapter) createTemplate(content string) (*template.T
 			return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 		},
 	}
+	for name, fn := range strict.Funcs() {
+		funcMap[name] = fn
+	}
 
 	// Create template with custom delimiters to avoid conflicts with LaTeX
 	tmpl, err := template.New("latex").
 		Funcs(funcMap).
 		Delims("delim[[", "]]").
+		Option(strict.MissingKeyOption).
 		Parse(content)
 
 	if err != nil {

@@ -33,6 +33,15 @@ internal/compiler/        # LaTeX compilation via os/exec
 template.New(file).Funcs(funcMap).Delims("delim[[", "]]")
 ```
 
+Rendering is strict by default (`pkg/template/strict`): a key the template reads
+but the variables do not supply, or supply as nil or as a blank string, refuses
+the render and names every offending key at once. A blank that is intended is
+declared at the site:
+
+```latex
+delim[[ optional .field "why the blank is acceptable" ]]
+```
+
 ## Bonzai Pattern
 
 Uses rwxrob/bonzai for composable command trees with help, vars, and completion.

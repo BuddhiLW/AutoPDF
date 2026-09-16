@@ -6,7 +6,7 @@ test:
 	go test -count=1 ./...
 
 test-property:
-	go test -count=1 -run Property ./pkg/config ./pkg/api/domain/generation ./internal/autopdf/domain/options
+	go test -count=1 -run Property ./pkg/config ./pkg/api/domain/generation ./internal/autopdf/domain/options ./pkg/template/strict
 
 test-preview-performance:
 	go test -count=1 -run 'LatencyBudget' ./pkg/preview ./pkg/api/rest
@@ -16,8 +16,10 @@ test-mutation:
 	$(GREMLINS) unleash ./pkg/config
 	$(GREMLINS) unleash ./pkg/api/domain/generation
 	$(GREMLINS) unleash ./internal/autopdf/domain/options
+	$(GREMLINS) unleash ./pkg/template/strict
 
 test-mutation-dry:
 	$(GREMLINS) unleash ./pkg/config --dry-run
 	$(GREMLINS) unleash ./pkg/api/domain/generation --dry-run
 	$(GREMLINS) unleash ./internal/autopdf/domain/options --dry-run
+	$(GREMLINS) unleash ./pkg/template/strict --dry-run

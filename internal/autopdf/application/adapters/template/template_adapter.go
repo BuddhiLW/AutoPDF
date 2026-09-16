@@ -13,18 +13,32 @@ import (
 	"text/template"
 
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/strict"
 )
 
 // TemplateProcessorAdapter wraps the existing template engine
 type TemplateProcessorAdapter struct {
 	// config is used to initialize the template engine
 	config *config.Config
+	// auditor decides whether the template's variable reads are satisfied
+	auditor strict.Auditor
 }
 
-// NewTemplateProcessorAdapter creates a new template processor adapter
+// NewTemplateProcessorAdapter creates a template processor adapter that
+// refuses to render a template whose variable reads are not satisfied.
 func NewTemplateProcessorAdapter(cfg *config.Config) *TemplateProcessorAdapter {
+	return NewTemplateProcessorAdapterWithAuditor(cfg, strict.Default())
+}
+
+// NewTemplateProcessorAdapterWithAuditor creates a template processor adapter
+// that takes its verdict on unsatisfied variable reads from auditor.
+func NewTemplateProcessorAdapterWithAuditor(cfg *config.Config, auditor strict.Auditor) *TemplateProcessorAdapter {
+	if auditor == nil {
+		auditor = strict.Default()
+	}
 	return &TemplateProcessorAdapter{
-		config: cfg,
+		config:  cfg,
+		auditor: auditor,
 	}
 }
 
@@ -47,11 +61,15 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 		},
 		// Add more helper functions as needed
 	}
+	for name, fn := range strict.Funcs() {
+		funcMap[name] = fn
+	}
 
 	// Create new template with custom delimiters to avoid conflicts with LaTeX
 	tmpl, err := template.New(templatePath).
 		Funcs(funcMap).
 		Delims("delim[[", "]]").
+		Option(strict.MissingKeyOption).
 		Parse(string(content))
 	if err != nil {
 		return "", err
@@ -75,6 +93,14 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 			templateData[k] = v
 		}
 	}
+
+	// Refuse to render before any unsatisfied read can become a silent blank
+	bindings := strict.Bindings(templateData)
+	refs := strict.References(tmpl, string(content))
+	if verdict := tpa.auditor.Audit(templatePath, refs, bindings); !verdict.OK() {
+		return "", verdict.Err()
+	}
+	strict.FillWaived(bindings, refs)
 
 	// Apply template with both flattened and complex variables
 	var buf bytes.Buffer

@@ -103,7 +103,7 @@ func executeSingleBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error
 
 	result, err := svc.Build(ctx, req)
 	if err != nil {
-		return configs.BuildError
+		return resultPkg.BuildFailure(err)
 	}
 
 	// Handle result and delegation
