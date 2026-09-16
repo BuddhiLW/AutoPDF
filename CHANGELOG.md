@@ -3,6 +3,82 @@
 Notable AutoPDF changes are documented here. Versions follow Semantic
 Versioning.
 
+## [2.2.0] - 2026-09-16
+
+### Changed
+
+- **A template that reads a variable it is not given now REFUSES to render.**
+  This is a behaviour change and it is the point of the release. Previously a
+  missing key rendered as empty and the document compiled anyway, which is
+  convenient for a report and is the worst possible failure for a contract: the
+  document compiles, looks right, is signed, and a clause that was supposed to
+  be there simply is not. Six example fixtures under `test/` have been emitting
+  `\title{<no value>}` and silently empty `range` blocks for some time, and
+  nothing flagged it.
+
+  A site that is deliberately allowed to be blank says so, at the point of use,
+  with a reason:
+
+  ```
+  delim[[ optional .field "reason the blank is acceptable" ]]
+  ```
+
+  The reason is mandatory. The pipe spelling `.field | optional "why"` is
+  rejected as malformed rather than accepted, because a pipe reverses the
+  argument order and would print the reason where the value belongs.
+
+  Waivers live in the template, not in the YAML, on purpose: the YAML is case
+  data, generated per document, and a waiver list there could be injected by
+  the same path that produced the blank. The template changes rarely and under
+  review.
+
+  Absent, `nil`, and empty-or-blank strings are all refused, and are reported as
+  distinct causes. `0`, `0.0`, `false`, and empty slices and maps are stated
+  facts and render normally.
+
+- **Build failures now carry their cause and name their phase.** Every failure
+  used to flatten to `failed to build config`, whatever had actually gone
+  wrong. Errors now wrap the cause, so `errors.Is` against the package
+  sentinels still works, `errors.As` reaches `*strict.MissingVariablesError`,
+  and the operator gets every offending key with `file:line:column` instead of
+  one sentence naming the wrong phase.
+
+### Added
+
+- **`pkg/template/strict`**, the pure core: `Policy` as a value, `Reference`,
+  `Bindings`, `Verdict`, `Offence`, `*MissingVariablesError`, and the `Auditor`
+  port with `StrictAuditor` implementing it. No I/O, no compilation, no
+  logging. Renderers depend on the port, so a caller can inject its own policy
+  and tests inject stubs instead of reaching for global state.
+- **`optional`**, a template builtin taking a field and a mandatory reason.
+- **`result.BuildFailure`**, the pure mapping from a cause to a phase-named
+  wrapped error.
+- **`ports.StagedTemplateSuffix`**, the suffix the rendered intermediate is
+  written under.
+
+### Fixed
+
+- **A successful build could overwrite and then delete the source template.**
+  The staged intermediate was written into the template's own directory under a
+  job name derived from the OUTPUT file, so `template: "contrato.tex"` with
+  `output: "contrato.pdf"` staged onto `contrato.tex` itself and removed it on
+  cleanup. The PDF came out correct, exit code 0, no warning, and the source was
+  gone. The repository's own fixtures never collided, because they name the
+  output differently from the template; the destructive case was the natural
+  one, naming the PDF after the document. The staged file now carries
+  `.autopdf.tex` and cannot collide. Both the `pdflatex` and the `latexmk`
+  adapters were affected.
+- The scaffolded default configuration omitted `content`, which the shipped
+  sample template and `configs/sample-config.yaml` both use.
+
+### Known limitation
+
+The static audit resolves reads against the root data. Inside a `range` or
+`with` body the dot is rebound and the key is relative to a value the analysis
+cannot know, so those sites fall through to `missingkey=error`, which fails
+closed on the first miss and cannot be waived with `optional`. Documented in
+`pkg/template/strict/doc.go` rather than papered over.
+
 ## [2.1.0] - 2026-08-29
 
 ### Added
