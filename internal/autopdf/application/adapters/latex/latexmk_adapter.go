@@ -37,8 +37,9 @@ func NewLatexmkCompilerAdapterWithLogger(commandExecutor ports.CommandExecutor, 
 
 // Compile compiles LaTeX content using latexmk
 func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, opts ports.CompileOptions) (string, error) {
-	// Write content to temporary .tex file
-	texPath := filepath.Join(opts.WorkingDir, fmt.Sprintf("%s.tex", opts.JobName))
+	// Write content to the staged .tex file. The suffix keeps it off the source
+	// template's path; latexmk names its output from -jobname, not from this file.
+	texPath := filepath.Join(opts.WorkingDir, fmt.Sprintf("%s%s", opts.JobName, ports.StagedTemplateSuffix))
 	err := a.fileSystem.WriteFile(ctx, texPath, []byte(content), 0644)
 	if err != nil {
 		a.logError(ctx, "Failed to write LaTeX content to file",

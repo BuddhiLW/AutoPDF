@@ -75,8 +75,13 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 		return "", fmt.Errorf("LaTeX engine not found: %s", opts.Engine)
 	}
 
-	// Generate concrete file name using job name
-	concreteFileName := fmt.Sprintf("%s.tex", opts.JobName)
+	// Generate concrete file name using job name.
+	// The suffix keeps this staged file off the source template's path: the
+	// working directory is the template's own directory, this file is written
+	// and then removed, and a job name equal to the template's base name would
+	// therefore destroy the input. The PDF name comes from -jobname, not from
+	// this file, so the suffix is not observable in the output.
+	concreteFileName := fmt.Sprintf("%s%s", opts.JobName, application.StagedTemplateSuffix)
 	concreteFile := filepath.Join(workingDir, concreteFileName)
 
 	// Write the content to the concrete file

@@ -21,6 +21,12 @@ type LaTeXCompiler interface {
 	Compile(ctx context.Context, content string, opts CompileOptions) (string, error)
 }
 
+// StagedTemplateSuffix names the rendered file a compiler writes next to the
+// source before invoking LaTeX. It must never collide with a source template's
+// own name: the working directory is the template's directory and the staged
+// file is removed after a non-debug compile.
+const StagedTemplateSuffix = ".autopdf.tex"
+
 // CompileOptions represents LaTeX compilation parameters
 // Value Object following DDD principles - immutable and validated
 type CompileOptions struct {
