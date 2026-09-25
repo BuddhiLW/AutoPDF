@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\title{Invoice delim[[.number]]}
+\author{delim[[.issuer]]}
+\date{delim[[.date]]}
+\begin{document}
+\maketitle
+
+\section*{Bill to}
+delim[[.client.name]]\par
+delim[[.client.address]]
+
+\section*{Items}
+\begin{tabular}{lr}
+delim[[range .items]]delim[[.description]] & delim[[.amount]] \\
+delim[[end]]\hline
+Total & delim[[.total]] \\
+\end{tabular}
+
+\end{document}
