@@ -141,6 +141,32 @@ Custom renderers, caching layers, and test fakes can implement `api.Generator`
 and be installed with `api.WithGenerator`. See [Embedding AutoPDF](docs/embedding.md)
 for extension, logging, cancellation, and migration guidance.
 
+### From Clojure
+
+[`clients/clojure`](clients/clojure) drives the `autopdf` binary through its
+command line, so nothing is rebuilt and no bindings are needed. One `.cljc`
+runs on JVM Clojure, [ClojureWasm](https://github.com/BuddhiLW/ClojureWasm) and
+[clojurust](https://github.com/BuddhiLW/clojurust), and each renders the same
+PDF:
+
+```clojure
+(require '[autopdf.client :as autopdf])
+
+(autopdf/build {:template "invoice.tex"
+                :dir      "examples"
+                :output   "invoice.pdf"
+                :vars     {:number "2026-042"
+                           :issuer "BuddhiLW"
+                           :date   "2026-09-25"
+                           :client {:name "ACME Ltd." :address "1 Main St."}
+                           :items  [{:description "Consulting" :amount 1200}]
+                           :total  1200}})
+;; => {:ok {:pdf "examples/invoice.pdf"}}   or {:error {:exit n :err "..."}}
+```
+
+The render is planned as a value, then run through a `ProgramRunner` port, so
+tests hand in a stub and never need LaTeX.
+
 ### Component documents and live previews
 
 For structured editors, `api.DocumentEngine` turns a renderer-independent
