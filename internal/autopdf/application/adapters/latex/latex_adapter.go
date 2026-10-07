@@ -113,15 +113,16 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 
 	// Run multiple passes if requested
 	for pass := 1; pass <= opts.Passes; pass++ {
-		args := []string{"-interaction=nonstopmode", "-jobname=" + baseName}
+		args := []string{"-interaction=nonstopmode", noShellEscape, "-jobname=" + baseName}
 		if outputDir != "." {
 			args = append(args, "-output-directory="+outputDir)
 		}
-		args = append(args, concreteFile)
+		args = append(args, concreteFileName)
 		cmdStr := opts.Engine + " " + strings.Join(args, " ")
 
 		cmd := application.NewCommand(opts.Engine, args, workingDir).
-			WithTimeout(5 * time.Minute)
+			WithTimeout(5 * time.Minute).
+			WithEnv(sandboxEnv())
 
 		// Run the LaTeX command
 		result, err := lca.executor.Execute(ctx, cmd)
