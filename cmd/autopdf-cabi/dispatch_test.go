@@ -5,6 +5,9 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -92,6 +95,40 @@ func TestAuditWithoutTemplateIsRefused(t *testing.T) {
 	d := call(t, "audit", `{"template":"  "}`)
 	if d.OK || !strings.Contains(d.Error, "template is required") {
 		t.Fatalf("got %+v", d)
+	}
+}
+
+func TestGenerateRendersAPDFAndReportsItsSize(t *testing.T) {
+	if _, err := exec.LookPath("pdflatex"); err != nil {
+		// generate runs the LaTeX engine as a child process; a CI image
+		// without TeX cannot exercise it (card 20261007151754-603acd0b).
+		t.Skip("pdflatex not installed: generate needs a LaTeX engine on PATH")
+	}
+	dir := t.TempDir()
+	tex := filepath.Join(dir, "letter.tex")
+	source := "\\documentclass{article}\\begin{document}Dear delim[[ .name ]].\\end{document}\n"
+	if err := os.WriteFile(tex, []byte(source), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "letter.pdf")
+	request, _ := json.Marshal(map[string]any{
+		"template_path": tex, "output_path": out, "working_dir": dir,
+		"variables": map[string]string{"name": "Ada"}, "engine": "pdflatex",
+	})
+	d := call(t, "generate", string(request))
+	var v struct {
+		PDFPath  string `json:"pdf_path"`
+		FileSize int64  `json:"file_size"`
+	}
+	if err := json.Unmarshal(d.Value, &v); err != nil || !d.OK {
+		t.Fatalf("got %+v, %v", d, err)
+	}
+	head, err := os.ReadFile(v.PDFPath)
+	if err != nil || !strings.HasPrefix(string(head), "%PDF") {
+		t.Fatalf("no PDF at %s: %v", v.PDFPath, err)
+	}
+	if v.FileSize != int64(len(head)) {
+		t.Fatalf("file_size = %d, file has %d bytes", v.FileSize, len(head))
 	}
 }
 

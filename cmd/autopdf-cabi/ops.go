@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"text/template"
 
@@ -124,10 +125,22 @@ func generate(ctx context.Context, raw json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
+	// The default generator leaves Metadata empty, so the size is read from
+	// the file itself; a page count the engine did not report is omitted
+	// rather than answered as 0.
+	size := result.Metadata.FileSize
+	if size == 0 && result.PDFPath != "" {
+		if info, statErr := os.Stat(result.PDFPath); statErr == nil {
+			size = info.Size()
+		}
+	}
+	out := map[string]any{
 		"pdf_path":  result.PDFPath,
-		"file_size": result.Metadata.FileSize,
-		"pages":     result.Metadata.PageCount,
+		"file_size": size,
 		"engine":    result.Metadata.Engine,
-	}, nil
+	}
+	if result.Metadata.PageCount > 0 {
+		out["pages"] = result.Metadata.PageCount
+	}
+	return out, nil
 }
