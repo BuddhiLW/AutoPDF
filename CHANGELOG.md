@@ -3,6 +3,34 @@
 Notable AutoPDF changes are documented here. Versions follow Semantic
 Versioning.
 
+## [2.3.0] - 2026-10-09
+
+### Added
+
+- **`pkg/pdf`**, a standard-library-only package with the rule for whether
+  bytes are a finished PDF. `pdf.Inspect` returns the first `Defect` (empty,
+  missing `%PDF-` header, or missing `%%EOF` trailer within the 1024 bytes the
+  specification allows after it). `pdf.Check` returns a `*pdf.IncompleteError`
+  that callers match with `errors.As`. Embedding applications can use it
+  instead of keeping their own copy of the rule.
+- The Clojure client under `clients/`, with its README section.
+
+### Fixed
+
+- **The engine no longer publishes an unfinished PDF.** When the compiler
+  failed but had already written part of the output, the build error was
+  dropped and the partial file was published, because only the `%PDF-` header
+  was checked. Now a document without its trailer is refused with
+  `*pdf.IncompleteError`. When the build also failed, the build error leads
+  the message and the defect stays matchable. A finished document still
+  crosses after a non-zero exit, as before, because LaTeX can exit non-zero
+  after writing a complete file.
+- **The request workspace links resolved assets.** Each entry of the caller's
+  working directory is linked to what it resolves to at link time. Before, a
+  caller that shared one directory between concurrent requests could remove a
+  link while another request still compiled, which killed that compilation in
+  the middle of the run.
+
 ## [2.2.0] - 2026-09-16
 
 ### Changed
