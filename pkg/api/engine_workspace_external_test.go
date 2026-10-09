@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/pdf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,6 +89,26 @@ func TestDefaultEngineCancelsCompilerAndCleansWorkspace(t *testing.T) {
 	assert.Equal(t, before, workspaceSnapshot(t))
 }
 
+func TestDefaultEngineNeverPublishesAnUnfinishedPDF(t *testing.T) {
+	testDir := t.TempDir()
+	templatePath := filepath.Join(testDir, "template.tex")
+	require.NoError(t, os.WriteFile(templatePath, []byte("letter"), 0644))
+	outputPath := filepath.Join(testDir, "letter.pdf")
+
+	engine, err := api.NewEngine()
+	require.NoError(t, err)
+	_, err = engine.Generate(context.Background(), api.Request{
+		TemplatePath: templatePath,
+		OutputPath:   outputPath,
+		LaTeXEngine:  writeDyingCompiler(t, testDir),
+	})
+
+	var incomplete *pdf.IncompleteError
+	require.ErrorAs(t, err, &incomplete)
+	assert.Equal(t, pdf.DefectMissingTrailer, incomplete.Defect)
+	assert.NoFileExists(t, outputPath)
+}
+
 func writeFakeCompiler(t *testing.T, directory string, delay time.Duration) string {
 	t.Helper()
 	path := filepath.Join(directory, fmt.Sprintf("fake-latex-%d", delay))
@@ -111,8 +132,31 @@ mkdir -p "$out"
 {
   printf '%%%%PDF-1.4\n'
   test -z "$source_file" || sed -n '1,40p' "$source_file"
+  printf '%%%%%%%%EOF\n'
 } > "$out/$job.pdf"
 `, delayCommand)
+	require.NoError(t, os.WriteFile(path, []byte(script), 0755))
+	return path
+}
+
+// writeDyingCompiler writes the first part of a PDF and exits 1, as xelatex
+// does when an asset vanishes in the middle of a run.
+func writeDyingCompiler(t *testing.T, directory string) string {
+	t.Helper()
+	path := filepath.Join(directory, "dying-latex")
+	script := `#!/bin/sh
+job=document
+out=.
+for arg in "$@"; do
+  case "$arg" in
+    -jobname=*) job=${arg#-jobname=} ;;
+    -output-directory=*) out=${arg#-output-directory=} ;;
+  esac
+done
+mkdir -p "$out"
+printf '%%PDF-1.4\npartial page stream' > "$out/$job.pdf"
+exit 1
+`
 	require.NoError(t, os.WriteFile(path, []byte(script), 0755))
 	return path
 }

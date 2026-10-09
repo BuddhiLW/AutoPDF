@@ -20,6 +20,7 @@ import (
 	infraadapters "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 	errors "github.com/BuddhiLW/AutoPDF/v2/pkg/errors"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/pdf"
 	"gopkg.in/yaml.v3"
 )
 
@@ -138,11 +139,8 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 	if err != nil {
 		return nil, nil, fmt.Errorf("read generated PDF: %w", err)
 	}
-	if len(pdfBytes) == 0 {
-		return nil, nil, fmt.Errorf("generated PDF is empty")
-	}
-	if len(pdfBytes) < 5 || string(pdfBytes[:5]) != "%PDF-" {
-		return nil, nil, fmt.Errorf("generated file is not a valid PDF")
+	if err := publication(buildErr, pdf.Check(stagePDF, pdfBytes)); err != nil {
+		return nil, nil, err
 	}
 
 	// Boundary: atomically publish requested artifacts; workspace files never escape.
@@ -290,46 +288,6 @@ func normalizePDFOutput(path string) string {
 		return path
 	}
 	return path + ".pdf"
-}
-
-func linkWorkspaceAssets(assetDir, workspace, templatePath, stageName string) error {
-	if assetDir == "" {
-		return nil
-	}
-	assetDir, err := filepath.Abs(assetDir)
-	if err != nil {
-		return fmt.Errorf("resolve asset directory: %w", err)
-	}
-	workspace, err = filepath.Abs(workspace)
-	if err != nil {
-		return fmt.Errorf("resolve workspace: %w", err)
-	}
-	if assetDir == workspace {
-		return nil
-	}
-
-	entries, err := os.ReadDir(assetDir)
-	if err != nil {
-		return fmt.Errorf("read asset directory: %w", err)
-	}
-	templatePath, err = filepath.Abs(templatePath)
-	if err != nil {
-		return fmt.Errorf("resolve template path: %w", err)
-	}
-	for _, entry := range entries {
-		if entry.Name() == "config.yaml" || entry.Name() == stageName {
-			continue
-		}
-		source := filepath.Join(assetDir, entry.Name())
-		if source == templatePath {
-			continue
-		}
-		target := filepath.Join(workspace, entry.Name())
-		if err := os.Symlink(source, target); err != nil {
-			return fmt.Errorf("link workspace asset %q: %w", entry.Name(), err)
-		}
-	}
-	return nil
 }
 
 func publishedImagePath(stagePDF, requestedPDF, stageImage string) string {
