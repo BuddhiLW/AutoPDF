@@ -239,9 +239,9 @@ func (session *previewTransportSession) publishResults() {
 }
 
 func (api *PreviewAPI) createSession(writer http.ResponseWriter, request *http.Request) {
-	compiler, err := api.compilerFactory.NewCompiler()
+	compiler, status, err := api.sessionCompiler(request)
 	if err != nil {
-		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		writeJSON(writer, status, map[string]string{"error": err.Error()})
 		return
 	}
 	session, err := api.engine.NewPreviewSession(compiler, api.sessionOptions)

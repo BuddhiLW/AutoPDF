@@ -18,11 +18,32 @@ var (
 
 // Diagnostic is a compiler message addressable to generated source.
 type Diagnostic struct {
-	ComponentID string `json:"componentId,omitempty"`
-	Path        string `json:"path,omitempty"`
-	Line        int    `json:"line,omitempty"`
-	Severity    string `json:"severity,omitempty"`
-	Message     string `json:"message"`
+	ComponentID string   `json:"componentId,omitempty"`
+	Path        string   `json:"path,omitempty"`
+	Line        int      `json:"line,omitempty"`
+	Column      int      `json:"column,omitempty"`
+	Severity    string   `json:"severity,omitempty"`
+	Message     string   `json:"message"`
+	Hints       []string `json:"hints,omitempty"`
+}
+
+// SourceLocation maps a component to the generated source file that holds it,
+// whatever the backend. latex.SourceLocation converts to it directly.
+type SourceLocation struct {
+	Path string `json:"path"`
+	Line int    `json:"line"`
+}
+
+// SourceMapFromLaTeX converts a LaTeX projection's source map.
+func SourceMapFromLaTeX(source map[string]latex.SourceLocation) map[string]SourceLocation {
+	if len(source) == 0 {
+		return nil
+	}
+	result := make(map[string]SourceLocation, len(source))
+	for componentID, location := range source {
+		result[componentID] = SourceLocation(location)
+	}
+	return result
 }
 
 // Page is browser-ready output for one page. Hash may be omitted by compiler;
@@ -40,7 +61,7 @@ type CompileRequest struct {
 	Workspace  string
 	Main       string
 	DirtyFiles []string
-	SourceMap  map[string]latex.SourceLocation
+	SourceMap  map[string]SourceLocation
 }
 
 // StageTimings separates deterministic orchestration from environment-sensitive
@@ -61,7 +82,7 @@ type CompileOutput struct {
 	Timings     StageTimings
 }
 
-// Compiler is the effect port around LaTeX execution and page rasterization.
+// Compiler is the effect port around backend execution and page rasterization.
 type Compiler interface {
 	Compile(context.Context, CompileRequest) (CompileOutput, error)
 }
