@@ -12,12 +12,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/parallel"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 )
 
-// DefaultTemplateExtensions are the suffixes a LaTeX strategy claims.
-var DefaultTemplateExtensions = []string{".tex", ".latex"}
+// DefaultTemplateExtensions are the suffixes the default backend registry claims.
+func DefaultTemplateExtensions() []string {
+	return backend.Default().TemplateExtensions()
+}
+
+// WithRegistry makes the strategy claim the template extensions of registry.
+func WithRegistry(registry *backend.Registry) EngineStrategyOption {
+	return func(strategy *EngineStrategy) {
+		if registry != nil {
+			strategy.extensions = registry.TemplateExtensions()
+		}
+	}
+}
 
 // EngineStrategy implements parallel.CompilationStrategy on top of an
 // api.Generator. It depends on the Generator interface rather than on
@@ -56,7 +68,7 @@ func WithOutputDir(dir string) EngineStrategyOption {
 func NewEngineStrategy(generator api.Generator, options ...EngineStrategyOption) *EngineStrategy {
 	strategy := &EngineStrategy{
 		generator:  generator,
-		extensions: DefaultTemplateExtensions,
+		extensions: DefaultTemplateExtensions(),
 	}
 	for _, option := range options {
 		option(strategy)

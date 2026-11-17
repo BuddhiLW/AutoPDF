@@ -13,8 +13,8 @@ import (
 
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/cleaner"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/converter"
-	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/latex"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/template"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	autopdfports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
 	infraadapters "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/infrastructure/adapters"
@@ -103,6 +103,14 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 	}
 
 	docService := iaa.createDocumentServiceWithWorkingDir(ctx, &buildCfg, workspace, iaa.logger)
+	selected, err := backend.Default().Resolve(buildCfg.Engine.String(), buildCfg.Template.String())
+	if err != nil {
+		return nil, nil, err
+	}
+	backendOptions, err := selected.Options(backend.Settings{Passes: buildCfg.Passes, UseLatexmk: buildCfg.UseLatexmk})
+	if err != nil {
+		return nil, nil, err
+	}
 	req := documentService.BuildRequest{
 		TemplatePath: buildCfg.Template.String(),
 		ConfigPath:   configPath,
@@ -112,7 +120,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 		WorkingDir:   workspace,
 		DoClean:      false,
 		DebugEnabled: debugEnabled,
-		Backend:      autopdfports.NewLaTeXOptions(buildCfg.Passes, buildCfg.UseLatexmk),
+		Backend:      backendOptions,
 		Conversion: documentService.ConversionSettings{
 			Enabled: buildCfg.Conversion.Enabled,
 			Formats: append([]string(nil), buildCfg.Conversion.Formats...),
@@ -243,28 +251,22 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	// Create adapters using the internal application layer
 	templateAdapter := template.NewTemplateProcessorAdapter(cfg)
 
-	// Select LaTeX compiler based on UseLatexmk flag
-	var latexAdapter autopdfports.DocumentCompiler
-	if cfg.UseLatexmk {
-		// Use latexmk adapter with logger for transparency
-		// Log selection for debugging
-		if logger != nil {
-			logger.Info(ctx, "Using latexmk adapter for multi-pass compilation",
-				autopdfports.NewLogField("passes", cfg.Passes),
-				autopdfports.NewLogField("engine", string(cfg.Engine)),
-				autopdfports.NewLogField("working_dir", workingDir))
-		}
-		latexAdapter = latex.NewLatexmkCompilerAdapterWithLogger(executor, fileSystem, logger)
-	} else {
-		// Use regular LaTeX adapter (manual passes)
-		// Log selection for debugging
-		if logger != nil {
-			logger.Info(ctx, "Using manual LaTeX adapter (non-latexmk)",
-				autopdfports.NewLogField("passes", cfg.Passes),
-				autopdfports.NewLogField("engine", string(cfg.Engine)),
-				autopdfports.NewLogField("working_dir", workingDir))
-		}
-		latexAdapter = latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir)
+	// The compiler is resolved per request through the backend registry.
+	if logger != nil {
+		logger.Info(ctx, "Resolving compiler through the backend registry",
+			autopdfports.NewLogField("passes", cfg.Passes),
+			autopdfports.NewLogField("use_latexmk", cfg.UseLatexmk),
+			autopdfports.NewLogField("engine", string(cfg.Engine)),
+			autopdfports.NewLogField("working_dir", workingDir))
+	}
+	compilers := backend.CompilerSource{
+		Resolver: backend.Default(),
+		Deps: backend.CompilerDeps{
+			FileSystem: fileSystem,
+			Executor:   executor,
+			Logger:     logger,
+			WorkingDir: workingDir,
+		},
 	}
 
 	converterAdapter := converter.NewConverterAdapter(cfg)
@@ -273,7 +275,7 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	// Create document service
 	return &documentService.DocumentService{
 		TemplateProcessor: templateAdapter,
-		Compiler:          latexAdapter,
+		Compilers:         compilers,
 		Converter:         converterAdapter,
 		Cleaner:           cleanerAdapter,
 		PathOps:           infraadapters.NewOSPathOperations(),

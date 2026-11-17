@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/application"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/builders"
 	apiconfig "github.com/BuddhiLW/AutoPDF/v2/pkg/api/config"
@@ -25,6 +26,7 @@ import (
 type PDFGenerationAPI struct {
 	appService *application.PDFGenerationApplicationService
 	config     *config.Config
+	registry   *backend.Registry // nil means backend.Default()
 }
 
 // NewPDFGenerationAPI creates a new PDFGenerationAPI instance
@@ -92,7 +94,7 @@ type PDFGenerationStructRequest struct {
 
 // PDFGenerationOptions represents PDF generation options
 type PDFGenerationOptions struct {
-	Engine       string                `json:"engine,omitempty"`        // pdflatex, xelatex, lualatex
+	Engine       string                `json:"engine,omitempty"`        // one of GET /engines
 	OutputFormat string                `json:"output_format,omitempty"` // pdf, png, jpeg, svg
 	Conversion   RESTConversionOptions `json:"conversion,omitempty"`
 	Debug        bool                  `json:"debug,omitempty"`
@@ -586,17 +588,6 @@ func (api *PDFGenerationAPI) HealthCheck(w http.ResponseWriter, r *http.Request)
 		Status:    "healthy",
 		Timestamp: time.Now().Format(time.RFC3339),
 		Version:   "1.0.0",
-	}
-
-	render.JSON(w, r, response)
-}
-
-// GetSupportedEngines returns supported LaTeX engines
-// GET /api/v1/pdf/engines
-func (api *PDFGenerationAPI) GetSupportedEngines(w http.ResponseWriter, r *http.Request) {
-	response := EnginesResponse{
-		Engines: []string{"pdflatex", "xelatex", "lualatex"},
-		Default: "pdflatex",
 	}
 
 	render.JSON(w, r, response)

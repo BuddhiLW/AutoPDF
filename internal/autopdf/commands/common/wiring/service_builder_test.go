@@ -34,7 +34,10 @@ func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.TemplateProcessor)
-	assert.NotNil(t, service.Compiler)
+	require.NotNil(t, service.Compilers)
+	compiler, err := service.Compilers.CompilerFor(cfg.Engine.String(), cfg.Template.String(), ports.NewLaTeXOptions(1, false))
+	require.NoError(t, err)
+	assert.NotNil(t, compiler)
 	assert.NotNil(t, service.Converter)
 	assert.NotNil(t, service.Cleaner)
 }

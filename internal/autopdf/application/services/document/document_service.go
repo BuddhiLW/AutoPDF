@@ -5,6 +5,7 @@ package document
 
 import (
 	"context"
+	"errors"
 
 	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
@@ -15,7 +16,8 @@ import (
 // It depends on ports (interfaces) for flexibility and testability
 type DocumentService struct {
 	TemplateProcessor ports.TemplateProcessor
-	Compiler          ports.DocumentCompiler
+	Compiler          ports.DocumentCompiler // used when Compilers is nil
+	Compilers         CompilerResolver       // picks the compiler per request (engine, template); wins over Compiler
 	Converter         ports.Converter
 	Cleaner           ports.Cleaner
 	PathOps           ports.PathOperations
@@ -107,7 +109,15 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 		WithBackendOptions(req.Backend).
 		WithJobName(jobName) // Set jobname from output path
 
-	pdfPath, err := s.Compiler.Compile(ctx, processedContent, compileOptions)
+	compiler, err := s.compilerFor(req)
+	if err != nil {
+		return BuildResult{
+			Success: false,
+			Error:   s.ErrorFactory.LaTeXCompilationFailed(outputPath, err),
+		}, err
+	}
+
+	pdfPath, err := compiler.Compile(ctx, processedContent, compileOptions)
 	if err != nil {
 		return BuildResult{
 			Success: false,
@@ -140,6 +150,33 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 	}
 
 	return result, nil
+}
+
+// CompilerResolver chooses the DocumentCompiler for a request's engine and
+// template, built for the request's backend options.
+type CompilerResolver interface {
+	CompilerFor(engine, templatePath string, opts ports.BackendOptions) (ports.DocumentCompiler, error)
+}
+
+// CompilerResolverFunc adapts a function to CompilerResolver.
+type CompilerResolverFunc func(engine, templatePath string, opts ports.BackendOptions) (ports.DocumentCompiler, error)
+
+// CompilerFor implements CompilerResolver.
+func (f CompilerResolverFunc) CompilerFor(engine, templatePath string, opts ports.BackendOptions) (ports.DocumentCompiler, error) {
+	return f(engine, templatePath, opts)
+}
+
+// ErrNoCompiler is returned when a DocumentService has neither Compilers nor Compiler.
+var ErrNoCompiler = errors.New("document service has no compiler")
+
+func (s *DocumentService) compilerFor(req BuildRequest) (ports.DocumentCompiler, error) {
+	if s.Compilers != nil {
+		return s.Compilers.CompilerFor(req.Engine, req.TemplatePath, req.Backend)
+	}
+	if s.Compiler == nil {
+		return nil, ErrNoCompiler
+	}
+	return s.Compiler, nil
 }
 
 // ConvertDocument converts an existing PDF to images

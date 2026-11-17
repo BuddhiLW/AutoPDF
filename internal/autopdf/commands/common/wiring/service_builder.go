@@ -13,9 +13,9 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/configs"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/cleaner"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/converter"
-	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/latex"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/template"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/args"
@@ -29,28 +29,34 @@ import (
 )
 
 // ServiceBuilder handles the construction of the application service
-type ServiceBuilder struct{}
+type ServiceBuilder struct {
+	registry *backend.Registry
+}
 
-// NewServiceBuilder creates a new service builder
+// NewServiceBuilder creates a service builder over the default backend registry.
 func NewServiceBuilder() *ServiceBuilder {
-	return &ServiceBuilder{}
+	return NewServiceBuilderWithRegistry(backend.Default())
+}
+
+// NewServiceBuilderWithRegistry creates a service builder that resolves
+// backends through registry (nil means backend.Default()).
+func NewServiceBuilderWithRegistry(registry *backend.Registry) *ServiceBuilder {
+	if registry == nil {
+		registry = backend.Default()
+	}
+	return &ServiceBuilder{registry: registry}
+}
+
+func (sb *ServiceBuilder) backends() *backend.Registry {
+	if sb == nil || sb.registry == nil {
+		return backend.Default()
+	}
+	return sb.registry
 }
 
 // BuildDocumentService constructs the DocumentService with all required adapters
 func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentService.DocumentService {
-	// Create infrastructure adapters (DIP: Application depends on abstractions)
-	fileSystem := infraadapters.NewOSFileSystem()
-	executor := infraadapters.NewOSCommandExecutor()
-
-	return &documentService.DocumentService{
-		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
-		Compiler:          latex.NewLaTeXCompilerAdapter(cfg, fileSystem, executor),
-		Converter:         converter.NewConverterAdapter(cfg),
-		Cleaner:           cleaner.NewCleanerAdapter(),
-		PathOps:           infraadapters.NewOSPathOperations(),
-		FileSystem:        infraadapters.NewOSFileSystem(),
-		ErrorFactory:      apperrors.NewDomainErrorFactory(nil),
-	}
+	return sb.BuildDocumentServiceWithWorkingDir(cfg, "")
 }
 
 // BuildDocumentServiceWithWorkingDir constructs the DocumentService with template directory as working dir
@@ -62,17 +68,27 @@ func (sb *ServiceBuilder) BuildDocumentServiceWithWorkingDir(cfg *config.Config,
 
 	return &documentService.DocumentService{
 		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
-		Compiler:          latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir),
-		Converter:         converter.NewConverterAdapter(cfg),
-		Cleaner:           cleaner.NewCleanerAdapter(),
-		PathOps:           infraadapters.NewOSPathOperations(),
-		FileSystem:        infraadapters.NewOSFileSystem(),
-		ErrorFactory:      apperrors.NewDomainErrorFactory(nil),
+		Compilers: backend.CompilerSource{
+			Resolver: sb.backends(),
+			Deps:     backend.CompilerDeps{FileSystem: fileSystem, Executor: executor, WorkingDir: workingDir},
+		},
+		Converter:    converter.NewConverterAdapter(cfg),
+		Cleaner:      cleaner.NewCleanerAdapter(),
+		PathOps:      infraadapters.NewOSPathOperations(),
+		FileSystem:   infraadapters.NewOSFileSystem(),
+		ErrorFactory: apperrors.NewDomainErrorFactory(nil),
 	}
 }
 
-// BuildRequest constructs a BuildRequest from the parsed arguments and config
+// BuildRequest constructs a BuildRequest from the parsed arguments and config.
+// Backend options come from the backend the registry resolves for the config's
+// engine and template; an unresolvable engine leaves them nil and is reported
+// by the compile.
 func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) documentService.BuildRequest {
+	var backendOptions ports.BackendOptions
+	if b, err := sb.backends().Resolve(cfg.Engine.String(), cfg.Template.String()); err == nil {
+		backendOptions, _ = b.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk})
+	}
 	return documentService.BuildRequest{
 		TemplatePath: cfg.Template.String(),
 		ConfigPath:   args.ConfigFile,
@@ -82,7 +98,7 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 		WorkingDir:   filepath.Dir(cfg.Template.String()),
 		DoClean:      args.Options.Clean.Enabled,
 		DebugEnabled: args.Options.Debug.Enabled, // Pass debug option for persistent concrete files
-		Backend:      ports.NewLaTeXOptions(cfg.Passes, cfg.UseLatexmk),
+		Backend:      backendOptions,
 		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
@@ -111,13 +127,15 @@ func (sb *ServiceBuilder) BuildConverterService(args *args.ConvertArgs) *convert
 // BuildCleanerService constructs the cleaner service
 func (sb *ServiceBuilder) BuildCleanerService(directory string) *CleanerService {
 	return &CleanerService{
-		Directory: directory,
+		Directory:     directory,
+		AuxExtensions: sb.backends().AuxExtensions(),
 	}
 }
 
-// CleanerService handles cleaning of LaTeX auxiliary files
+// CleanerService handles cleaning of backend auxiliary files
 type CleanerService struct {
-	Directory string
+	Directory     string
+	AuxExtensions []string // nil means the default registry's projection
 }
 
 // Clean removes all auxiliary files in the specified directory
@@ -125,6 +143,11 @@ func (cs *CleanerService) Clean() (*CleanResult, error) {
 	// Check if directory exists
 	if !futil.IsDir(cs.Directory) {
 		return nil, fmt.Errorf(configs.ErrDirectoryNotExists, cs.Directory)
+	}
+
+	auxExtensions := cs.AuxExtensions
+	if auxExtensions == nil {
+		auxExtensions = backend.Default().AuxExtensions()
 	}
 
 	var cleanedFiles []string
@@ -142,7 +165,7 @@ func (cs *CleanerService) Clean() (*CleanResult, error) {
 		}
 
 		// Remove file if it has an auxiliary extension
-		if isAuxFile(info.Name()) {
+		if isAuxFile(info.Name(), auxExtensions) {
 			if err := os.Remove(path); err != nil {
 				errors = append(errors, fmt.Sprintf("failed to remove %s: %v", path, err))
 			} else {
@@ -174,10 +197,8 @@ type CleanResult struct {
 	FilesRemoved int
 }
 
-// isAuxFile checks if a file is a LaTeX auxiliary file
-func isAuxFile(filename string) bool {
-	auxiliaryExtensions := configs.AuxiliaryExtensions
-
+// isAuxFile checks if a file carries one of the auxiliary extensions
+func isAuxFile(filename string, auxiliaryExtensions []string) bool {
 	for _, ext := range auxiliaryExtensions {
 		if strings.HasSuffix(filename, ext) {
 			return true
