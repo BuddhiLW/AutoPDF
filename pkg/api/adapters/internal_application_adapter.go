@@ -112,8 +112,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 		WorkingDir:   workspace,
 		DoClean:      false,
 		DebugEnabled: debugEnabled,
-		Passes:       buildCfg.Passes,
-		UseLatexmk:   buildCfg.UseLatexmk,
+		Backend:      autopdfports.NewLaTeXOptions(buildCfg.Passes, buildCfg.UseLatexmk),
 		Conversion: documentService.ConversionSettings{
 			Enabled: buildCfg.Conversion.Enabled,
 			Formats: append([]string(nil), buildCfg.Conversion.Formats...),
@@ -245,7 +244,7 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	templateAdapter := template.NewTemplateProcessorAdapter(cfg)
 
 	// Select LaTeX compiler based on UseLatexmk flag
-	var latexAdapter autopdfports.LaTeXCompiler
+	var latexAdapter autopdfports.DocumentCompiler
 	if cfg.UseLatexmk {
 		// Use latexmk adapter with logger for transparency
 		// Log selection for debugging
@@ -274,7 +273,7 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	// Create document service
 	return &documentService.DocumentService{
 		TemplateProcessor: templateAdapter,
-		LaTeXCompiler:     latexAdapter,
+		Compiler:          latexAdapter,
 		Converter:         converterAdapter,
 		Cleaner:           cleanerAdapter,
 		PathOps:           infraadapters.NewOSPathOperations(),

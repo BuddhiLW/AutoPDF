@@ -15,7 +15,7 @@ import (
 // It depends on ports (interfaces) for flexibility and testability
 type DocumentService struct {
 	TemplateProcessor ports.TemplateProcessor
-	LaTeXCompiler     ports.LaTeXCompiler
+	Compiler          ports.DocumentCompiler
 	Converter         ports.Converter
 	Cleaner           ports.Cleaner
 	PathOps           ports.PathOperations
@@ -32,9 +32,8 @@ type BuildRequest struct {
 	OutputPath   string
 	WorkingDir   string // Working directory for LaTeX compilation (where assets are symlinked)
 	DoClean      bool
-	DebugEnabled bool // Enable debug mode for persistent concrete files
-	Passes       int  // Number of compilation passes
-	UseLatexmk   bool // Whether to use latexmk
+	DebugEnabled bool                 // Enable debug mode for persistent concrete files
+	Backend      ports.BackendOptions // Backend-specific options (e.g. ports.LaTeXOptions); nil = backend defaults
 	Conversion   ConversionSettings
 }
 
@@ -74,7 +73,7 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 		}, err
 	}
 
-	// Step 3: Compile LaTeX to PDF
+	// Step 3: Compile the rendered document to PDF
 	// Note: Asset symlinks should be set up by the calling strategy (e.g., AutoPDFGenerationStrategy)
 	// Use the working directory from BuildRequest if provided, otherwise derive from output path
 	outputPath := req.OutputPath
@@ -105,11 +104,10 @@ func (s *DocumentService) Build(ctx context.Context, req BuildRequest) (BuildRes
 
 	compileOptions := ports.NewCompileOptions(req.Engine, outputPath, workingDir).
 		WithDebug(req.DebugEnabled).
-		WithPasses(req.Passes).
-		WithLatexmk(req.UseLatexmk).
+		WithBackendOptions(req.Backend).
 		WithJobName(jobName) // Set jobname from output path
 
-	pdfPath, err := s.LaTeXCompiler.Compile(ctx, processedContent, compileOptions)
+	pdfPath, err := s.Compiler.Compile(ctx, processedContent, compileOptions)
 	if err != nil {
 		return BuildResult{
 			Success: false,

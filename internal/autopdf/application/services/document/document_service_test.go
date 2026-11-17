@@ -32,6 +32,8 @@ type MockLaTeXCompiler struct {
 	mock.Mock
 }
 
+var _ ports.DocumentCompiler = (*MockLaTeXCompiler)(nil)
+
 func (m *MockLaTeXCompiler) Compile(ctx context.Context, content string, opts ports.CompileOptions) (string, error) {
 	args := m.Called(ctx, content, opts)
 	return args.String(0), args.Error(1)
@@ -53,7 +55,7 @@ type MockCleaner struct {
 func newTestDocumentService(mockTpl *MockTemplateProcessor, mockTex *MockLaTeXCompiler, mockConv *MockConverter, mockClean *MockCleaner) DocumentService {
 	return DocumentService{
 		TemplateProcessor: mockTpl,
-		LaTeXCompiler:     mockTex,
+		Compiler:          mockTex,
 		Converter:         mockConv,
 		Cleaner:           mockClean,
 		PathOps:           infraadapters.NewOSPathOperations(),
@@ -63,8 +65,36 @@ func newTestDocumentService(mockTpl *MockTemplateProcessor, mockTex *MockLaTeXCo
 
 func compileOptions(outputPath string) ports.CompileOptions {
 	return ports.NewCompileOptions("pdflatex", outputPath, ".").
-		WithPasses(0).
 		WithJobName("output")
+}
+
+// The service hands the request's backend options to the compiler untouched;
+// it never builds LaTeX-only knobs itself.
+func TestDocumentService_Build_PassesBackendOptionsThrough(t *testing.T) {
+	mockTpl := new(MockTemplateProcessor)
+	mockTex := new(MockLaTeXCompiler)
+	svc := newTestDocumentService(mockTpl, mockTex, new(MockConverter), new(MockCleaner))
+
+	ctx := context.Background()
+	latexOpts := ports.NewLaTeXOptions(3, true)
+	req := BuildRequest{
+		TemplatePath: "template.tex",
+		Engine:       "xelatex",
+		OutputPath:   "out/report.pdf",
+		Backend:      latexOpts,
+	}
+	want := ports.NewCompileOptions("xelatex", "out/report.pdf", "out").
+		WithJobName("report").
+		WithBackendOptions(latexOpts)
+
+	mockTpl.On("Process", ctx, "template.tex", mock.Anything).Return("body", nil)
+	mockTex.On("Compile", ctx, "body", want).Return("out/report.pdf", nil)
+
+	result, err := svc.Build(ctx, req)
+
+	require.NoError(t, err)
+	assert.Equal(t, "out/report.pdf", result.PDFPath)
+	mockTex.AssertExpectations(t)
 }
 
 func (m *MockCleaner) Clean(ctx context.Context, pdfPath string) error {

@@ -5,6 +5,8 @@ package application
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/fs"
 	"time"
 )
@@ -15,61 +17,164 @@ type TemplateProcessor interface {
 	Process(ctx context.Context, templatePath string, variables map[string]string) (string, error)
 }
 
-// LaTeXCompiler compiles LaTeX content to PDF
-// Pure transport types - no domain dependencies
-type LaTeXCompiler interface {
+// DocumentCompiler compiles rendered document source to a PDF and returns the
+// PDF path. It is backend-neutral: LaTeX, Typst and any later backend implement
+// it, and every implementation must pass compilertest.Run.
+//
+// Contract:
+//   - success: a non-empty PDF exists at the returned path, which equals
+//     opts.OutputPath when OutputPath is set;
+//   - failure: an error is returned and no PDF is left at the output path;
+//   - a cancelled ctx stops the compile and the error matches ctx.Err();
+//   - the staged source file never collides with the source template and is
+//     removed unless opts.Debug;
+//   - a missing toolchain yields a *ToolchainMissingError naming the binary.
+type DocumentCompiler interface {
 	Compile(ctx context.Context, content string, opts CompileOptions) (string, error)
 }
 
-// StagedTemplateSuffix names the rendered file a compiler writes next to the
-// source before invoking LaTeX. It must never collide with a source template's
-// own name: the working directory is the template's directory and the staged
-// file is removed after a non-debug compile.
-const StagedTemplateSuffix = ".autopdf.tex"
+// LaTeXCompiler is the former name of DocumentCompiler.
+//
+// Deprecated: use DocumentCompiler.
+type LaTeXCompiler = DocumentCompiler
 
-// CompileOptions represents LaTeX compilation parameters
-// Value Object following DDD principles - immutable and validated
-type CompileOptions struct {
-	Engine     string // pdflatex, xelatex, lualatex
-	OutputPath string
-	WorkingDir string
-	Passes     int  // Number of compilation passes
-	UseLatexmk bool // Whether to use latexmk
-	JobName    string
-	Cleanup    bool // Whether to cleanup aux files
-	Debug      bool // Whether debug mode is enabled
+// BackendOptions is a backend-specific option value carried by CompileOptions.
+// Each backend defines its own option type and reads only that type; a value
+// meant for another backend is refused with a *BackendOptionsMismatchError.
+type BackendOptions interface {
+	// BackendName names the backend these options belong to.
+	BackendName() string
 }
 
-// NewCompileOptions creates a validated CompileOptions with defaults
+// CompileOptions holds the backend-neutral compile parameters.
+// Backend-specific knobs travel in Backend (e.g. LaTeXOptions).
+type CompileOptions struct {
+	Engine     string // engine name, e.g. pdflatex, xelatex, lualatex
+	OutputPath string
+	WorkingDir string
+	JobName    string
+	Cleanup    bool           // Whether to cleanup aux files
+	Debug      bool           // Whether debug mode is enabled (keeps the staged file)
+	Backend    BackendOptions // nil means the backend's defaults
+}
+
+// NewCompileOptions creates a CompileOptions with defaults and no backend options.
 func NewCompileOptions(engine, outputPath, workingDir string) CompileOptions {
 	return CompileOptions{
 		Engine:     engine,
 		OutputPath: outputPath,
 		WorkingDir: workingDir,
-		Passes:     1,
-		UseLatexmk: false,
 		JobName:    "document",
 		Cleanup:    true,
 		Debug:      false,
 	}
 }
 
-// WithPasses sets the number of compilation passes
-func (opts CompileOptions) WithPasses(passes int) CompileOptions {
-	if passes < 1 {
-		passes = 1
-	}
-	if passes > 10 {
-		passes = 10
-	}
-	opts.Passes = passes
+// WithBackendOptions sets the backend-specific options.
+func (opts CompileOptions) WithBackendOptions(backend BackendOptions) CompileOptions {
+	opts.Backend = backend
 	return opts
 }
 
-// WithLatexmk enables latexmk usage
-func (opts CompileOptions) WithLatexmk(useLatexmk bool) CompileOptions {
-	opts.UseLatexmk = useLatexmk
-	return opts
+// LaTeXBackendName is the BackendName of LaTeXOptions.
+const LaTeXBackendName = "latex"
+
+// LaTeX pass bounds.
+const (
+	MinLaTeXPasses = 1
+	MaxLaTeXPasses = 10
+)
+
+// LaTeXOptions are the LaTeX-only compile knobs.
+type LaTeXOptions struct {
+	Passes     int  // Number of compilation passes (1..10)
+	UseLatexmk bool // Whether latexmk drives the compile
+}
+
+// BackendName implements BackendOptions.
+func (LaTeXOptions) BackendName() string { return LaTeXBackendName }
+
+// DefaultLaTeXOptions returns one pass without latexmk.
+func DefaultLaTeXOptions() LaTeXOptions {
+	return LaTeXOptions{Passes: MinLaTeXPasses}
+}
+
+// NewLaTeXOptions returns LaTeXOptions with passes clamped to [1, 10].
+func NewLaTeXOptions(passes int, useLatexmk bool) LaTeXOptions {
+	return LaTeXOptions{Passes: passes, UseLatexmk: useLatexmk}.normalized()
+}
+
+func (o LaTeXOptions) normalized() LaTeXOptions {
+	if o.Passes < MinLaTeXPasses {
+		o.Passes = MinLaTeXPasses
+	}
+	if o.Passes > MaxLaTeXPasses {
+		o.Passes = MaxLaTeXPasses
+	}
+	return o
+}
+
+// LaTeXOptionsFrom reads the LaTeX options carried by opts. Nil backend options
+// yield DefaultLaTeXOptions; options of another backend are refused.
+func LaTeXOptionsFrom(opts CompileOptions) (LaTeXOptions, error) {
+	switch b := opts.Backend.(type) {
+	case nil:
+		return DefaultLaTeXOptions(), nil
+	case LaTeXOptions:
+		return b.normalized(), nil
+	case *LaTeXOptions:
+		if b == nil {
+			return DefaultLaTeXOptions(), nil
+		}
+		return b.normalized(), nil
+	default:
+		return LaTeXOptions{}, &BackendOptionsMismatchError{Want: LaTeXBackendName, Got: b.BackendName()}
+	}
+}
+
+// ErrBackendOptionsMismatch is matched (errors.Is) by every *BackendOptionsMismatchError.
+var ErrBackendOptionsMismatch = errors.New("backend options mismatch")
+
+// BackendOptionsMismatchError reports backend options handed to a compiler of
+// a different backend.
+type BackendOptionsMismatchError struct {
+	Want string // backend the compiler implements
+	Got  string // backend the options belong to
+}
+
+func (e *BackendOptionsMismatchError) Error() string {
+	return fmt.Sprintf("backend options mismatch: %s compiler was given %s options", e.Want, e.Got)
+}
+
+// Is makes errors.Is(err, ErrBackendOptionsMismatch) hold.
+func (e *BackendOptionsMismatchError) Is(target error) bool {
+	return target == ErrBackendOptionsMismatch
+}
+
+// ErrToolchainMissing is matched (errors.Is) by every *ToolchainMissingError.
+var ErrToolchainMissing = errors.New("toolchain missing")
+
+// ToolchainMissingError reports that a backend's binary is not available.
+// CommandExecutor implementations return it when the executable cannot be
+// found; compilers return it when their toolchain probe fails.
+type ToolchainMissingError struct {
+	Binary string // the executable that is missing, e.g. pdflatex, typst
+	Err    error  // underlying cause, may be nil
+}
+
+func (e *ToolchainMissingError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("toolchain missing: %s not found: %v", e.Binary, e.Err)
+	}
+	return fmt.Sprintf("toolchain missing: %s not found", e.Binary)
+}
+
+// Unwrap returns the underlying cause.
+func (e *ToolchainMissingError) Unwrap() error { return e.Err }
+
+// Is makes errors.Is(err, ErrToolchainMissing) hold.
+func (e *ToolchainMissingError) Is(target error) bool {
+	return target == ErrToolchainMissing
 }
 
 // WithJobName sets the job name

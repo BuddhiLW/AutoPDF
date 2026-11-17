@@ -16,6 +16,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/latex"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/logger"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/template"
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/args"
 	infraadapters "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/infrastructure/adapters"
@@ -43,7 +44,7 @@ func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentServ
 
 	return &documentService.DocumentService{
 		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
-		LaTeXCompiler:     latex.NewLaTeXCompilerAdapter(cfg, fileSystem, executor),
+		Compiler:          latex.NewLaTeXCompilerAdapter(cfg, fileSystem, executor),
 		Converter:         converter.NewConverterAdapter(cfg),
 		Cleaner:           cleaner.NewCleanerAdapter(),
 		PathOps:           infraadapters.NewOSPathOperations(),
@@ -61,7 +62,7 @@ func (sb *ServiceBuilder) BuildDocumentServiceWithWorkingDir(cfg *config.Config,
 
 	return &documentService.DocumentService{
 		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
-		LaTeXCompiler:     latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir),
+		Compiler:          latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir),
 		Converter:         converter.NewConverterAdapter(cfg),
 		Cleaner:           cleaner.NewCleanerAdapter(),
 		PathOps:           infraadapters.NewOSPathOperations(),
@@ -81,8 +82,7 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 		WorkingDir:   filepath.Dir(cfg.Template.String()),
 		DoClean:      args.Options.Clean.Enabled,
 		DebugEnabled: args.Options.Debug.Enabled, // Pass debug option for persistent concrete files
-		Passes:       cfg.Passes,
-		UseLatexmk:   cfg.UseLatexmk,
+		Backend:      ports.NewLaTeXOptions(cfg.Passes, cfg.UseLatexmk),
 		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
