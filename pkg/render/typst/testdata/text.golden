@@ -1,0 +1,7 @@
+main: main.typ
+--- fragments/intro-6e07350631bd.typ
+Price: \$5 \#1 \*bold\* \_x\_ \<a\> \@ref \[b\] \`c\` \~ \= \- \+ \/ \\ done
+
+--- main.typ
+#include "/fragments/intro-6e07350631bd.typ"
+
