@@ -6,13 +6,13 @@
 <img data-badge="GoDoc" src="https://godoc.org/github.com/BuddhiLW/AutoPDF/v2?status.svg">
 <img data-badge="License" src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
 
-**A powerful tool that creates PDFs using LaTeX and Go's templating syntax with advanced features.**
+**A powerful tool that creates PDFs from LaTeX or Typst templates using Go's templating syntax with advanced features.**
 
 </div>
 
 - :zap: **Simple. Neat. Fast. Powerful.** :zap:
 - **Perfect for creating professional, customizable PDF documents**
-- **Leverages the most powerful PDF document generator: $\LaTeX$**
+- **Leverages the most powerful PDF document generator, $\LaTeX$, or the fast modern one, [Typst](#typst-backend)**
 - **Advanced templating with complex variables and for loops**
 - **Persistent CLI settings and configuration management**
 - **Built with DDD, SOLID principles, and GoF design patterns**
@@ -60,7 +60,7 @@ project instead.
 ## Features
 
 ### 🚀 **Core Features**
-- **LaTeX PDF Generation**: Professional document creation
+- **LaTeX and Typst PDF Generation**: Professional document creation
 - **Template Processing**: Go template syntax with custom delimiters
 - **YAML Configuration**: Flexible and readable configuration
 - **Multiple Backends**: LaTeX (pdflatex, xelatex, lualatex) and [Typst](#typst-backend), selected per document
@@ -78,6 +78,7 @@ project instead.
 ### 🏗️ **Architecture**
 - **Domain-Driven Design (DDD)**: Clear domain boundaries
 - **SOLID Principles**: Maintainable and extensible code
+- **Backend Registry**: Engines, template extensions and auxiliary files are declared once per backend; adding a backend is one registration, and every backend passes the same compiler contract suite
 - **GoF Design Patterns**: Factory, Builder, Strategy, Command
 - **Clean Architecture**: Separation of concerns
 - **Test-Driven Development**: Comprehensive test coverage
@@ -278,6 +279,17 @@ variables:
 autopdf build test/model_typst/main.typ test/model_typst/config.yaml
 ```
 
+produces (`out/output.pdf`, page 1):
+
+<div align="center">
+<img src="./.gitassets/typst-demo.png" alt="AutoPDF Typst example output" width="700">
+</div>
+
+The escaped author (`Ada #1 _Lovelace_ [draft]`) prints literally, the range
+loop expands, and Typst's own `#pill[a[b]]` call passes through untouched. Run
+with `debug` to keep the staged `output.autopdf.typ` and see exactly what was
+handed to typst.
+
 **Template syntax.** Templates are the same `text/template` with `delim[[ ]]`
 actions and strict rendering. Outside an action, text/template does not lex
 `]]`, so Typst's own `[...]` content blocks (`#f[a[b]]`) and `#` calls pass
@@ -432,6 +444,11 @@ The `test/` directory contains comprehensive examples:
 - `test/model_xelatex/`: XeLaTeX engine example
 - `test/complex_variables/`: Complex variable demonstration
 
+#### Typst (`test/model_typst/`)
+- `engine: typst` with a `.typ` template
+- `escapeTypst`, range loops and Typst content blocks side by side
+- End-to-end test that skips when `typst` is not on `PATH`
+
 ### 🚀 **Quick Start**
 
 1. **Install AutoPDF**:
@@ -455,6 +472,12 @@ The `test/` directory contains comprehensive examples:
    ```bash
    cd test/for_loops
    autopdf build loops_document.tex config.yaml
+   ```
+
+5. **Try the Typst backend** (needs `typst` on `PATH`; `make typst` fetches it into `./bin`):
+   ```bash
+   cd test/model_typst
+   autopdf build main.typ config.yaml
    ```
 
 ### 🛠️ **CLI Commands**
@@ -485,7 +508,7 @@ autopdf force [on|off|switch]
 
 #### Utility Commands
 ```bash
-# Clean auxiliary files
+# Clean auxiliary files (each backend's own list; Typst leaves none)
 autopdf clean <path>
 
 # Convert PDF to images
