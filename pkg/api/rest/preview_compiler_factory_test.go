@@ -25,19 +25,14 @@ func namedFactory(name string) PreviewCompilerFactory {
 	return PreviewCompilerFactoryFunc(func() (preview.Compiler, error) { return namedCompiler(name), nil })
 }
 
-// testRegistry registers latex plus a typst descriptor built here, standing in
-// for the registry entry the wiring step adds.
+// testRegistry is the builtin registry, which carries both latex and typst.
 func testRegistry(t *testing.T) *backend.Registry {
 	t.Helper()
 	registry := backend.NewBuiltinRegistry()
-	err := registry.Register(backend.Backend{
-		Name: ports.TypstBackendName, EngineNames: []string{"typst"}, TemplateExtensions: []string{".typ"},
-		NewCompiler: func(backend.CompilerDeps, ports.BackendOptions) (ports.DocumentCompiler, error) {
-			return nil, errors.New("unused")
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
+	for _, name := range []string{ports.LaTeXBackendName, ports.TypstBackendName} {
+		if _, ok := registry.Lookup(name); !ok {
+			t.Fatalf("builtin registry lacks backend %q", name)
+		}
 	}
 	return registry
 }
