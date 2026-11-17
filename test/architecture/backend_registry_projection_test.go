@@ -135,7 +135,8 @@ func TestRegisteredBackendAppearsInEveryProjection(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, fakeCompiler{}, compiler)
 
-		req := builder.BuildRequest(&args.BuildArgs{Options: options.NewBuildOptions()}, cfg)
+		req, err := builder.BuildRequest(&args.BuildArgs{Options: options.NewBuildOptions()}, cfg)
+		require.NoError(t, err)
 		assert.Equal(t, fakeOptions{passes: 3}, req.Backend)
 	})
 }

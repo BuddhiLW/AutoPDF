@@ -295,5 +295,5 @@ func Default() *Registry {
 // NewBuiltinRegistry returns a fresh registry with the built-in backends; tests
 // extend it without touching Default().
 func NewBuiltinRegistry() *Registry {
-	return NewRegistry().MustRegister(LaTeX())
+	return NewRegistry().MustRegister(LaTeX()).MustRegister(Typst())
 }

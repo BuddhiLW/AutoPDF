@@ -186,10 +186,10 @@ func (vu *ValidationUtils) ValidateTemplatePath(templatePath string) (*ErrorDeta
 	}
 
 	// Check file extension
-	if !strings.HasSuffix(strings.ToLower(templatePath), ".tex") {
+	if extensions := vu.backends().TemplateExtensions(); !slices.Contains(extensions, strings.ToLower(filepath.Ext(templatePath))) {
 		return NewErrorDetails(ErrorCategoryTemplate, ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
-				WithValidation("file_extension", ".tex", filepath.Ext(templatePath)).
+				WithValidation("file_extension", extensions, filepath.Ext(templatePath)).
 				AddContext(ContextKeyError, ErrTemplateFileInvalid),
 			nil
 	}
@@ -245,7 +245,7 @@ func (vu *ValidationUtils) ValidateOutputPath(outputPath string) (*ErrorDetails,
 	return nil, nil
 }
 
-// ValidateEngine validates a LaTeX engine
+// ValidateEngine validates an engine name against the registered backends
 func (vu *ValidationUtils) ValidateEngine(engine string) (*ErrorDetails, error) {
 	if engine == "" {
 		return NewErrorDetails(ErrorCategoryGeneration, ErrorSeverityHigh).

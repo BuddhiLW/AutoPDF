@@ -33,7 +33,7 @@ func WithRegistry(registry *backend.Registry) EngineStrategyOption {
 
 // EngineStrategy implements parallel.CompilationStrategy on top of an
 // api.Generator. It depends on the Generator interface rather than on
-// *api.Engine, so a caller can substitute a fake without a real LaTeX
+// *api.Engine, so a caller can substitute a fake without a real
 // toolchain.
 type EngineStrategy struct {
 	generator  api.Generator
@@ -54,10 +54,16 @@ func WithExtensions(extensions ...string) EngineStrategyOption {
 	}
 }
 
-// WithLaTeXEngine selects the LaTeX engine passed to the generator.
-func WithLaTeXEngine(name string) EngineStrategyOption {
+// WithEngine selects the engine passed to the generator. Empty (the
+// default) lets each template's extension pick its backend.
+func WithEngine(name string) EngineStrategyOption {
 	return func(strategy *EngineStrategy) { strategy.engineName = name }
 }
+
+// WithLaTeXEngine selects the engine passed to the generator.
+//
+// Deprecated: use WithEngine.
+func WithLaTeXEngine(name string) EngineStrategyOption { return WithEngine(name) }
 
 // WithOutputDir places generated PDFs in dir rather than beside the template.
 func WithOutputDir(dir string) EngineStrategyOption {
@@ -111,7 +117,7 @@ func (strategy *EngineStrategy) Compile(
 	result, err := strategy.generator.Generate(ctx, api.Request{
 		TemplatePath: template,
 		OutputPath:   strategy.outputPathFor(template),
-		LaTeXEngine:  strategy.engineName,
+		Engine:       strategy.engineName,
 		WorkingDir:   filepath.Dir(config),
 	})
 	if err != nil {

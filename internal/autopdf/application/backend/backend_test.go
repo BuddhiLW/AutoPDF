@@ -45,11 +45,11 @@ func FakeBackend() backend.Backend {
 	}
 }
 
-func TestDefaultRegistryHoldsOnlyLaTeX(t *testing.T) {
+func TestDefaultRegistryHoldsLaTeXThenTypst(t *testing.T) {
 	registry := backend.Default()
-	require.Len(t, registry.Backends(), 1)
-	assert.Equal(t, []string{"pdflatex", "xelatex", "lualatex"}, registry.EngineNames())
-	assert.Equal(t, []string{".tex", ".latex"}, registry.TemplateExtensions())
+	require.Len(t, registry.Backends(), 2)
+	assert.Equal(t, []string{"pdflatex", "xelatex", "lualatex", "typst"}, registry.EngineNames())
+	assert.Equal(t, []string{".tex", ".latex", ".typ"}, registry.TemplateExtensions())
 	assert.Equal(t, "pdflatex", registry.DefaultEngine())
 	assert.Contains(t, registry.AuxExtensions(), ".aux")
 	b, ok := registry.Lookup(ports.LaTeXBackendName)
@@ -92,7 +92,7 @@ func TestResolveOrder(t *testing.T) {
 		var unknown *backend.UnknownEngineError
 		require.ErrorAs(t, err, &unknown)
 		assert.Equal(t, "context", unknown.Engine)
-		assert.Equal(t, []string{"pdflatex", "xelatex", "lualatex", "fakeengine"}, unknown.Known)
+		assert.Equal(t, []string{"pdflatex", "xelatex", "lualatex", "typst", "fakeengine"}, unknown.Known)
 		assert.Contains(t, err.Error(), "fakeengine")
 	})
 }

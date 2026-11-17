@@ -202,6 +202,9 @@ func (iaa *InternalApplicationAdapter) mergeConfig(ctx context.Context, cfg *con
 	}
 	if merged.Engine == "" {
 		merged.Engine = defaultCfg.Engine
+		if selected, err := backend.Default().Resolve("", merged.Template.String()); err == nil {
+			merged.Engine = config.Engine(selected.DefaultEngine())
+		}
 	}
 	// Apply defaults for Passes and UseLatexmk if not set (zero values)
 	if merged.Passes < 1 {

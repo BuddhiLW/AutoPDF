@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
+	"gopkg.in/yaml.v3"
 
 	// Legacy tex functionality now integrated into adapters
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
@@ -74,13 +76,17 @@ func (cr *ConfigResolver) createDefaultConfig(templateFile string) error {
 	// The scaffolded variable set covers every key the shipped sample template
 	// reads, which is the set configs/sample-config.yaml carries. Under strict
 	// rendering an omitted key refuses the build rather than printing a blank.
+	engine := backend.Default().DefaultEngine()
+	if selected, err := backend.Default().Resolve("", templateFile); err == nil {
+		engine = selected.DefaultEngine()
+	}
 	defaultConfig := `template: "` + templateFile + `"
 variables:
   title: "My Document"
   author: "AutoPDF User"
   date: "` + time.Now().Format("2006-01-02") + `"
   content: "Replace this with your document body."
-engine: "pdflatex"
+engine: "` + engine + `"
 output: ""
 conversion:
   enabled: false
@@ -102,8 +108,49 @@ func (cr *ConfigResolver) LoadConfig(configFile string) (*config.Config, error) 
 	if err != nil {
 		return nil, configs.ParseError
 	}
+	if !engineDeclared(yamlData) {
+		// An omitted engine is chosen by the template's backend once the
+		// template path is known (ResolveBackend), not defaulted to LaTeX here.
+		cfg.Engine = ""
+	}
 
 	return cfg, nil
+}
+
+// engineDeclared reports whether the YAML sets a non-empty engine.
+func engineDeclared(yamlData []byte) bool {
+	var probe struct {
+		Engine string `yaml:"engine"`
+	}
+	if err := yaml.Unmarshal(yamlData, &probe); err != nil {
+		return true
+	}
+	return probe.Engine != ""
+}
+
+// ResolveBackend picks the backend for cfg's engine and template, fills an
+// omitted engine with that backend's default engine, and refuses settings the
+// backend cannot honour (e.g. passes > 1 or use_latexmk with typst).
+func (cr *ConfigResolver) ResolveBackend(cfg *config.Config) error {
+	return ResolveBackendWith(backend.Default(), cfg)
+}
+
+// ResolveBackendWith is ResolveBackend over an explicit registry.
+func ResolveBackendWith(registry *backend.Registry, cfg *config.Config) error {
+	if registry == nil {
+		registry = backend.Default()
+	}
+	selected, err := registry.Resolve(cfg.Engine.String(), cfg.Template.String())
+	if err != nil {
+		return err
+	}
+	if cfg.Engine == "" {
+		cfg.Engine = config.Engine(selected.DefaultEngine())
+	}
+	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk}); err != nil {
+		return fmt.Errorf("invalid configuration for the %s backend: %w", selected.Name, err)
+	}
+	return nil
 }
 
 // LoadConfigWithLogging loads configuration with integrated logging
@@ -139,6 +186,11 @@ func (cr *ConfigResolver) LoadConfigWithLogging(ctx context.Context, templateFil
 		return nil, err
 	}
 	logger.LogDataMapping(cfg.Template.String(), cfg.Variables.Flatten())
+
+	if err := cr.ResolveBackend(cfg); err != nil {
+		logger.ErrorWithFields("Configuration refused by its backend", "error", err)
+		return nil, err
+	}
 
 	return cfg, nil
 }

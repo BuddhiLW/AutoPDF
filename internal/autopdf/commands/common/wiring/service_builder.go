@@ -30,7 +30,17 @@ import (
 
 // ServiceBuilder handles the construction of the application service
 type ServiceBuilder struct {
-	registry *backend.Registry
+	registry   *backend.Registry
+	fileSystem ports.FileSystem      // nil means the OS file system
+	executor   ports.CommandExecutor // nil means the OS command executor
+}
+
+// WithToolchain makes the compilers this builder wires run over fileSystem and
+// executor instead of the OS ones (nil keeps the OS default).
+func (sb *ServiceBuilder) WithToolchain(fileSystem ports.FileSystem, executor ports.CommandExecutor) *ServiceBuilder {
+	sb.fileSystem = fileSystem
+	sb.executor = executor
+	return sb
 }
 
 // NewServiceBuilder creates a service builder over the default backend registry.
@@ -63,8 +73,14 @@ func (sb *ServiceBuilder) BuildDocumentService(cfg *config.Config) *documentServ
 // This is used by CLI to ensure LaTeX can find assets (.cls files, images) in the template's directory
 func (sb *ServiceBuilder) BuildDocumentServiceWithWorkingDir(cfg *config.Config, workingDir string) *documentService.DocumentService {
 	// Create infrastructure adapters (DIP: Application depends on abstractions)
-	fileSystem := infraadapters.NewOSFileSystem()
-	executor := infraadapters.NewOSCommandExecutor()
+	var fileSystem ports.FileSystem = infraadapters.NewOSFileSystem()
+	var executor ports.CommandExecutor = infraadapters.NewOSCommandExecutor()
+	if sb.fileSystem != nil {
+		fileSystem = sb.fileSystem
+	}
+	if sb.executor != nil {
+		executor = sb.executor
+	}
 
 	return &documentService.DocumentService{
 		TemplateProcessor: template.NewTemplateProcessorAdapter(cfg),
@@ -73,21 +89,46 @@ func (sb *ServiceBuilder) BuildDocumentServiceWithWorkingDir(cfg *config.Config,
 			Deps:     backend.CompilerDeps{FileSystem: fileSystem, Executor: executor, WorkingDir: workingDir},
 		},
 		Converter:    converter.NewConverterAdapter(cfg),
-		Cleaner:      cleaner.NewCleanerAdapter(),
+		Cleaner:      sb.cleanerFor(cfg),
 		PathOps:      infraadapters.NewOSPathOperations(),
 		FileSystem:   infraadapters.NewOSFileSystem(),
 		ErrorFactory: apperrors.NewDomainErrorFactory(nil),
 	}
 }
 
+// cleanerFor removes only the auxiliary files of the backend cfg selects; an
+// unresolvable engine falls back to every registered backend's extensions.
+func (sb *ServiceBuilder) cleanerFor(cfg *config.Config) *cleaner.CleanerAdapter {
+	if cfg != nil {
+		if b, err := sb.backends().Resolve(cfg.Engine.String(), cfg.Template.String()); err == nil {
+			return cleaner.NewCleanerAdapterWithExtensions(b.AuxExtensions)
+		}
+	}
+	return cleaner.NewCleanerAdapterWithExtensions(sb.backends().AuxExtensions())
+}
+
+// BackendOptions resolves the backend for the config's engine and template
+// and builds its options from the config's settings. An unknown engine, or a
+// setting the backend cannot honour (passes > 1 or use_latexmk with typst),
+// is refused.
+func (sb *ServiceBuilder) BackendOptions(cfg *config.Config) (ports.BackendOptions, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config must not be nil")
+	}
+	b, err := sb.backends().Resolve(cfg.Engine.String(), cfg.Template.String())
+	if err != nil {
+		return nil, err
+	}
+	return b.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk})
+}
+
 // BuildRequest constructs a BuildRequest from the parsed arguments and config.
 // Backend options come from the backend the registry resolves for the config's
-// engine and template; an unresolvable engine leaves them nil and is reported
-// by the compile.
-func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) documentService.BuildRequest {
-	var backendOptions ports.BackendOptions
-	if b, err := sb.backends().Resolve(cfg.Engine.String(), cfg.Template.String()); err == nil {
-		backendOptions, _ = b.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk})
+// engine and template; a configuration that backend refuses is an error.
+func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config) (documentService.BuildRequest, error) {
+	backendOptions, err := sb.BackendOptions(cfg)
+	if err != nil {
+		return documentService.BuildRequest{}, err
 	}
 	return documentService.BuildRequest{
 		TemplatePath: cfg.Template.String(),
@@ -103,7 +144,7 @@ func (sb *ServiceBuilder) BuildRequest(args *args.BuildArgs, cfg *config.Config)
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,
 		},
-	}
+	}, nil
 }
 
 // NewConvertServiceBuilder creates a new convert service builder

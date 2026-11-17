@@ -69,7 +69,8 @@ func TestServiceBuilder_BuildRequest(t *testing.T) {
 		}(),
 	}
 
-	req := builder.BuildRequest(args, cfg)
+	req, err := builder.BuildRequest(args, cfg)
+	require.NoError(t, err)
 
 	assert.Equal(t, "template.tex", req.TemplatePath)
 	assert.Equal(t, "config.yaml", req.ConfigPath)
