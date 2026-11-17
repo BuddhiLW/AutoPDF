@@ -1,31 +1,39 @@
 # AutoPDF
 
-Go CLI tool (Bonzai framework) for LaTeX→PDF generation with YAML configuration.
+Go CLI tool (Bonzai framework) for template→PDF generation (LaTeX or Typst) with YAML configuration.
 
 ## Commands
 
 ```bash
 go build -o autopdf ./cmd/autopdf
-./autopdf build     # Process template, compile LaTeX
-./autopdf clean     # Remove .aux, .log, .toc
+./autopdf build     # Process template, compile with the selected backend
+./autopdf clean     # Remove the backends' auxiliary files
 ./autopdf convert   # PDF to image
+make typst          # Pinned typst binary into ./bin (sha256-verified)
 ```
 
 ## Key Features
 
 - YAML-based configuration
 - Custom delimiters: `delim[[`, `]]` (avoids LaTeX conflicts)
-- Compiles via pdflatex/xelatex
+- Backends: latex (pdflatex/xelatex/lualatex) and typst; engine name wins, else template extension, else pdflatex
 - Optional PDF→image conversion
 
 ## Structure
 
 ```
-cmd/autopdf/main.go       # Bonzai CLI entry
-internal/cli/             # build, clean, convert commands
-internal/template/        # Go template engine with custom delims
-internal/compiler/        # LaTeX compilation via os/exec
+cmd/autopdf/main.go                              # Bonzai CLI entry
+internal/autopdf/commands/                       # build, clean, convert, deck commands
+internal/autopdf/application/ports/              # DocumentCompiler + LaTeXOptions/TypstOptions; compilertest contract suite
+internal/autopdf/application/backend/            # Backend registry: engines, extensions, aux files, compiler factory
+internal/autopdf/application/adapters/{latex,typst}/  # DocumentCompiler adapters
+pkg/api/                                         # Embedding API (Request.Engine)
+pkg/preview/                                     # Preview compilers (LaTeX, Typst)
+pkg/render/{latex,typst,backends}/               # Component projections; backends.Default() registers both
+pkg/template/{strict,escape}/                    # Strict rendering; escapeTypst
 ```
+
+Add a backend by registering a `backend.Backend`; never hardcode engine or extension lists. Typst e2e: `test/model_typst` (skips without typst on PATH).
 
 ## Template Processing
 

@@ -63,7 +63,7 @@ project instead.
 - **LaTeX PDF Generation**: Professional document creation
 - **Template Processing**: Go template syntax with custom delimiters
 - **YAML Configuration**: Flexible and readable configuration
-- **Multiple Engines**: Support for pdflatex, xelatex, and more
+- **Multiple Backends**: LaTeX (pdflatex, xelatex, lualatex) and [Typst](#typst-backend), selected per document
 - **PDF Conversion**: Convert PDFs to images (PNG, JPEG, etc.)
 
 ### 🔧 **Advanced Features**
@@ -238,6 +238,105 @@ own catalog and an `api.ManifestProjector`; adding one is a new package rather
 than a change to `pkg/api`.
 
 - [AutoPDF × plato: the vocabulary, the degradations, the drift gate](docs/plato-integration.md)
+
+### Typst backend
+
+[Typst](https://github.com/typst/typst) is a second document backend next to
+LaTeX. The same CLI, `pkg/api.Engine`, parallel strategy and preview sessions
+compile it; only the template language changes.
+
+**Selecting it.** Set `engine: typst` in the config, or leave `engine` out and
+use a `.typ` template: an explicit engine wins, otherwise the template's
+extension picks the backend, otherwise LaTeX (`pdflatex`). In Go, set
+`api.Request.Engine` (`LaTeXEngine` is deprecated and read only when `Engine`
+is empty):
+
+```go
+result, err := engine.Generate(ctx, api.Request{
+    TemplatePath: "report.typ",
+    OutputPath:   "report.pdf",
+    Engine:       "typst", // optional: the .typ extension already selects typst
+    Variables:    map[string]string{"title": "Typst Report"},
+})
+```
+
+**Config** ([`test/model_typst/`](test/model_typst/)):
+
+```yaml
+template: "./main.typ"
+output: "./out/output"
+engine: "typst"
+variables:
+  title: "AutoPDF Typst Report"
+  author: "Ada #1 _Lovelace_ [draft]"
+  items:
+    - name: "Templates"
+      note: "delim actions render; Typst brackets stay put"
+```
+
+```bash
+autopdf build test/model_typst/main.typ test/model_typst/config.yaml
+```
+
+**Template syntax.** Templates are the same `text/template` with `delim[[ ]]`
+actions and strict rendering. Outside an action, text/template does not lex
+`]]`, so Typst's own `[...]` content blocks (`#f[a[b]]`) and `#` calls pass
+through untouched. Values are inserted as raw markup, so a value that may
+contain any of ``\ # $ * _ ` < > @ [ ] ~ = - + /`` should go through
+`escapeTypst`, which backslash-escapes each of them:
+
+```typst
+= delim[[ escapeTypst .title ]]
+
+Author: delim[[ escapeTypst .author ]]
+
+delim[[ range .items -]]
+- *delim[[ escapeTypst .name ]]*: delim[[ escapeTypst .note ]]
+delim[[ end ]]
+```
+
+**What is refused.** Typst compiles in one pass, so `passes` greater than 1 and
+`use_latexmk: true` are refused with a named error (`UnsupportedSettingError`)
+instead of being ignored. An engine name no backend accepts is refused with
+the list of known engines. Typst output goes through the same completeness
+gate as LaTeX: a PDF without its `%%EOF` trailer is never published.
+
+**Compile details.** The rendered template is staged next to it as
+`<job>.autopdf.typ` and compiled with `typst compile --root <template dir>`,
+so the document can read assets (images, data, `#import`s) inside the
+template's directory and nothing outside it. The staged file is removed unless
+debug is on. Typst leaves no auxiliary files, so `clean` has nothing to remove
+for it.
+
+**Preview.** `preview.TypstCompiler` compiles a workspace's main `.typ` file
+and rasterizes pages with typst itself (`--format png --ppi`, 144 by default),
+so no Poppler is needed; diagnostics carry file, line and column.
+`rest.NewBackendPreviewCompilerFactory` picks the LaTeX or Typst compiler per
+session, and `POST /sessions` accepts an optional
+`{"backend", "engine", "template"}` body.
+
+**Projection.** Component documents can project to Typst through
+`pkg/render/typst`. `pkg/render/backends.Default()` registers the LaTeX and
+Typst projection backends; set `DocumentEngineConfig.Backends` to it and
+`Backend: "typst"`. The `text`, `section` and `artifact` builtins have Typst
+projections; any other component is refused by name
+(`UnsupportedComponentError`) rather than dropped.
+
+**Toolchain.** `make typst` downloads the pinned release (`TYPST_VERSION`,
+default 0.15.1, x86_64 Linux musl build) into `./bin`, verifies its sha256
+(`TYPST_SHA256`) and extracts `bin/typst`; add `./bin` to `PATH`. Other ways
+to install it:
+
+```bash
+cargo install typst-cli --locked   # from source, any platform
+brew install typst                 # macOS / Linuxbrew
+pacman -S typst                    # Arch
+winget install --id Typst.Typst    # Windows
+```
+
+The end-to-end test in `test/model_typst` builds the CLI and compiles the
+example when `typst` is on `PATH`, and skips with a message saying so when it
+is not.
 
 ### Configuration Examples
 

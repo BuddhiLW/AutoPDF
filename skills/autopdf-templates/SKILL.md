@@ -1,7 +1,7 @@
 ---
 name: autopdf-templates
 description: >
-  Write AutoPDF LaTeX templates and YAML configuration — the custom delim[[ ]]
+  Write AutoPDF LaTeX or Typst templates and YAML configuration — the custom delim[[ ]]
   delimiters, variable substitution, nested objects, and range loops. Use when
   authoring or debugging a .tex template for AutoPDF, when variables render
   literally instead of substituting, when a template must iterate over a list or
@@ -145,6 +145,34 @@ delim[[- end]]
 than one compile. Set `passes: 2` (or 3), or `use_latexmk: true` to let latexmk
 decide. Symptoms of too few passes are `??` in place of references and a table
 of contents that is empty or one revision stale.
+
+## Typst templates
+
+A `.typ` template (or `engine: typst` in the config) compiles with Typst
+instead of LaTeX. The template layer is identical: `delim[[ ]]` actions, dotted
+paths, `range`, `if`, strict rendering. Typst's `[...]` content blocks and `#`
+calls are ordinary text to the template engine and pass through untouched.
+
+```typst
+= delim[[ escapeTypst .title ]]
+
+delim[[ range .items -]]
+- *delim[[ escapeTypst .name ]]*: delim[[ escapeTypst .note ]]
+delim[[ end ]]
+```
+
+- **Escape values with `escapeTypst`.** It backslash-escapes every Typst markup
+  special (``\ # $ * _ ` < > @ [ ] ~ = - + /``). An unescaped `#`, `_` or `[`
+  in a value changes the markup or breaks the compile. Do not YAML-escape for
+  LaTeX (`\\&`) in a Typst config.
+- **No multi-pass settings.** Typst resolves references in one run, so
+  `passes > 1` and `use_latexmk: true` are refused, not ignored.
+- **Assets** (images, `#import`, data files) resolve inside the template's
+  directory, which is the `--root`; paths outside it are not readable.
+- **Errors** come as `file:line:col: error: message` against the staged
+  `<job>.autopdf.typ`; keep it with `autopdf debug switch`.
+
+Working example: `test/model_typst/` (`config.yaml` + `main.typ`).
 
 ## Debugging order
 
