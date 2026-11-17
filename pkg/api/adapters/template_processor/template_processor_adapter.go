@@ -15,6 +15,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/escape"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/strict"
 )
 
@@ -228,6 +229,9 @@ func (tpa *TemplateProcessorAdapter) createTemplate(content string) (*template.T
 		},
 	}
 	for name, fn := range strict.Funcs() {
+		funcMap[name] = fn
+	}
+	for name, fn := range escape.Funcs() {
 		funcMap[name] = fn
 	}
 
