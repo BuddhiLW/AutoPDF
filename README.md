@@ -359,6 +359,29 @@ The end-to-end test in `test/model_typst` builds the CLI and compiles the
 example when `typst` is on `PATH`, and skips with a message saying so when it
 is not.
 
+### Precompiled preamble (`format_file`)
+
+Templates whose preamble loads many packages (tikz, pgfplots, hyperref, ...)
+spend most of each build loading them. With `format_file: true` AutoPDF dumps
+the preamble once into a LaTeX format file and starts later builds from it:
+
+```yaml
+engine: pdflatex
+format_file: true   # LaTeX only, off by default
+```
+
+The format lives in `.autopdf-fmt/` inside the working directory, keyed by a
+hash of the engine and the preamble, so any preamble edit, or an edit to a
+local `.sty`/`.cls`/`\input` file the preamble reads, builds a new one. Body
+edits reuse it. Everything before `\begin{document}` (or before an
+`\endofdump` / `\csname endofdump\endcsname` line, to keep a variable part
+out of the format) is dumped. If the format cannot be built or used, the build
+falls back to a normal compile and logs why. It needs TeX Live's
+`mylatexformat` package. pdflatex works. xelatex and lualatex cannot dump
+most preambles and fall back. Typst refuses the setting, and LaTeX refuses it
+together with `use_latexmk`. On a 13-package preamble a warm build went from
+about 0.9 s to 0.25 s. See [docs/format-file.md](docs/format-file.md).
+
 ### Configuration Examples
 
 #### Basic Configuration
