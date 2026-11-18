@@ -117,6 +117,10 @@ POST /api/v1/pdf/generate/from-struct
 
 ### Phase 5: Adapters ✅
 
+> `pkg/api/examples` has since been removed. Its examples now live as `Example`
+> functions in `_test.go` files beside the packages they demonstrate (see
+> CHANGELOG, Unreleased).
+
 **Updated**: `pkg/api/adapters/external_pdf_service/external_pdf_service_adapter.go`
 - Updated to use `TemplateVariables.Flatten()` instead of ranging over map
 

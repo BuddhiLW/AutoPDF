@@ -326,7 +326,7 @@ Common error scenarios:
 
 ## Examples
 
-See `pkg/api/examples/struct_conversion_example.go` for comprehensive examples demonstrating all features.
+Runnable examples live in `pkg/converter/example_test.go` and appear in the package's godoc (`go doc -all ./pkg/converter`).
 
 ## License
 

@@ -5,6 +5,15 @@ Versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `pkg/api/examples` is no longer an importable package. Its
+  content now lives as compiler-checked `Example` functions in `_test.go`
+  files next to the packages they demonstrate (`pkg/converter`, `pkg/api`,
+  `pkg/api/rest`, `pkg/api/services`, `pkg/api/application`,
+  `pkg/api/middleware`, `pkg/api/domain/generation`), so they show up in godoc
+  without exporting mock or client types from the module.
+
 ## [2.4.0] - 2026-11-18
 
 ### Added
