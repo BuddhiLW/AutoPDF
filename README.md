@@ -96,7 +96,16 @@ autopdf build template.tex config.yaml clean
 
 # With conversion
 autopdf build template.tex config.yaml --convert png,jpeg
+
+# Config (JSON or YAML) from standard input
+echo '{"variables":{"title":"Hello"},"output":"out.pdf"}' | autopdf build template.tex -
 ```
+
+A config argument of `-` reads the whole configuration from standard input.
+Content that is a JSON object is parsed as JSON, anything else as YAML. With
+no config file there is no config directory, so a relative `template` inside a
+stdin config resolves against the directory of the `TEMPLATE` argument. The
+`watch` option cannot be combined with `-`.
 
 ### Advanced Usage
 
@@ -486,6 +495,9 @@ The `test/` directory contains comprehensive examples:
 ```bash
 # Basic build
 autopdf build TEMPLATE [CONFIG]
+
+# Config from standard input (JSON or YAML)
+autopdf build TEMPLATE - [OPTIONS]
 
 # With options
 autopdf build TEMPLATE [CONFIG] [OPTIONS]
