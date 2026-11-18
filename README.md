@@ -489,6 +489,9 @@ autopdf build TEMPLATE [CONFIG]
 
 # With options
 autopdf build TEMPLATE [CONFIG] [OPTIONS]
+
+# Several templates in parallel (.tex and .typ may be mixed)
+autopdf multiple CONFIG TEMPLATE1 TEMPLATE2 ...
 ```
 
 #### Setting Commands

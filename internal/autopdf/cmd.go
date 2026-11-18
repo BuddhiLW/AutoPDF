@@ -11,6 +11,7 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/clean"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/debug"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/force"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/multiple"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/verbose"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/watch"
 	"github.com/rwxrob/bonzai"
@@ -37,6 +38,7 @@ operations and workflow management.
 # Commands:
 - build:    Process template and compile to PDF
 - deck:     Build a PDF presentation from a DocumentSpec
+- multiple: Compile multiple templates in parallel with one config
 - convert:  Convert PDF to images
 - clean:    Remove LaTeX auxiliary files
 - verbose:  Set verbose logging level
@@ -51,8 +53,9 @@ about each command.
 	Cmds: []*bonzai.Cmd{
 		help.Cmd,
 		vars.Cmd,
-		build.BuildServiceCmd,     // Use new service-based build command
-		deck.DeckServiceCmd,       // Build a presentation from a DocumentSpec
+		build.BuildServiceCmd, // Use new service-based build command
+		deck.DeckServiceCmd,   // Build a presentation from a DocumentSpec
+		multiple.MultipleServiceCmd,
 		convert.ConvertServiceCmd, // Use new service-based convert command
 		clean.CleanServiceCmd,     // Use new service-based clean command
 		verbose.VerboseServiceCmd, // Use new service-based verbose command

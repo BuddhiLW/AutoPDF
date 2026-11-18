@@ -3,8 +3,11 @@ package autopdf
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/build"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/options/multiple"
 	"github.com/rwxrob/bonzai"
 )
 
@@ -32,7 +35,7 @@ func TestCmd_Commands(t *testing.T) {
 	}
 
 	// Check for expected commands
-	expectedCommands := []string{"help", "build", "clean", "convert", "verbose", "debug", "force"}
+	expectedCommands := []string{"help", "build", "multiple", "clean", "convert", "verbose", "debug", "force"}
 	commandNames := make(map[string]bool)
 
 	for _, cmd := range Cmd.Cmds {
@@ -43,6 +46,46 @@ func TestCmd_Commands(t *testing.T) {
 		if !commandNames[expectedCmd] {
 			t.Errorf("Expected command '%s' not found in Cmd.Cmds", expectedCmd)
 		}
+	}
+}
+
+func TestCmd_MultipleReachableFromRoot(t *testing.T) {
+	for _, name := range []string{"multiple", "m"} {
+		if got := Cmd.Can(name); got != multiple.MultipleServiceCmd {
+			t.Errorf("Cmd.Can(%q) = %v, want multiple.MultipleServiceCmd", name, got)
+		}
+	}
+
+	args := []string{"multiple", "config.yaml", "a.tex", "b.tex"}
+	got, rest := Cmd.Seek(args...)
+	if got != multiple.MultipleServiceCmd {
+		t.Fatalf("Cmd.Seek(%v) resolved %q, want multiple", args, got.Name)
+	}
+	want := []string{"config.yaml", "a.tex", "b.tex"}
+	if !reflect.DeepEqual(rest, want) {
+		t.Errorf("Cmd.Seek(%v) rest = %v, want %v", args, rest, want)
+	}
+}
+
+func TestCmd_MultipleAliasUnambiguousAtRoot(t *testing.T) {
+	for _, c := range Cmd.Cmds {
+		if c != multiple.MultipleServiceCmd && (c.Name == "m" || c.Alias == "m") {
+			t.Errorf("root command %q also claims alias 'm'", c.Name)
+		}
+	}
+}
+
+func TestBuild_StillMountedBesideMultiple(t *testing.T) {
+	if got := Cmd.Can("build"); got != build.BuildServiceCmd {
+		t.Errorf("Cmd.Can(\"build\") = %v, want build.BuildServiceCmd", got)
+	}
+	got, rest := Cmd.Seek("build", "a.tex", "config.yaml", "multiple", "config.yaml", "a.tex")
+	if got != build.BuildServiceCmd {
+		t.Fatalf("build-prefixed args resolved %q, want build", got.Name)
+	}
+	want := []string{"a.tex", "config.yaml", "multiple", "config.yaml", "a.tex"}
+	if !reflect.DeepEqual(rest, want) {
+		t.Errorf("build rest = %v, want %v", rest, want)
 	}
 }
 

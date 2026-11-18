@@ -7,6 +7,7 @@ Go CLI tool (Bonzai framework) for template→PDF generation (LaTeX or Typst) wi
 ```bash
 go build -o autopdf ./cmd/autopdf
 ./autopdf build     # Process template, compile with the selected backend
+./autopdf multiple  # Compile several templates in parallel
 ./autopdf clean     # Remove the backends' auxiliary files
 ./autopdf convert   # PDF to image
 make typst          # Pinned typst binary into ./bin (sha256-verified)
