@@ -5,6 +5,9 @@ package build
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/BuddhiLW/AutoPDF/v2/configs"
@@ -28,7 +31,7 @@ var BuildServiceCmd = &bonzai.Cmd{
 	Name:    `build`,
 	Alias:   `b`,
 	Short:   `process template and compile to PDF`,
-	Usage:   `TEMPLATE [CONFIG] [OPTIONS...]`,
+	Usage:   `TEMPLATE [CONFIG|-] [OPTIONS...]`,
 	MinArgs: 1,
 	MaxArgs: 10, // Allow up to 10 arguments for multiple options
 	Long: `
@@ -38,6 +41,11 @@ compiles the processed template to LaTeX, and produces a PDF output.
 This version uses the application service layer for better separation of concerns.
 
 If no configuration file is provided, it will look for autopdf.yaml in the current directory.
+
+A CONFIG of - reads the configuration (JSON or YAML) from standard input. A
+relative template path inside it resolves against the TEMPLATE's directory,
+since there is no config file directory. The watch option cannot be combined
+with -.
 
 Available options:
 - clean: Remove auxiliary LaTeX files after compilation
@@ -49,6 +57,7 @@ Examples:
   autopdf build template.tex
   autopdf build template.tex config.yaml
   autopdf build template.tex config.yaml clean
+  echo '{"variables":{"title":"Hi"}}' | autopdf build template.tex -
   autopdf build template.tex clean verbose debug
 `,
 	Comp: comp.Cmds,
@@ -63,12 +72,12 @@ Examples:
 		defer func() { _ = logger.Sync() }()
 
 		// Execute the streamlined build process
-		return executeBuildProcess(ctx, args)
+		return executeBuildProcess(ctx, os.Stdin, args)
 	},
 }
 
 // executeBuildProcess orchestrates the entire build process with minimal logging overhead
-func executeBuildProcess(ctx context.Context, args []string) error {
+func executeBuildProcess(ctx context.Context, stdin io.Reader, args []string) error {
 	// Parse arguments with logging
 	argsParser := argsPkg.NewArgsParser()
 	buildArgs, err := argsParser.ParseBuildArgsWithLogging(ctx, args)
@@ -78,17 +87,20 @@ func executeBuildProcess(ctx context.Context, args []string) error {
 
 	// If watch is enabled, delegate to watch mode
 	if buildArgs.Options.Watch.Enabled {
+		if configPkg.IsStdinConfig(buildArgs.ConfigFile) {
+			return fmt.Errorf("watch cannot be used with a config read from standard input (-)")
+		}
 		return executeWatchedBuild(ctx, buildArgs)
 	}
 
 	// Normal build flow
-	return executeSingleBuild(ctx, buildArgs)
+	return executeSingleBuild(ctx, stdin, buildArgs)
 }
 
 // executeSingleBuild performs a single build operation
-func executeSingleBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error {
+func executeSingleBuild(ctx context.Context, stdin io.Reader, buildArgs *argsPkg.BuildArgs) error {
 	// Resolve and load configuration with logging
-	configResolver := configPkg.NewConfigResolver()
+	configResolver := configPkg.NewConfigResolver().WithStdin(stdin)
 	cfg, err := configResolver.LoadConfigWithLogging(ctx, buildArgs.TemplateFile, buildArgs.ConfigFile)
 	if err != nil {
 		return err

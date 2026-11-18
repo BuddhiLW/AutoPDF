@@ -5,6 +5,15 @@ Versioning.
 
 ## [Unreleased]
 
+### Added
+
+- **`autopdf build TEMPLATE -`** reads the config from standard input. A JSON
+  object is parsed as JSON (so escapes YAML rejects, such as `\/`, are
+  accepted) and anything else as YAML. A relative `template` in a stdin config
+  resolves against the TEMPLATE argument's directory. `watch` with `-` is
+  refused. Clients no longer need to write a temporary config file beside the
+  template.
+
 ## [2.4.0] - 2026-11-18
 
 ### Added

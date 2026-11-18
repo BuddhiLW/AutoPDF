@@ -42,6 +42,21 @@ func TestArgsParser_ParseBuildArgs(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name: "template and stdin config",
+			args: []string{"template.tex", "-", "clean"},
+			expected: &BuildArgs{
+				TemplateFile: "template.tex",
+				ConfigFile:   StdinConfig,
+				Options: func() options.BuildOptions {
+					opts := options.NewBuildOptions()
+					opts.EnableClean(".")
+					return opts
+				}(),
+				RemainingArgs: []string{},
+			},
+			expectError: false,
+		},
+		{
 			name: "template, config, and clean",
 			args: []string{"template.tex", "config.yaml", "clean"},
 			expected: &BuildArgs{
