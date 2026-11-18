@@ -13,6 +13,43 @@ Versioning.
   resolves against the TEMPLATE argument's directory. `watch` with `-` is
   refused. Clients no longer need to write a temporary config file beside the
   template.
+- **`autopdf multiple`** is mounted at the root command, so
+  `autopdf multiple config.yaml a.tex b.tex` compiles in parallel directly. The
+  `build ... multiple` delegation keeps working.
+- **`cmd/autopdf-cabi`**: an in-process C ABI for AutoPDF, plus `js/wasm` and
+  `wasip1` builds. `generate` takes the backend-neutral `engine`, so Typst is
+  selectable.
+- **`api.FileSystem`**, the filesystem port of the `pkg/api` pipeline, with
+  `api.NewOSFileSystem()` as the default. The orchestration service
+  (`WithFileSystem`) and the projection generator
+  (`ProjectionGeneratorOptions.FileSystem`) accept one, so their temp files and
+  workspaces can be exercised without a real disk.
+- `test/fixturegate`, a test that builds every `test/*/` fixture with the real
+  CLI, skipping a fixture only when its engine is not installed.
+
+### Changed
+
+- **Breaking:** `pkg/api/examples` is no longer an importable package. Its
+  content now lives as compiler-checked `Example` functions in `_test.go`
+  files next to the packages they demonstrate (`pkg/converter`, `pkg/api`,
+  `pkg/api/rest`, `pkg/api/services`, `pkg/api/application`,
+  `pkg/api/middleware`, `pkg/api/domain/generation`), so they show up in godoc
+  without exporting mock or client types from the module.
+
+### Fixed
+
+- The example fixtures under `test/` read `.vars.X`/`.complex.X`, which the
+  engine has not provided for a long time; they now read root variables and
+  build under the strict renderer. The root `config.yaml` and
+  `configs/sample-config.yaml` point at the template that ships.
+
+### Security
+
+- **LaTeX runs without shell escape and with paranoid file access.** Both the
+  direct engine and latexmk pass `-no-shell-escape` and run with
+  `openin_any=p`, `openout_any=p` and `shell_escape=f`, so a template that
+  `\input`s `/etc/hostname` or `/proc/self/environ` can no longer read it. The
+  staged source is passed relative to the working directory.
 
 ## [2.4.0] - 2026-11-18
 
