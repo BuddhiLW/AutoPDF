@@ -1,7 +1,7 @@
 template: "./main.tex"
 output: "./out/output"
 variables:
-engine: "lualatex"
+engine: "xelatex"
 conversion:
   enabled: true
   formats: 

@@ -1,4 +1,4 @@
-template: ""
+template: "template.tex"
 output: "output.pdf"
 variables:
   title: "Migration Test Document"

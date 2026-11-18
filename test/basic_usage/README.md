@@ -4,7 +4,7 @@ This example demonstrates the fundamental AutoPDF functionality with simple vari
 
 ## What This Example Shows
 
-- **Basic variable substitution** using `delim[[.vars.variable]]` syntax
+- **Basic variable substitution** using `delim[[.variable]]` syntax
 - **YAML configuration** with simple key-value pairs
 - **LaTeX document generation** with professional formatting
 - **PDF output** creation

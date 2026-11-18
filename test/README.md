@@ -42,6 +42,10 @@ This directory contains comprehensive examples demonstrating AutoPDF's capabilit
 - **`equivalence/`**: Equivalence testing
 - **`contract/`**: Contract testing
 
+## ✅ **Build Gate**
+
+`go test ./test/fixturegate/` builds every template of every `test/*/` directory that holds a `config.yaml` with the real `autopdf build`, and requires a complete PDF. A fixture is skipped only when its engine (pdflatex, xelatex, typst, ...) is not on PATH. Templates read variables from the root: `delim[[.title]]`, `delim[[range .items]]`.
+
 ## 🚀 **Quick Start Guide**
 
 ### 1. **Basic Example**
@@ -122,24 +126,24 @@ conversion:
 
 ### Basic Variables
 ```latex
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 ```
 
 ### Complex Variables
 ```latex
 % Direct access to nested properties
-Version: delim[[.vars.metadata.version]]
-Verbose: delim[[.vars.metadata.settings.verbose]]
+Version: delim[[.metadata.version]]
+Verbose: delim[[.metadata.settings.verbose]]
 
 % Range loops over arrays
-delim[[range .complex.metadata.tags]]
+delim[[range .metadata.tags]]
 delim[[.]]\par
 delim[[end]]
 
 % Range loops over objects
-delim[[range .complex.items]]
+delim[[range .items]]
 \subsection{delim[[.name]]}
 Enabled: delim[[.enabled]]
 Priority: delim[[.priority]]

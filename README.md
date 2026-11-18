@@ -410,12 +410,12 @@ Version: delim[[.metadata.version]]
 Verbose: delim[[.metadata.settings.verbose]]
 
 % Range loops over arrays
-delim[[range .complex.metadata.tags]]
+delim[[range .metadata.tags]]
 delim[[.]]\par
 delim[[end]]
 
 % Range loops over objects
-delim[[range .complex.items]]
+delim[[range .items]]
 \subsection{delim[[.name]]}
 Enabled: delim[[.enabled]]
 Priority: delim[[.priority]]
