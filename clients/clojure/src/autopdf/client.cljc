@@ -3,28 +3,29 @@
 
    No bindings and no rebuild: the seam is the CLI. A render is planned as a
    value (the argv, the JSON config, the PDF path), then executed through a
-   ProgramRunner port. JSON is YAML, which autopdf reads.
+   ProgramRunner port. The config reaches autopdf on standard input
+   (`autopdf build TEMPLATE -`), so nothing is written beside the template.
 
-   Portable across JVM Clojure, ClojureWasm (cljw) and any host providing
-   clojure.java.shell.
+   Portable across JVM Clojure, ClojureWasm (cljw) and clojurust (cljrs):
+   each provides clojure.java.shell/sh with :in.
 
    Strata: ports (ProgramRunner) / promote (config, ->json, plan: pure) /
-   boundary (execute!: the only file and process effects) / facade (build)."
-  (:require [autopdf.host :as host]
-            [clojure.java.shell :as shell]
+   boundary (execute!: the only effect, one process) / facade (build)."
+  (:require [clojure.java.shell :as shell]
             [clojure.string :as str]))
 
 ;; ── Port ────────────────────────────────────────────────────────────────────
 
 (defprotocol ProgramRunner
   (run-program [this argv opts]
-    "Run argv with opts {:dir d}; return {:exit n :out s :err s}. A non-zero
-     exit is data, not an exception."))
+    "Run argv with opts {:dir d :in s}, writing s to the program's standard
+     input and closing it; return {:exit n :out s :err s}. A non-zero exit is
+     data, not an exception."))
 
 (defrecord ShellRunner []
   ProgramRunner
-  (run-program [_ argv {:keys [dir]}]
-    (apply shell/sh (concat argv [:dir dir]))))
+  (run-program [_ argv {:keys [dir in]}]
+    (apply shell/sh (concat argv (cond-> [:dir dir] in (conj :in in))))))
 
 (def shell-runner
   "The default runner: clojure.java.shell/sh."
@@ -62,36 +63,28 @@
    :conversion {:enabled false :formats []}})
 
 (defn plan
-  "The render described by opts, as a value: what to write, what to run, and
-   where the PDF lands. `token` makes the config file name unique."
+  "The render described by opts, as a value: what to run, the JSON config to
+   send on its standard input, and where the PDF lands."
   [{:keys [template dir output bin clean?]
     :or {output "output.pdf" bin "autopdf" clean? true}
-    :as opts}
-   token]
+    :as opts}]
   (when-not (and template dir)
     (throw (ex-info "autopdf.client: a render needs :template and :dir" {:opts opts})))
-  (let [cfg-name (str ".autopdf-" token ".json")]
-    {:dir dir
-     :config-file cfg-name
-     :config-json (->json (config (assoc opts :output output)))
-     :argv (cond-> [bin "build" template cfg-name] clean? (conj "clean"))
-     :pdf (host/path dir output)}))
+  {:dir dir
+   :config-json (->json (config (assoc opts :output output)))
+   :argv (cond-> [bin "build" template "-"] clean? (conj "clean"))
+   :pdf (str dir "/" output)})
 
 ;; ── Boundary: the only effects ──────────────────────────────────────────────
 
 (defn execute!
-  "Write the plan's config, run it through `runner`, remove the config.
+  "Run the plan through `runner`, sending its config on standard input.
    Returns {:ok {:pdf path}} or {:error {:exit n :err stderr}}."
-  [runner {:keys [dir config-file config-json argv pdf]}]
-  (let [cfg (host/path dir config-file)]
-    (spit cfg config-json)
-    (try
-      (let [{:keys [exit err]} (run-program runner argv {:dir dir})]
-        (if (zero? exit)
-          {:ok {:pdf pdf}}
-          {:error {:exit exit :err err}}))
-      (finally
-        (host/delete-file! cfg)))))
+  [runner {:keys [dir config-json argv pdf]}]
+  (let [{:keys [exit err]} (run-program runner argv {:dir dir :in config-json})]
+    (if (zero? exit)
+      {:ok {:pdf pdf}}
+      {:error {:exit exit :err err}})))
 
 ;; ── Facade ──────────────────────────────────────────────────────────────────
 
@@ -111,4 +104,4 @@
    Returns {:ok {:pdf path}} or {:error {:exit n :err stderr}}. A failed
    render is data; only a missing :template or :dir throws."
   [{:keys [runner] :or {runner shell-runner} :as opts}]
-  (execute! runner (plan opts (hash [opts (System/currentTimeMillis)]))))
+  (execute! runner (plan opts)))

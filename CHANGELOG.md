@@ -35,6 +35,11 @@ Versioning.
   `pkg/api/rest`, `pkg/api/services`, `pkg/api/application`,
   `pkg/api/middleware`, `pkg/api/domain/generation`), so they show up in godoc
   without exporting mock or client types from the module.
+- The Clojure client (`clients/clojure`) passes its config on standard input
+  (`autopdf build TEMPLATE -`) instead of writing a temporary
+  `.autopdf-*.json` beside the template, on JVM Clojure, ClojureWasm and
+  clojurust. `plan` no longer takes a token or returns `:config-file`, the
+  `ProgramRunner` opts gain `:in`, and the `autopdf.host` namespace is gone.
 
 ### Fixed
 

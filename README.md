@@ -175,7 +175,10 @@ PDF:
 ```
 
 The render is planned as a value, then run through a `ProgramRunner` port, so
-tests hand in a stub and never need LaTeX.
+tests hand in a stub and never need LaTeX. The client runs
+`autopdf build TEMPLATE -` and writes the JSON config to the binary's standard
+input, so it leaves no temporary config file beside the template. It needs an
+`autopdf` with stdin config support (the `-` argument).
 
 ### Component documents and live previews
 
