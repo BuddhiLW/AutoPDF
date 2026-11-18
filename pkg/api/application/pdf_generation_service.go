@@ -8,6 +8,7 @@ import (
 
 	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/watch"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
 )
 
@@ -41,6 +42,13 @@ func NewPDFGenerationApplicationService(
 	return &PDFGenerationApplicationService{
 		orchestrationService: orchestrationService,
 	}
+}
+
+// WithFileSystem makes the service stage processed templates through
+// fileSystem; nil restores the OS filesystem.
+func (s *PDFGenerationApplicationService) WithFileSystem(fileSystem api.FileSystem) *PDFGenerationApplicationService {
+	s.orchestrationService.WithFileSystem(fileSystem)
+	return s
 }
 
 // GeneratePDF orchestrates the complete PDF generation workflow

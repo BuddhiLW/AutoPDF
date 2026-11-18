@@ -4,7 +4,8 @@
 package api
 
 import (
-	"os"
+	"errors"
+	"io/fs"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,7 +16,8 @@ import (
 // ValidationUtils provides reusable validation functions
 // These can leverage internal logic from the autopdf application layer
 type ValidationUtils struct {
-	registry *backend.Registry // nil means backend.Default()
+	registry   *backend.Registry // nil means backend.Default()
+	fileSystem FileSystem        // nil means the OS filesystem
 }
 
 // NewValidationUtils creates a ValidationUtils over the default backend registry
@@ -34,6 +36,20 @@ func (vu *ValidationUtils) backends() *backend.Registry {
 		return backend.Default()
 	}
 	return vu.registry
+}
+
+// WithFileSystem makes vu inspect paths through fileSystem; nil restores the
+// OS filesystem.
+func (vu *ValidationUtils) WithFileSystem(fileSystem FileSystem) *ValidationUtils {
+	vu.fileSystem = fileSystem
+	return vu
+}
+
+func (vu *ValidationUtils) files() FileSystem {
+	if vu == nil {
+		return OSFileSystem{}
+	}
+	return fileSystemOrOS(vu.fileSystem)
 }
 
 // ValidatePDFPath validates a PDF file path
@@ -59,8 +75,8 @@ func (vu *ValidationUtils) ValidatePDFPath(pdfPath string) (*ErrorDetails, error
 	}
 
 	// Check if file exists
-	fileInfo, err := os.Stat(pdfPath)
-	if os.IsNotExist(err) {
+	fileInfo, err := vu.files().Stat(pdfPath)
+	if errors.Is(err, fs.ErrNotExist) {
 		return NewErrorDetails(ErrorCategoryPDF, ErrorSeverityHigh).
 				WithFilePath(pdfPath).
 				AddContext(ContextKeyError, ErrPDFFileNotFound),
@@ -117,7 +133,7 @@ func (vu *ValidationUtils) ValidatePDFPath(pdfPath string) (*ErrorDetails, error
 // ValidatePDFContent validates PDF content structure
 func (vu *ValidationUtils) ValidatePDFContent(pdfPath string) (*ErrorDetails, error) {
 	// Open file for reading
-	file, err := os.Open(pdfPath)
+	file, err := vu.files().Open(pdfPath)
 	if err != nil {
 		return NewErrorDetails(ErrorCategoryPDF, ErrorSeverityHigh).
 				WithFilePath(pdfPath).
@@ -161,8 +177,8 @@ func (vu *ValidationUtils) ValidateTemplatePath(templatePath string) (*ErrorDeta
 	}
 
 	// Check if file exists
-	fileInfo, err := os.Stat(templatePath)
-	if os.IsNotExist(err) {
+	fileInfo, err := vu.files().Stat(templatePath)
+	if errors.Is(err, fs.ErrNotExist) {
 		return NewErrorDetails(ErrorCategoryTemplate, ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
 				AddContext(ContextKeyError, ErrTemplateFileNotFound),
@@ -226,7 +242,7 @@ func (vu *ValidationUtils) ValidateOutputPath(outputPath string) (*ErrorDetails,
 
 	// Check if directory exists or can be created
 	outputDir := filepath.Dir(outputPath)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := vu.files().MkdirAll(outputDir, 0755); err != nil {
 		return NewErrorDetails(ErrorCategoryGeneration, ErrorSeverityHigh).
 				WithOutputPath(outputPath).
 				WithError(err).
@@ -235,7 +251,7 @@ func (vu *ValidationUtils) ValidateOutputPath(outputPath string) (*ErrorDetails,
 	}
 
 	// Check if file already exists
-	if _, err := os.Stat(outputPath); err == nil {
+	if _, err := vu.files().Stat(outputPath); err == nil {
 		return NewErrorDetails(ErrorCategoryGeneration, ErrorSeverityMedium).
 				WithOutputPath(outputPath).
 				AddContext(ContextKeyError, ErrOutputPathExists),
@@ -268,7 +284,7 @@ func (vu *ValidationUtils) ValidateEngine(engine string) (*ErrorDetails, error) 
 
 // GetFileMetadata extracts file metadata
 func (vu *ValidationUtils) GetFileMetadata(filePath string) (map[string]interface{}, error) {
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := vu.files().Stat(filePath)
 	if err != nil {
 		return nil, err
 	}
