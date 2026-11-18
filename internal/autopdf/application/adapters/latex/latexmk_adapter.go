@@ -214,11 +214,13 @@ func (a *LatexmkCompilerAdapter) buildLatexmkCommand(opts ports.CompileOptions, 
 		args = append(args, "-xelatex")
 	}
 
-	// Add the .tex file
-	args = append(args, texPath)
+	// The .tex file, relative to the working dir: openin_any=p refuses an
+	// absolute input path.
+	args = append(args, "-latexoption="+noShellEscape, filepath.Base(texPath))
 
 	return ports.NewCommand("latexmk", args, opts.WorkingDir).
-		WithTimeout(5 * time.Minute)
+		WithTimeout(5 * time.Minute).
+		WithEnv(sandboxEnv())
 }
 
 // outputDir is where latexmk writes the PDF (-outdir): OutputPath's directory,

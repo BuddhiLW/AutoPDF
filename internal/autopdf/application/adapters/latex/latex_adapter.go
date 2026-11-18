@@ -129,15 +129,17 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
-		args := []string{"-interaction=nonstopmode", "-jobname=" + baseName}
+		args := []string{"-interaction=nonstopmode", noShellEscape, "-jobname=" + baseName}
 		if outputDir != "." {
 			args = append(args, "-output-directory="+outputDir)
 		}
-		args = append(args, stagedPath)
+		// Relative to workingDir: openin_any=p refuses an absolute input path.
+		args = append(args, filepath.Base(stagedPath))
 		cmdStr := engine + " " + strings.Join(args, " ")
 
 		cmd := application.NewCommand(engine, args, workingDir).
-			WithTimeout(5 * time.Minute)
+			WithTimeout(5 * time.Minute).
+			WithEnv(sandboxEnv())
 
 		result, execErr := lca.executor.Execute(ctx, cmd)
 		if ctxErr := ctx.Err(); ctxErr != nil {
