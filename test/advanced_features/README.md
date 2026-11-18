@@ -37,7 +37,7 @@ autopdf build advanced_document.tex config.yaml
 - ✅ **Mixed Data Types**: Strings, booleans, numbers
 - ✅ **Nested Access**: `metadata.settings.verbose`
 - ✅ **Array Access**: `items[0].name`, `items[1].enabled`
-- ✅ **Template Processing**: Both `.vars.*` and `.complex.*` access
+- ✅ **Template Processing**: Root-level variable access
 - ✅ **PDF Conversion**: Multiple output formats
 - ✅ **Professional Formatting**: LaTeX document structure
 
@@ -70,8 +70,8 @@ variables:
 
 ## Template Syntax
 
-The template uses both access methods:
-- **Flattened variables**: `delim[[.vars.title]]`
-- **Complex structure**: `delim[[range .complex.items]]`
-- **Range loops**: `delim[[range .complex.metadata.tags]]`
-- **Nested access**: `delim[[.vars.metadata.settings.verbose]]`
+Every variable is read from the template root:
+- **Scalars**: `delim[[.title]]`
+- **Object arrays**: `delim[[range .items]]`
+- **Range loops**: `delim[[range .metadata.tags]]`
+- **Nested access**: `delim[[.metadata.settings.verbose]]`

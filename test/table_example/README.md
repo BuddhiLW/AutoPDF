@@ -55,7 +55,7 @@ autopdf build table_document.tex config.yaml
 \hline
 \endhead
 
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]] & delim[[.position]] & delim[[.department]] & \$${delim[[.salary]]:,} & delim[[.experience]] years & delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]] \\
 \hline
 delim[[end]]
@@ -67,7 +67,7 @@ delim[[end]]
 \hline
 \textbf{Department} & \textbf{Head Count} & \textbf{Average Salary} \\
 \hline
-delim[[range .complex.departments]]
+delim[[range .departments]]
 delim[[.name]] & delim[[.head_count]] & \$${delim[[.avg_salary]]:,} \\
 \hline
 delim[[end]]
@@ -76,7 +76,7 @@ delim[[end]]
 
 ### 3. Skills Matrix (Nested Loops)
 ```latex
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]] & delim[[range .skills]]delim[[.]]\delim[[if not @last]], \delim[[end]]delim[[end]] \\
 \hline
 delim[[end]]
@@ -123,7 +123,7 @@ variables:
 
 ### Basic Range Loop
 ```latex
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]] & delim[[.position]] \\
 \hline
 delim[[end]]
@@ -136,7 +136,7 @@ delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]]
 
 ### Nested Loops
 ```latex
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]]: delim[[range .skills]]
 delim[[.]]\delim[[if not @last]], \delim[[end]]
 delim[[end]]
@@ -209,8 +209,8 @@ delim[[if .active]]
 
 ### Complex Data Access
 ```latex
-delim[[.vars.company.total_employees]]  % Direct variable access
-delim[[range .complex.employees]]      % Range loop access
+delim[[.company.total_employees]]  % Direct variable access
+delim[[range .employees]]         % Range loop access
 ```
 
 ### Number Formatting

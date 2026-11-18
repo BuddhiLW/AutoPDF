@@ -13,26 +13,26 @@
 
 \geometry{margin=1in}
 
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 
 \begin{document}
 
 \maketitle
 
 \section{Document Information}
-delim[[.vars.description]]
+delim[[.description]]
 
 \section{Company Overview}
 \begin{itemize}
-\item Total Employees: delim[[.vars.company.total_employees]]
-\item Total Departments: delim[[.vars.company.total_departments]]
-\item Total Projects: delim[[.vars.company.total_projects]]
-\item Total Skills: delim[[.vars.company.total_skills]]
-\item Average Salary: \$${delim[[.vars.company.avg_salary]]:,}
-\item Active Employees: delim[[.vars.company.active_employees]]
-\item Inactive Employees: delim[[.vars.company.inactive_employees]]
+\item Total Employees: delim[[.company.total_employees]]
+\item Total Departments: delim[[.company.total_departments]]
+\item Total Projects: delim[[.company.total_projects]]
+\item Total Skills: delim[[.company.total_skills]]
+\item Average Salary: \$${delim[[.company.avg_salary]]:,}
+\item Active Employees: delim[[.company.active_employees]]
+\item Inactive Employees: delim[[.company.inactive_employees]]
 \end{itemize}
 
 \section{Employee Directory}
@@ -42,7 +42,7 @@ delim[[.vars.description]]
 \hline
 \endhead
 
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]] & delim[[.position]] & delim[[.department]] & \$${delim[[.salary]]:,} & delim[[.experience]] years & delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]] \\
 \hline
 delim[[end]]
@@ -56,7 +56,7 @@ delim[[end]]
 \hline
 \textbf{Department} & \textbf{Head Count} & \textbf{Average Salary} \\
 \hline
-delim[[range .complex.departments]]
+delim[[range .departments]]
 delim[[.name]] & delim[[.head_count]] & \$${delim[[.avg_salary]]:,} \\
 \hline
 delim[[end]]
@@ -71,7 +71,7 @@ delim[[end]]
 \hline
 \endhead
 
-delim[[range .complex.projects]]
+delim[[range .projects]]
 delim[[.name]] & delim[[.status]] & delim[[.priority]] & delim[[.team_size]] & \$${delim[[.budget]]:,} & delim[[.start_date]] & delim[[.end_date]] \\
 \hline
 delim[[end]]
@@ -85,7 +85,7 @@ delim[[end]]
 \hline
 \textbf{Employee} & \textbf{Skills} \\
 \hline
-delim[[range .complex.employees]]
+delim[[range .employees]]
 delim[[.name]] & delim[[range .skills]]delim[[.]]\delim[[end]] \\
 \hline
 delim[[end]]
@@ -100,7 +100,7 @@ delim[[end]]
 \hline
 \textbf{Department} & \textbf{Skills} \\
 \hline
-delim[[range .complex.departments]]
+delim[[range .departments]]
 delim[[.name]] & delim[[range .skills]]delim[[.]]\delim[[end]] \\
 \hline
 delim[[end]]
@@ -115,7 +115,7 @@ delim[[end]]
 \hline
 \textbf{Project} & \textbf{Technologies} \\
 \hline
-delim[[range .complex.projects]]
+delim[[range .projects]]
 delim[[.name]] & delim[[range .technologies]]delim[[.]]\delim[[end]] \\
 \hline
 delim[[end]]
@@ -128,7 +128,7 @@ delim[[end]]
 \centering
 \begin{tabular}{|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|}
 \hline
-delim[[range .complex.all_skills]]
+delim[[range .all_skills]]
 delim[[.]] & delim[[end]]
 \end{tabular}
 \caption{Complete Skills Inventory}
@@ -141,7 +141,7 @@ delim[[.]] & delim[[end]]
 \hline
 \textbf{Department} & \textbf{Min Salary} & \textbf{Max Salary} & \textbf{Average} \\
 \hline
-delim[[range .complex.departments]]
+delim[[range .departments]]
 delim[[.name]] & \$${delim[[.min_salary]]:,} & \$${delim[[.max_salary]]:,} & \$${delim[[.avg_salary]]:,} \\
 \hline
 delim[[end]]
@@ -156,7 +156,7 @@ delim[[end]]
 \hline
 \textbf{Status} & \textbf{Count} & \textbf{Percentage} \\
 \hline
-delim[[range .complex.project_status]]
+delim[[range .project_status]]
 delim[[.status]] & delim[[.count]] & delim[[.percentage]]\% \\
 \hline
 delim[[end]]
@@ -171,7 +171,7 @@ delim[[end]]
 \hline
 \textbf{Experience Range} & \textbf{Employee Count} \\
 \hline
-delim[[range .complex.experience_levels]]
+delim[[range .experience_levels]]
 delim[[.range]] & delim[[.count]] \\
 \hline
 delim[[end]]
@@ -201,24 +201,24 @@ This document demonstrates various ways to fill LaTeX tables with data:
 \hline
 \textbf{Name} & \textbf{Value} \\
 \hline
-delim[[range .complex.employees]]
-delim[[.name]] & delim[[.salary]] \\
+delim[[`delim[[range .employees]]`]]
+delim[[`delim[[.name]] & delim[[.salary]] \\`]]
 \hline
-delim[[end]]
+delim[[`delim[[end]]`]]
 \end{tabular}
 \end{verbatim}
 
 \subsection{Conditional Content}
 \begin{verbatim}
-delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]]
+delim[[`delim[[if .active]]Active\delim[[else]]Inactive\delim[[end]]`]]
 \end{verbatim}
 
 \subsection{Nested Loops}
 \begin{verbatim}
-delim[[range .complex.employees]]
-delim[[.name]]: delim[[range .skills]]
-delim[[.]]\delim[[end]]
-delim[[end]]
+delim[[`delim[[range .employees]]`]]
+delim[[`delim[[.name]]: delim[[range .skills]]`]]
+delim[[`delim[[.]]\delim[[end]]`]]
+delim[[`delim[[end]]`]]
 \end{verbatim}
 
 \section{Best Practices}

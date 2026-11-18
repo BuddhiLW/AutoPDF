@@ -9,21 +9,21 @@
 
 \geometry{margin=1in}
 
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 
 \begin{document}
 
 \maketitle
 
 \section{Document Information}
-delim[[.vars.description]]
+delim[[.description]]
 
 \section{Tags}
 This document is tagged with:
 \begin{itemize}
-delim[[range .complex.tags]]
+delim[[range .tags]]
 \item delim[[.]]
 delim[[end]]
 \end{itemize}
@@ -31,7 +31,7 @@ delim[[end]]
 \section{Features}
 The following features are demonstrated:
 
-delim[[range .complex.features]]
+delim[[range .features]]
 \subsection{delim[[.name]]}
 \begin{itemize}
 \item Description: delim[[.description]]
@@ -41,7 +41,7 @@ delim[[range .complex.features]]
 delim[[end]]
 
 \section{Document Sections}
-delim[[range .complex.sections]]
+delim[[range .sections]]
 \section{delim[[.title]]}
 delim[[.content]]
 
@@ -55,12 +55,12 @@ delim[[end]]
 
 \section{Configuration Settings}
 \subsection{Theme}
-Theme: delim[[.vars.settings.theme]]
+Theme: delim[[.settings.theme]]
 
 \subsection{Colors}
 Available colors:
 \begin{itemize}
-delim[[range .complex.settings.colors]]
+delim[[range .settings.colors]]
 \item delim[[.]]
 delim[[end]]
 \end{itemize}
@@ -68,7 +68,7 @@ delim[[end]]
 \subsection{Fonts}
 Available fonts:
 \begin{itemize}
-delim[[range .complex.settings.fonts]]
+delim[[range .settings.fonts]]
 \item delim[[.]]
 delim[[end]]
 \end{itemize}
@@ -76,7 +76,7 @@ delim[[end]]
 \subsection{Font Sizes}
 Available font sizes:
 \begin{itemize}
-delim[[range .complex.settings.sizes]]
+delim[[range .settings.sizes]]
 \item delim[[.]]pt
 delim[[end]]
 \end{itemize}
@@ -86,21 +86,20 @@ AutoPDF supports Go template range syntax:
 
 \begin{verbatim}
 % Range over arrays
-delim[[range .complex.tags]]
-delim[[.]]\par
-delim[[end]]
+delim[[`delim[[range .tags]]`]]
+delim[[`delim[[.]]\par`]]
+delim[[`delim[[end]]`]]
 
 % Range over objects with properties
-delim[[range .complex.features]]
-delim[[.name]]: delim[[.description]]
-delim[[end]]
+delim[[`delim[[range .features]]`]]
+delim[[`delim[[.name]]: delim[[.description]]`]]
+delim[[`delim[[end]]`]]
 \end{verbatim}
 
 \section{Best Practices}
 \begin{itemize}
-\item Use \texttt{.vars.*} for simple variable access
-\item Use \texttt{.complex.*} for range loops
-\item Combine both approaches for maximum flexibility
+\item Read every variable from the root, e.g. \texttt{.title} or \texttt{.settings.theme}
+\item Range directly over root arrays, e.g. \texttt{range .tags}
 \item Test templates with different data structures
 \end{itemize}
 

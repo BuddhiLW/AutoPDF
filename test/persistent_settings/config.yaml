@@ -20,6 +20,7 @@ variables:
       description: "Set logging verbosity level"
       commands: ["on", "off", "level"]
       levels: [0, 1, 2, 3, 4]
+      default: 1
     - name: "clean"
       description: "Control auxiliary file cleaning"
       commands: ["on", "off", "switch", "status"]
@@ -28,6 +29,7 @@ variables:
       description: "Enable debug information"
       commands: ["on", "off", "switch"]
       output: "stdout"
+      default: false
     - name: "force"
       description: "Force operations and overwrite files"
       commands: ["on", "off", "switch"]

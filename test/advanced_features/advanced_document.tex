@@ -8,9 +8,9 @@
 
 \geometry{margin=1in}
 
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 
 \begin{document}
 
@@ -21,32 +21,32 @@ This document demonstrates advanced AutoPDF features including complex variables
 
 \subsection{Basic Variables}
 \begin{itemize}
-\item Title: delim[[.vars.title]]
-\item Author: delim[[.vars.author]]
-\item Date: delim[[.vars.date]]
-\item Company: delim[[.vars.company]]
-\item Version: delim[[.vars.version]]
+\item Title: delim[[.title]]
+\item Author: delim[[.author]]
+\item Date: delim[[.date]]
+\item Company: delim[[.company]]
+\item Version: delim[[.version]]
 \end{itemize}
 
 \section{Complex Variables}
 \subsection{Metadata}
-Version: delim[[.vars.metadata.version]]
-Verbose: delim[[.vars.metadata.settings.verbose]]
-Debug: delim[[.vars.metadata.settings.debug]]
-Timeout: delim[[.vars.metadata.settings.timeout]]
+Version: delim[[.metadata.version]]
+Verbose: delim[[.metadata.settings.verbose]]
+Debug: delim[[.metadata.settings.debug]]
+Timeout: delim[[.metadata.settings.timeout]]
 
 \subsection{Tags (using range loop)}
-delim[[range .complex.metadata.tags]]
+delim[[range .metadata.tags]]
 delim[[.]]\par
 delim[[end]]
 
 \subsection{Features (using range loop)}
-delim[[range .complex.metadata.settings.features]]
+delim[[range .metadata.settings.features]]
 delim[[.]]\par
 delim[[end]]
 
 \section{Items (using range loop)}
-delim[[range .complex.items]]
+delim[[range .items]]
 \subsection{delim[[.name]]}
 Enabled: delim[[.enabled]]
 Priority: delim[[.priority]]
@@ -54,12 +54,12 @@ Description: delim[[.description]]\par
 delim[[end]]
 
 \section{Configuration}
-Engine: delim[[.vars.configuration.engine]]
-Output Format: delim[[.vars.configuration.output_format]]
-Quality: delim[[.vars.configuration.quality]]
+Engine: delim[[.configuration.engine]]
+Output Format: delim[[.configuration.output_format]]
+Quality: delim[[.configuration.quality]]
 
 \subsection{Options (using range loop)}
-delim[[range .complex.configuration.options]]
+delim[[range .configuration.options]]
 delim[[.]]\par
 delim[[end]]
 
@@ -86,7 +86,7 @@ This example uses:
 \item Array variables with multiple elements
 \item Mixed data types throughout the structure
 \item Range loops for dynamic content generation
-\item Both flattened (.vars.*) and complex (.complex.*) variable access
+\item Root-level variable access (.title, .metadata.version, range .items)
 \end{itemize}
 
 \end{document}

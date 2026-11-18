@@ -29,8 +29,8 @@ autopdf build loops_document.tex config.yaml
 
 ## Key Features Demonstrated
 
-- ✅ **Array Loops**: `delim[[range .complex.tags]]`
-- ✅ **Object Loops**: `delim[[range .complex.features]]`
+- ✅ **Array Loops**: `delim[[range .tags]]`
+- ✅ **Object Loops**: `delim[[range .features]]`
 - ✅ **Nested Loops**: Multiple levels of iteration
 - ✅ **Property Access**: `.name`, `.description`, `.enabled`
 - ✅ **Dynamic Content**: Content generated from data structure
@@ -40,14 +40,14 @@ autopdf build loops_document.tex config.yaml
 
 ### Simple Array Loop
 ```latex
-delim[[range .complex.tags]]
+delim[[range .tags]]
 delim[[.]]\par
 delim[[end]]
 ```
 
 ### Object Array Loop
 ```latex
-delim[[range .complex.features]]
+delim[[range .features]]
 \subsection{delim[[.name]]}
 Description: delim[[.description]]
 Enabled: delim[[.enabled]]
@@ -56,7 +56,7 @@ delim[[end]]
 
 ### Nested Structure Loop
 ```latex
-delim[[range .complex.sections]]
+delim[[range .sections]]
 \section{delim[[.title]]}
 delim[[.content]]
 delim[[range .subsections]]
@@ -90,20 +90,16 @@ variables:
 
 ## Template Access Methods
 
-AutoPDF provides two ways to access variables:
+Every variable is read from the template root, for direct access and range loops alike:
 
-1. **Flattened Variables** (`.vars.*`): For direct access
-   - `delim[[.vars.title]]`
-   - `delim[[.vars.settings.theme]]`
-
-2. **Complex Structure** (`.complex.*`): For range loops
-   - `delim[[range .complex.tags]]`
-   - `delim[[range .complex.features]]`
+- `delim[[.title]]`
+- `delim[[.settings.theme]]`
+- `delim[[range .tags]]`
+- `delim[[range .features]]`
 
 ## Best Practices
 
-- Use `.vars.*` for simple variable substitution
-- Use `.complex.*` for range loops and complex operations
-- Combine both approaches for maximum flexibility
+- Read variables from the root (`.title`, `.settings.theme`)
+- Range directly over root arrays (`range .tags`)
 - Test templates with different data structures
 - Use meaningful variable names for better readability

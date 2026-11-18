@@ -9,31 +9,31 @@
 
 \geometry{margin=1in}
 
-\title{delim[[.vars.title]]}
-\author{delim[[.vars.author]]}
-\date{delim[[.vars.date]]}
+\title{delim[[.title]]}
+\author{delim[[.author]]}
+\date{delim[[.date]]}
 
 \begin{document}
 
 \maketitle
 
 \section{Document Information}
-delim[[.vars.description]]
+delim[[.description]]
 
 \section{Current Settings}
 The following settings are currently configured:
 
 \begin{itemize}
-\item Verbose Level: delim[[.vars.settings.verbose_level]]
-\item Clean Enabled: delim[[.vars.settings.clean_enabled]]
-\item Debug Enabled: delim[[.vars.settings.debug_enabled]]
-\item Force Enabled: delim[[.vars.settings.force_enabled]]
+\item Verbose Level: delim[[.settings.verbose_level]]
+\item Clean Enabled: delim[[.settings.clean_enabled]]
+\item Debug Enabled: delim[[.settings.debug_enabled]]
+\item Force Enabled: delim[[.settings.force_enabled]]
 \end{itemize}
 
 \section{Available Settings}
 AutoPDF provides persistent CLI settings that are saved across sessions:
 
-delim[[range .complex.available_settings]]
+delim[[range .available_settings]]
 \subsection{delim[[.name]]}
 \begin{itemize}
 \item Description: delim[[.description]]
