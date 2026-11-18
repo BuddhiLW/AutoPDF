@@ -12,6 +12,10 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/options"
 )
 
+// StdinConfig is the config argument that makes build read its config from
+// standard input.
+const StdinConfig = "-"
+
 // BuildArgs represents the parsed arguments for the build command
 type BuildArgs struct {
 	TemplateFile  string
@@ -198,6 +202,9 @@ func (ap *ArgsParser) isOption(arg string) bool {
 
 // isValidConfigFile checks if an argument looks like a valid config file
 func (ap *ArgsParser) isValidConfigFile(arg string) bool {
+	if arg == StdinConfig {
+		return true
+	}
 	// Basic validation: should have a file extension
 	if len(arg) < 4 {
 		return false
