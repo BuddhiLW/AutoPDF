@@ -1,8 +1,9 @@
-template: "test_template.tex"
+template: "templates/sample-template.tex"
 variables:
   title: "My Document"
   author: "AutoPDF User"
   date: "2025-10-15"
+  content: "Replace this with your document body."
 engine: "pdflatex"
 output: ""
 conversion:
