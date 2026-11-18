@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -44,6 +43,8 @@ type ProjectionGeneratorOptions struct {
 	Conversion    ConversionOptions
 	// Backends overrides DefaultProjectionBackends.
 	Backends ProjectionBackends
+	// FileSystem materializes the workspace; nil uses the OS filesystem.
+	FileSystem FileSystem
 }
 
 // ProjectionDiagnostic maps a compiler message back to generated source and,
@@ -88,6 +89,7 @@ func NewProjectionGenerator(options ProjectionGeneratorOptions) (*LocalProjectio
 	if options.Backends == nil {
 		options.Backends = DefaultProjectionBackends()
 	}
+	options.FileSystem = fileSystemOrOS(options.FileSystem)
 	return &LocalProjectionGenerator{options: options}, nil
 }
 
@@ -103,14 +105,15 @@ func (generator *LocalProjectionGenerator) GenerateProjection(ctx context.Contex
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
-	workspace, err := os.MkdirTemp(generator.options.WorkspaceRoot, "autopdf-projection-")
+	fileSystem := fileSystemOrOS(generator.options.FileSystem)
+	workspace, err := fileSystem.MkdirTemp(generator.options.WorkspaceRoot, "autopdf-projection-")
 	if err != nil {
 		return Result{}, fmt.Errorf("api: create projection workspace: %w", err)
 	}
 	if !generator.options.KeepWorkspace {
-		defer func() { _ = os.RemoveAll(workspace) }()
+		defer func() { _ = fileSystem.RemoveAll(workspace) }()
 	}
-	mainPath, err := materializeProjection(ctx, workspace, projection, generator.options.Resolver)
+	mainPath, err := materializeProjection(ctx, fileSystem, workspace, projection, generator.options.Resolver)
 	if err != nil {
 		return Result{}, err
 	}
@@ -138,7 +141,7 @@ func (generator *LocalProjectionGenerator) GenerateProjection(ctx context.Contex
 	return result, nil
 }
 
-func materializeProjection(ctx context.Context, workspace string, projection latex.Projection, resolver ProjectionAssetResolver) (string, error) {
+func materializeProjection(ctx context.Context, fileSystem FileSystem, workspace string, projection latex.Projection, resolver ProjectionAssetResolver) (string, error) {
 	written := make(map[string]struct{}, len(projection.Files)+len(projection.Assets))
 	mainAbsolute, err := projectionPath(workspace, projection.Main)
 	if err != nil {
@@ -160,7 +163,7 @@ func materializeProjection(ctx context.Context, workspace string, projection lat
 		if absolute == mainAbsolute {
 			mainFound = true
 		}
-		if err := writeProjectionFile(absolute, file.Content); err != nil {
+		if err := writeProjectionFile(fileSystem, absolute, file.Content); err != nil {
 			return "", err
 		}
 	}
@@ -186,7 +189,7 @@ func materializeProjection(ctx context.Context, workspace string, projection lat
 		if !matchesSHA256(asset.Digest, data) {
 			return "", fmt.Errorf("%w: %s", ErrProjectionDigestMismatch, asset.AssetID)
 		}
-		if err := writeProjectionFile(absolute, data); err != nil {
+		if err := writeProjectionFile(fileSystem, absolute, data); err != nil {
 			return "", err
 		}
 	}
@@ -204,16 +207,16 @@ func projectionPath(workspace, relative string) (string, error) {
 	return filepath.Join(workspace, clean), nil
 }
 
-func writeProjectionFile(absolute string, data []byte) error {
-	if err := os.MkdirAll(filepath.Dir(absolute), 0o755); err != nil {
+func writeProjectionFile(fileSystem FileSystem, absolute string, data []byte) error {
+	if err := fileSystem.MkdirAll(filepath.Dir(absolute), 0o755); err != nil {
 		return fmt.Errorf("api: create projection directory: %w", err)
 	}
 	temporary := absolute + ".autopdf-new"
-	if err := os.WriteFile(temporary, data, 0o644); err != nil {
+	if err := fileSystem.WriteFile(temporary, data, 0o644); err != nil {
 		return fmt.Errorf("api: write projection file: %w", err)
 	}
-	if err := os.Rename(temporary, absolute); err != nil {
-		_ = os.Remove(temporary)
+	if err := fileSystem.Rename(temporary, absolute); err != nil {
+		_ = fileSystem.Remove(temporary)
 		return fmt.Errorf("api: publish projection file: %w", err)
 	}
 	return nil

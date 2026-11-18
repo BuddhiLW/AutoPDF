@@ -6,7 +6,7 @@ package application
 import (
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"time"
 
 	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
@@ -24,6 +24,7 @@ type PDFOrchestrationService struct {
 	pdfValidator     generation.PDFValidator
 	externalService  generation.PDFGenerationService
 	logger           ports.Logger
+	fileSystem       api.FileSystem
 
 	// Encapsulated services
 	watchService generation.WatchService
@@ -60,6 +61,7 @@ func NewPDFOrchestrationService(
 		pdfValidator:     pdfValidator,
 		externalService:  externalService,
 		logger:           logger,
+		fileSystem:       api.NewOSFileSystem(),
 
 		// Encapsulated services
 		watchService: encapsulatedWatchService,
@@ -68,6 +70,16 @@ func NewPDFOrchestrationService(
 		requestGuard:       requestGuard,
 		pdfValidationGuard: pdfValidationGuard,
 	}
+}
+
+// WithFileSystem makes the service stage processed templates through
+// fileSystem; nil restores the OS filesystem.
+func (s *PDFOrchestrationService) WithFileSystem(fileSystem api.FileSystem) *PDFOrchestrationService {
+	if fileSystem == nil {
+		fileSystem = api.NewOSFileSystem()
+	}
+	s.fileSystem = fileSystem
+	return s
 }
 
 // GeneratePDF orchestrates the complete PDF generation workflow
@@ -138,7 +150,7 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 
 	// Write processed template to a temporary file
 	// This ensures the LaTeX engine uses the processed content with variables replaced
-	tempFile, err := os.CreateTemp("", "autopdf-processed-*.tex")
+	tempFile, err := s.fileSystem.CreateTemp("", "autopdf-processed-*.tex")
 	if err != nil {
 		return generation.PDFGenerationResult{
 			Success: false,
@@ -151,7 +163,7 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 			},
 		}, err
 	}
-	defer func() { _ = os.Remove(tempFile.Name()) }() // Clean up after generation.
+	defer func() { _ = s.fileSystem.Remove(tempFile.Name()) }() // Clean up after generation.
 
 	// Log size only; processed content may contain secrets or personal data.
 	contentLen := len(processedContent)
@@ -159,7 +171,7 @@ func (s *PDFOrchestrationService) GeneratePDF(ctx context.Context, req generatio
 		ports.NewLogField("content_length", contentLen),
 	)
 
-	if _, err := tempFile.WriteString(processedContent); err != nil {
+	if _, err := io.WriteString(tempFile, processedContent); err != nil {
 		_ = tempFile.Close()
 		return generation.PDFGenerationResult{
 			Success: false,
