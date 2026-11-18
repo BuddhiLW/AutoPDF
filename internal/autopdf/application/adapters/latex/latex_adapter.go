@@ -26,9 +26,24 @@ type LaTeXCompilerAdapter struct {
 	fileSystem application.FileSystem
 	executor   application.CommandExecutor
 	workingDir string // used when CompileOptions.WorkingDir is empty
+	logger     application.Logger
 }
 
 var _ application.DocumentCompiler = (*LaTeXCompilerAdapter)(nil)
+
+// WithLogger makes the adapter report format-file cache events to logger
+// (nil discards them) and returns the adapter.
+func (lca *LaTeXCompilerAdapter) WithLogger(logger application.Logger) *LaTeXCompilerAdapter {
+	lca.logger = logger
+	return lca
+}
+
+func (lca *LaTeXCompilerAdapter) log() application.Logger {
+	if lca.logger == nil {
+		return application.NewNoOpLogger()
+	}
+	return lca.logger
+}
 
 // NewLaTeXCompilerAdapter creates a new LaTeX compiler adapter
 func NewLaTeXCompilerAdapter(
@@ -123,30 +138,78 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 	// A PDF left by an earlier run must not pass for this run's output.
 	discardOutput(ctx, lca.fileSystem, pdfPath)
 
-	baseName := strings.TrimSuffix(filepath.Base(pdfPath), ".pdf")
+	run := passRun{
+		engine:     engine,
+		workingDir: workingDir,
+		outputDir:  outputDir,
+		baseName:   strings.TrimSuffix(filepath.Base(pdfPath), ".pdf"),
+		input:      filepath.Base(stagedPath),
+		pdfPath:    pdfPath,
+		passes:     latexOpts.Passes,
+	}
 
-	for pass := 1; pass <= latexOpts.Passes; pass++ {
-		if err := ctx.Err(); err != nil {
-			return "", err
+	if latexOpts.FormatFile {
+		run.format = lca.prepareFormat(ctx, engine, workingDir, content, opts.Debug)
+	}
+	err = lca.runPasses(ctx, run)
+	if err != nil && run.format != "" && ctx.Err() == nil {
+		if _, missing := asToolchainMissing(err); !missing {
+			lca.log().Warn(ctx, "format_file: compile with the cached format failed; retrying without it",
+				application.NewLogField("format", run.format),
+				application.NewLogField("error", err.Error()))
+			discardOutput(ctx, lca.fileSystem, pdfPath)
+			failedFormat := run.format
+			run.format = ""
+			err = lca.runPasses(ctx, run)
+			if err == nil {
+				lca.discardFormat(ctx, workingDir, failedFormat)
+			}
 		}
-		args := []string{"-interaction=nonstopmode", noShellEscape, "-jobname=" + baseName}
-		if outputDir != "." {
-			args = append(args, "-output-directory="+outputDir)
+	}
+	if err != nil {
+		return "", err
+	}
+	return pdfPath, nil
+}
+
+// passRun is one engine invocation sequence of a compile.
+type passRun struct {
+	engine     string
+	workingDir string
+	outputDir  string
+	baseName   string
+	input      string // staged source, relative to workingDir
+	pdfPath    string
+	passes     int
+	format     string // -fmt value relative to workingDir; "" runs the engine's own format
+}
+
+func (lca *LaTeXCompilerAdapter) runPasses(ctx context.Context, run passRun) error {
+	for pass := 1; pass <= run.passes; pass++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		args := []string{"-interaction=nonstopmode", noShellEscape, "-jobname=" + run.baseName}
+		if run.outputDir != "." {
+			args = append(args, "-output-directory="+run.outputDir)
+		}
+		if run.format != "" {
+			args = append(args, "-fmt="+run.format)
 		}
 		// Relative to workingDir: openin_any=p refuses an absolute input path.
-		args = append(args, filepath.Base(stagedPath))
-		cmdStr := engine + " " + strings.Join(args, " ")
+		args = append(args, run.input)
+		cmdStr := run.engine + " " + strings.Join(args, " ")
 
-		cmd := application.NewCommand(engine, args, workingDir).
+		cmd := application.NewCommand(run.engine, args, run.workingDir).
 			WithTimeout(5 * time.Minute).
 			WithEnv(sandboxEnv())
 
 		result, execErr := lca.executor.Execute(ctx, cmd)
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return "", fmt.Errorf("LaTeX compilation cancelled (pass %d/%d): %w", pass, latexOpts.Passes, ctxErr)
+			return fmt.Errorf("LaTeX compilation cancelled (pass %d/%d): %w", pass, run.passes, ctxErr)
 		}
 		if missing, ok := asToolchainMissing(execErr); ok {
-			return "", missing
+			return missing
 		}
 		if execErr == nil && result.ExitCode != 0 {
 			execErr = fmt.Errorf("exit status %d", result.ExitCode)
@@ -154,21 +217,20 @@ func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, op
 		if execErr != nil {
 			// nonstopmode LaTeX exits non-zero on recoverable errors yet still
 			// writes the PDF; only a missing PDF makes the pass fail.
-			if _, statErr := lca.fileSystem.Stat(ctx, pdfPath); statErr != nil {
+			if _, statErr := lca.fileSystem.Stat(ctx, run.pdfPath); statErr != nil {
 				errorDetails := fmt.Sprintf(
 					"LaTeX compilation failed (pass %d/%d):\nCommand: %s\nWorking Dir: %s\nStderr:\n%s\nStdout:\n%s",
-					pass, latexOpts.Passes, cmdStr, workingDir, result.Stderr, result.Stdout,
+					pass, run.passes, cmdStr, run.workingDir, result.Stderr, result.Stdout,
 				)
-				return "", fmt.Errorf("%s: %w", errorDetails, execErr)
+				return fmt.Errorf("%s: %w", errorDetails, execErr)
 			}
 		}
 
-		if err := verifyPDF(ctx, lca.fileSystem, pdfPath); err != nil {
-			return "", fmt.Errorf("pass %d/%d: %w", pass, latexOpts.Passes, err)
+		if err := verifyPDF(ctx, lca.fileSystem, run.pdfPath); err != nil {
+			return fmt.Errorf("pass %d/%d: %w", pass, run.passes, err)
 		}
 	}
-
-	return pdfPath, nil
+	return nil
 }
 
 // CompileLegacy provides backward compatibility with the old interface

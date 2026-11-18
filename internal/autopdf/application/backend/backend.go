@@ -35,6 +35,7 @@ type CompilerFactory func(deps CompilerDeps, opts ports.BackendOptions) (ports.D
 type Settings struct {
 	Passes     int
 	UseLatexmk bool
+	FormatFile bool
 }
 
 // OptionsFactory builds a backend's BackendOptions from configuration values.

@@ -30,7 +30,10 @@ func LaTeX() Backend {
 		},
 		NewCompiler: newLaTeXCompiler,
 		NewOptions: func(s Settings) (ports.BackendOptions, error) {
-			return ports.NewLaTeXOptions(s.Passes, s.UseLatexmk), nil
+			if s.FormatFile && s.UseLatexmk {
+				return nil, &UnsupportedSettingError{Backend: ports.LaTeXBackendName, Setting: "format_file with use_latexmk", Value: true}
+			}
+			return ports.NewLaTeXOptions(s.Passes, s.UseLatexmk).WithFormatFile(s.FormatFile), nil
 		},
 	}
 }
@@ -44,7 +47,7 @@ func newLaTeXCompiler(deps CompilerDeps, opts ports.BackendOptions) (ports.Docum
 		return latex.NewLatexmkCompilerAdapterWithLogger(deps.Executor, deps.FileSystem, deps.Logger), nil
 	}
 	if deps.WorkingDir == "" {
-		return latex.NewLaTeXCompilerAdapter(&config.Config{}, deps.FileSystem, deps.Executor), nil
+		return latex.NewLaTeXCompilerAdapter(&config.Config{}, deps.FileSystem, deps.Executor).WithLogger(deps.Logger), nil
 	}
-	return latex.NewLaTeXCompilerAdapterWithWorkingDir(&config.Config{}, deps.FileSystem, deps.Executor, deps.WorkingDir), nil
+	return latex.NewLaTeXCompilerAdapterWithWorkingDir(&config.Config{}, deps.FileSystem, deps.Executor, deps.WorkingDir).WithLogger(deps.Logger), nil
 }

@@ -119,7 +119,7 @@ func (sb *ServiceBuilder) BackendOptions(cfg *config.Config) (ports.BackendOptio
 	if err != nil {
 		return nil, err
 	}
-	return b.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk})
+	return b.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk, FormatFile: cfg.FormatFile})
 }
 
 // BuildRequest constructs a BuildRequest from the parsed arguments and config.

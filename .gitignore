@@ -23,3 +23,6 @@ output.log
 
 # Toolchains fetched by make (e.g. make typst)
 bin/
+
+# Precompiled LaTeX format cache (format_file: true)
+.autopdf-fmt/

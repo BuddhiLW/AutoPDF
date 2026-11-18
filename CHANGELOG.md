@@ -7,6 +7,19 @@ Versioning.
 
 ### Added
 
+- **`format_file: true`** (LaTeX, opt-in, off by default) precompiles the
+  template's static preamble into a cached format file under
+  `.autopdf-fmt/` in the working directory and compiles with `-fmt`, so
+  repeated builds skip loading the preamble's packages. The cache key hashes
+  the engine and the preamble; local files the preamble reads (`.sty`,
+  `.cls`, `\input`) invalidate it when they change. Building the format runs
+  under the same sandbox as a compile, and a failure to build or use it falls
+  back to a normal compile with a logged warning. Also `api.Request.FormatFile`
+  and `ports.LaTeXOptions.FormatFile`. Refused with `UnsupportedSettingError`
+  for Typst and together with `use_latexmk`. Needs `mylatexformat` (TeX Live);
+  works with pdflatex. xelatex and lualatex cannot dump most preambles and fall
+  back. Measured on a 13-package preamble: about 0.85-0.95 s down to
+  0.22-0.28 s per warm build.
 - **`autopdf build TEMPLATE -`** reads the config from standard input. A JSON
   object is parsed as JSON (so escapes YAML rejects, such as `\/`, are
   accepted) and anything else as YAML. A relative `template` in a stdin config
