@@ -29,9 +29,22 @@ type DocumentEngineConfig struct {
 	Cache           composition.Cache
 	Values          map[string]any
 	TrustedPreamble []byte
-	// Projector overrides the default article-shaped LaTeX projection. Leave
-	// it nil for the built-in one.
+	// Projector overrides the backend's default projection. Leave it nil for
+	// the built-in one.
 	Projector ManifestProjector
+	// Backend names the projection backend ("latex", "typst"). Empty selects
+	// the backend named by Target when there is one, else LaTeX.
+	Backend string
+	// Backends overrides DefaultProjectionBackends.
+	Backends ProjectionBackends
+}
+
+func (config DocumentEngineConfig) projectionBackend() (ProjectionBackend, error) {
+	backends := config.Backends
+	if backends == nil {
+		backends = DefaultProjectionBackends()
+	}
+	return backends.Select(backends.backendName(config))
 }
 
 // latexProjector is the default projection: an article of \input fragments.
@@ -82,7 +95,11 @@ func NewDocumentEngine(catalog *component.Catalog, config DocumentEngineConfig) 
 	}
 	projector := config.Projector
 	if projector == nil {
-		projector = latexProjector{trustedPreamble: config.TrustedPreamble}
+		backend, err := config.projectionBackend()
+		if err != nil {
+			return nil, err
+		}
+		projector = backend.NewProjector(config)
 	}
 	return &DocumentEngine{
 		catalog: catalog, composer: composer,
@@ -93,7 +110,12 @@ func NewDocumentEngine(catalog *component.Catalog, config DocumentEngineConfig) 
 
 // NewDefaultDocumentEngine builds the minimal flow/section/artifact catalog.
 func NewDefaultDocumentEngine(target string, config DocumentEngineConfig) (*DocumentEngine, error) {
-	definitions, err := component.Builtins(target)
+	config.Target = target
+	backend, err := config.projectionBackend()
+	if err != nil {
+		return nil, err
+	}
+	definitions, err := backend.Builtins(target)
 	if err != nil {
 		return nil, fmt.Errorf("api: create built-in components: %w", err)
 	}
@@ -101,7 +123,6 @@ func NewDefaultDocumentEngine(target string, config DocumentEngineConfig) (*Docu
 	if err != nil {
 		return nil, fmt.Errorf("api: create built-in catalog: %w", err)
 	}
-	config.Target = target
 	return NewDocumentEngine(catalog, config)
 }
 

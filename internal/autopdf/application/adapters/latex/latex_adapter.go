@@ -15,14 +15,20 @@ import (
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 )
 
-// LaTeXCompilerAdapter wraps the existing LaTeX compiler
-// Now DIP-compliant: depends on ports, not low-level libraries
+// DefaultEngine is the LaTeX engine used when CompileOptions.Engine is empty.
+const DefaultEngine = "pdflatex"
+
+// LaTeXCompilerAdapter compiles LaTeX through an engine binary
+// (pdflatex, xelatex, lualatex), running LaTeXOptions.Passes passes.
+// It depends only on the FileSystem and CommandExecutor ports.
 type LaTeXCompilerAdapter struct {
 	config     *config.Config
 	fileSystem application.FileSystem
 	executor   application.CommandExecutor
-	workingDir string // NEW: Configurable working directory
+	workingDir string // used when CompileOptions.WorkingDir is empty
 }
+
+var _ application.DocumentCompiler = (*LaTeXCompilerAdapter)(nil)
 
 // NewLaTeXCompilerAdapter creates a new LaTeX compiler adapter
 func NewLaTeXCompilerAdapter(
@@ -49,108 +55,116 @@ func NewLaTeXCompilerAdapterWithWorkingDir(
 		config:     cfg,
 		fileSystem: fileSystem,
 		executor:   executor,
-		workingDir: workingDir, // Use provided working directory
+		workingDir: workingDir,
 	}
 }
 
-// Compile compiles LaTeX content to PDF using the new CompileOptions interface
-func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, opts application.CompileOptions) (string, error) {
-	if content == "" {
-		return "", errors.New("no LaTeX content provided")
-	}
-
-	// Use working directory from options if provided, otherwise use adapter's default
+// Compile compiles LaTeX content to PDF and returns the PDF path.
+// On any error no PDF is left at the output path.
+func (lca *LaTeXCompilerAdapter) Compile(ctx context.Context, content string, opts application.CompileOptions) (pdfPath string, err error) {
 	workingDir := opts.WorkingDir
 	if workingDir == "" {
 		workingDir = lca.workingDir
 	}
+	jobName := opts.JobName
+	if jobName == "" {
+		jobName = "document"
+	}
+	engine := opts.Engine
+	if engine == "" {
+		engine = DefaultEngine
+	}
 
-	// Ensure working directory exists
+	target := opts.OutputPath
+	if target == "" {
+		target = filepath.Join(workingDir, jobName+".pdf")
+	}
+	pdfPath = target
+	defer func() {
+		if err != nil {
+			discardOutput(ctx, lca.fileSystem, target)
+			pdfPath = ""
+		}
+	}()
+
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if content == "" {
+		return "", errors.New("no LaTeX content provided")
+	}
+	latexOpts, err := application.LaTeXOptionsFrom(opts)
+	if err != nil {
+		return "", err
+	}
+
 	if err := lca.fileSystem.MkdirAll(ctx, workingDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create working directory: %w", err)
 	}
 
-	// Verify that the engine is installed
-	if _, err := lca.executor.Execute(ctx, application.NewCommand("which", []string{opts.Engine}, "")); err != nil {
-		return "", fmt.Errorf("LaTeX engine not found: %s", opts.Engine)
-	}
-
-	// Generate concrete file name using job name.
-	// The suffix keeps this staged file off the source template's path: the
-	// working directory is the template's own directory, this file is written
-	// and then removed, and a job name equal to the template's base name would
-	// therefore destroy the input. The PDF name comes from -jobname, not from
-	// this file, so the suffix is not observable in the output.
-	concreteFileName := fmt.Sprintf("%s%s", opts.JobName, application.StagedTemplateSuffix)
-	concreteFile := filepath.Join(workingDir, concreteFileName)
-
-	// Write the content to the concrete file
-	if err := lca.fileSystem.WriteFile(ctx, concreteFile, []byte(content), 0644); err != nil {
+	if err := probeToolchain(ctx, lca.executor, engine,
+		application.NewCommand("which", []string{engine}, "")); err != nil {
 		return "", err
 	}
 
-	// Only clean up temp file if not in debug mode
+	stagedPath := stagedSourcePath(workingDir, jobName)
+	if err := lca.fileSystem.WriteFile(ctx, stagedPath, []byte(content), 0644); err != nil {
+		return "", err
+	}
 	if !opts.Debug {
-		defer func() {
-			_ = lca.fileSystem.Remove(ctx, concreteFile)
-		}()
+		defer removeStaged(ctx, lca.fileSystem, stagedPath)
 	}
 
-	// Determine output PDF path
-	pdfPath := opts.OutputPath
-	if pdfPath == "" {
-		pdfPath = filepath.Join(workingDir, fmt.Sprintf("%s.pdf", opts.JobName))
-	}
-
-	// Create output directory if needed
 	outputDir := filepath.Dir(pdfPath)
 	if err := lca.fileSystem.MkdirAll(ctx, outputDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Get the base name for the LaTeX job
+	// A PDF left by an earlier run must not pass for this run's output.
+	discardOutput(ctx, lca.fileSystem, pdfPath)
+
 	baseName := strings.TrimSuffix(filepath.Base(pdfPath), ".pdf")
 
-	// Run multiple passes if requested
-	for pass := 1; pass <= opts.Passes; pass++ {
+	for pass := 1; pass <= latexOpts.Passes; pass++ {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
 		args := []string{"-interaction=nonstopmode", noShellEscape, "-jobname=" + baseName}
 		if outputDir != "." {
 			args = append(args, "-output-directory="+outputDir)
 		}
-		args = append(args, concreteFileName)
-		cmdStr := opts.Engine + " " + strings.Join(args, " ")
+		// Relative to workingDir: openin_any=p refuses an absolute input path.
+		args = append(args, filepath.Base(stagedPath))
+		cmdStr := engine + " " + strings.Join(args, " ")
 
-		cmd := application.NewCommand(opts.Engine, args, workingDir).
+		cmd := application.NewCommand(engine, args, workingDir).
 			WithTimeout(5 * time.Minute).
 			WithEnv(sandboxEnv())
 
-		// Run the LaTeX command
-		result, err := lca.executor.Execute(ctx, cmd)
-		if err != nil {
-			// Check if PDF was created despite the error
+		result, execErr := lca.executor.Execute(ctx, cmd)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return "", fmt.Errorf("LaTeX compilation cancelled (pass %d/%d): %w", pass, latexOpts.Passes, ctxErr)
+		}
+		if missing, ok := asToolchainMissing(execErr); ok {
+			return "", missing
+		}
+		if execErr == nil && result.ExitCode != 0 {
+			execErr = fmt.Errorf("exit status %d", result.ExitCode)
+		}
+		if execErr != nil {
+			// nonstopmode LaTeX exits non-zero on recoverable errors yet still
+			// writes the PDF; only a missing PDF makes the pass fail.
 			if _, statErr := lca.fileSystem.Stat(ctx, pdfPath); statErr != nil {
-				// Include LaTeX's actual error output in the error message
 				errorDetails := fmt.Sprintf(
 					"LaTeX compilation failed (pass %d/%d):\nCommand: %s\nWorking Dir: %s\nStderr:\n%s\nStdout:\n%s",
-					pass, opts.Passes, cmdStr, workingDir, result.Stderr, result.Stdout,
+					pass, latexOpts.Passes, cmdStr, workingDir, result.Stderr, result.Stdout,
 				)
-				return "", fmt.Errorf("%s: %w", errorDetails, err)
+				return "", fmt.Errorf("%s: %w", errorDetails, execErr)
 			}
-			// PDF was created, so continue
 		}
 
-		// Check if output PDF exists and has content
-		fileInfo, statErr := lca.fileSystem.Stat(ctx, pdfPath)
-		if statErr != nil {
-			if lca.fileSystem.IsNotExist(statErr) {
-				return "", fmt.Errorf("PDF output file was not created (pass %d/%d)", pass, opts.Passes)
-			}
-			return "", fmt.Errorf("error checking output file (pass %d/%d): %w", pass, opts.Passes, statErr)
-		}
-
-		// Check if file is empty
-		if fileInfo.Size() == 0 {
-			return "", fmt.Errorf("PDF output file was created but is empty (pass %d/%d)", pass, opts.Passes)
+		if err := verifyPDF(ctx, lca.fileSystem, pdfPath); err != nil {
+			return "", fmt.Errorf("pass %d/%d: %w", pass, latexOpts.Passes, err)
 		}
 	}
 

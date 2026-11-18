@@ -99,7 +99,10 @@ func executeSingleBuild(ctx context.Context, buildArgs *argsPkg.BuildArgs) error
 	templateDir := filepath.Dir(cfg.Template.String())
 	serviceBuilder := wiringPkg.NewServiceBuilder()
 	svc := serviceBuilder.BuildDocumentServiceWithWorkingDir(cfg, templateDir)
-	req := serviceBuilder.BuildRequest(buildArgs, cfg)
+	req, err := serviceBuilder.BuildRequest(buildArgs, cfg)
+	if err != nil {
+		return resultPkg.BuildFailure(err)
+	}
 
 	result, err := svc.Build(ctx, req)
 	if err != nil {

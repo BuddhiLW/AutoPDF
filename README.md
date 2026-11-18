@@ -6,13 +6,13 @@
 <img data-badge="GoDoc" src="https://godoc.org/github.com/BuddhiLW/AutoPDF/v2?status.svg">
 <img data-badge="License" src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
 
-**A powerful tool that creates PDFs using LaTeX and Go's templating syntax with advanced features.**
+**A powerful tool that creates PDFs from LaTeX or Typst templates using Go's templating syntax with advanced features.**
 
 </div>
 
 - :zap: **Simple. Neat. Fast. Powerful.** :zap:
 - **Perfect for creating professional, customizable PDF documents**
-- **Leverages the most powerful PDF document generator: $\LaTeX$**
+- **Leverages the most powerful PDF document generator, $\LaTeX$, or the fast modern one, [Typst](#typst-backend)**
 - **Advanced templating with complex variables and for loops**
 - **Persistent CLI settings and configuration management**
 - **Built with DDD, SOLID principles, and GoF design patterns**
@@ -60,10 +60,10 @@ project instead.
 ## Features
 
 ### 🚀 **Core Features**
-- **LaTeX PDF Generation**: Professional document creation
+- **LaTeX and Typst PDF Generation**: Professional document creation
 - **Template Processing**: Go template syntax with custom delimiters
 - **YAML Configuration**: Flexible and readable configuration
-- **Multiple Engines**: Support for pdflatex, xelatex, and more
+- **Multiple Backends**: LaTeX (pdflatex, xelatex, lualatex) and [Typst](#typst-backend), selected per document
 - **PDF Conversion**: Convert PDFs to images (PNG, JPEG, etc.)
 
 ### 🔧 **Advanced Features**
@@ -78,6 +78,7 @@ project instead.
 ### 🏗️ **Architecture**
 - **Domain-Driven Design (DDD)**: Clear domain boundaries
 - **SOLID Principles**: Maintainable and extensible code
+- **Backend Registry**: Engines, template extensions and auxiliary files are declared once per backend; adding a backend is one registration, and every backend passes the same compiler contract suite
 - **GoF Design Patterns**: Factory, Builder, Strategy, Command
 - **Clean Architecture**: Separation of concerns
 - **Test-Driven Development**: Comprehensive test coverage
@@ -239,6 +240,116 @@ than a change to `pkg/api`.
 
 - [AutoPDF × plato: the vocabulary, the degradations, the drift gate](docs/plato-integration.md)
 
+### Typst backend
+
+[Typst](https://github.com/typst/typst) is a second document backend next to
+LaTeX. The same CLI, `pkg/api.Engine`, parallel strategy and preview sessions
+compile it; only the template language changes.
+
+**Selecting it.** Set `engine: typst` in the config, or leave `engine` out and
+use a `.typ` template: an explicit engine wins, otherwise the template's
+extension picks the backend, otherwise LaTeX (`pdflatex`). In Go, set
+`api.Request.Engine` (`LaTeXEngine` is deprecated and read only when `Engine`
+is empty):
+
+```go
+result, err := engine.Generate(ctx, api.Request{
+    TemplatePath: "report.typ",
+    OutputPath:   "report.pdf",
+    Engine:       "typst", // optional: the .typ extension already selects typst
+    Variables:    map[string]string{"title": "Typst Report"},
+})
+```
+
+**Config** ([`test/model_typst/`](test/model_typst/)):
+
+```yaml
+template: "./main.typ"
+output: "./out/output"
+engine: "typst"
+variables:
+  title: "AutoPDF Typst Report"
+  author: "Ada #1 _Lovelace_ [draft]"
+  items:
+    - name: "Templates"
+      note: "delim actions render; Typst brackets stay put"
+```
+
+```bash
+autopdf build test/model_typst/main.typ test/model_typst/config.yaml
+```
+
+produces (`out/output.pdf`, page 1):
+
+<div align="center">
+<img src="./.gitassets/typst-demo.png" alt="AutoPDF Typst example output" width="700">
+</div>
+
+The escaped author (`Ada #1 _Lovelace_ [draft]`) prints literally, the range
+loop expands, and Typst's own `#pill[a[b]]` call passes through untouched. Run
+with `debug` to keep the staged `output.autopdf.typ` and see exactly what was
+handed to typst.
+
+**Template syntax.** Templates are the same `text/template` with `delim[[ ]]`
+actions and strict rendering. Outside an action, text/template does not lex
+`]]`, so Typst's own `[...]` content blocks (`#f[a[b]]`) and `#` calls pass
+through untouched. Values are inserted as raw markup, so a value that may
+contain any of ``\ # $ * _ ` < > @ [ ] ~ = - + /`` should go through
+`escapeTypst`, which backslash-escapes each of them:
+
+```typst
+= delim[[ escapeTypst .title ]]
+
+Author: delim[[ escapeTypst .author ]]
+
+delim[[ range .items -]]
+- *delim[[ escapeTypst .name ]]*: delim[[ escapeTypst .note ]]
+delim[[ end ]]
+```
+
+**What is refused.** Typst compiles in one pass, so `passes` greater than 1 and
+`use_latexmk: true` are refused with a named error (`UnsupportedSettingError`)
+instead of being ignored. An engine name no backend accepts is refused with
+the list of known engines. Typst output goes through the same completeness
+gate as LaTeX: a PDF without its `%%EOF` trailer is never published.
+
+**Compile details.** The rendered template is staged next to it as
+`<job>.autopdf.typ` and compiled with `typst compile --root <template dir>`,
+so the document can read assets (images, data, `#import`s) inside the
+template's directory and nothing outside it. The staged file is removed unless
+debug is on. Typst leaves no auxiliary files, so `clean` has nothing to remove
+for it.
+
+**Preview.** `preview.TypstCompiler` compiles a workspace's main `.typ` file
+and rasterizes pages with typst itself (`--format png --ppi`, 144 by default),
+so no Poppler is needed; diagnostics carry file, line and column.
+`rest.NewBackendPreviewCompilerFactory` picks the LaTeX or Typst compiler per
+session, and `POST /sessions` accepts an optional
+`{"backend", "engine", "template"}` body.
+
+**Projection.** Component documents can project to Typst through
+`pkg/render/typst`. `pkg/render/backends.Default()` registers the LaTeX and
+Typst projection backends; set `DocumentEngineConfig.Backends` to it and
+`Backend: "typst"`. The `text`, `section` and `artifact` builtins have Typst
+projections; any other component is refused by name
+(`UnsupportedComponentError`) rather than dropped.
+
+**Toolchain.** `make typst` downloads the pinned release (`TYPST_VERSION`,
+default 0.15.1, x86_64 Linux musl build) into `./bin`, verifies its sha256
+(`TYPST_SHA256`) and extracts `bin/typst`; add `./bin` to `PATH`. Other ways
+to install it:
+
+```bash
+cargo install typst-cli --locked   # from source, any platform
+brew install typst                 # macOS / Linuxbrew
+pacman -S typst                    # Arch
+winget install --id Typst.Typst    # Windows
+```
+
+The end-to-end test in `test/model_typst` builds the CLI and compiles the
+example when `typst` is on `PATH`, and skips with a message saying so when it
+is not.
+
 ### Configuration Examples
 
 #### Basic Configuration
@@ -333,6 +444,11 @@ The `test/` directory contains comprehensive examples:
 - `test/model_xelatex/`: XeLaTeX engine example
 - `test/complex_variables/`: Complex variable demonstration
 
+#### Typst (`test/model_typst/`)
+- `engine: typst` with a `.typ` template
+- `escapeTypst`, range loops and Typst content blocks side by side
+- End-to-end test that skips when `typst` is not on `PATH`
+
 ### 🚀 **Quick Start**
 
 1. **Install AutoPDF**:
@@ -356,6 +472,12 @@ The `test/` directory contains comprehensive examples:
    ```bash
    cd test/for_loops
    autopdf build loops_document.tex config.yaml
+   ```
+
+5. **Try the Typst backend** (needs `typst` on `PATH`; `make typst` fetches it into `./bin`):
+   ```bash
+   cd test/model_typst
+   autopdf build main.typ config.yaml
    ```
 
 ### 🛠️ **CLI Commands**
@@ -386,7 +508,7 @@ autopdf force [on|off|switch]
 
 #### Utility Commands
 ```bash
-# Clean auxiliary files
+# Clean auxiliary files (each backend's own list; Typst leaves none)
 autopdf clean <path>
 
 # Convert PDF to images

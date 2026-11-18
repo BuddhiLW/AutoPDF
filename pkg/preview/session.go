@@ -169,7 +169,7 @@ func (session *Session) render(ctx context.Context, entry *job) renderedResult {
 	materializeElapsed := time.Since(materializeStarted)
 	output, err := session.compiler.Compile(ctx, CompileRequest{
 		Revision: entry.revision, Workspace: session.workspace, Main: entry.projection.Main, DirtyFiles: dirty,
-		SourceMap: cloneSourceMap(entry.projection.SourceMap),
+		SourceMap: SourceMapFromLaTeX(entry.projection.SourceMap),
 	})
 	output.Timings.Materialize = materializeElapsed
 	output.Timings.Total = time.Since(started)
@@ -185,17 +185,6 @@ func (session *Session) render(ctx context.Context, entry *job) renderedResult {
 		Result:       Result{Revision: entry.revision, Projection: entry.projection.Hash, PDF: append([]byte(nil), output.PDF...), ChangedPages: changed, RemovedPages: removed, Diagnostics: append([]Diagnostic(nil), output.Diagnostics...), DirtyFiles: dirty, Timings: output.Timings},
 		currentPages: pages,
 	}
-}
-
-func cloneSourceMap(source map[string]latex.SourceLocation) map[string]latex.SourceLocation {
-	if len(source) == 0 {
-		return nil
-	}
-	result := make(map[string]latex.SourceLocation, len(source))
-	for componentID, location := range source {
-		result[componentID] = location
-	}
-	return result
 }
 
 // Done closes when manual close or idle expiry has released the workspace.
@@ -262,11 +251,16 @@ func normalizePages(pages []Page) []Page {
 	sort.Slice(result, func(i, j int) bool { return result[i].Number < result[j].Number })
 	for index := range result {
 		if result[index].Hash == "" {
-			digest := sha256.Sum256(append([]byte(result[index].MediaType+"\x00"), result[index].Data...))
-			result[index].Hash = hex.EncodeToString(digest[:])
+			result[index].Hash = pageHash(result[index].MediaType, result[index].Data)
 		}
 	}
 	return result
+}
+
+// pageHash is the identity of one rendered page: its media type and bytes.
+func pageHash(mediaType string, data []byte) string {
+	digest := sha256.Sum256(append([]byte(mediaType+"\x00"), data...))
+	return hex.EncodeToString(digest[:])
 }
 
 func diffPages(previous, current []Page) ([]Page, []int) {

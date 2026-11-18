@@ -122,8 +122,8 @@ func TestRealPdflatexRefusesAnAbsoluteInput(t *testing.T) {
 
 func TestRealPdflatexStillCompilesIntoASeparateOutputDir(t *testing.T) {
 	adapter, work, out := realEngine(t)
-	opts := ports.NewCompileOptions("pdflatex", out, work).WithJobName("doc")
-	opts.Passes = 2
+	opts := ports.NewCompileOptions("pdflatex", out, work).WithJobName("doc").
+		WithBackendOptions(ports.LaTeXOptions{Passes: 2})
 	doc := "\\documentclass{article}\\begin{document}\\section{A}\\label{a}See \\ref{a}.\\end{document}\n"
 
 	path, err := adapter.Compile(context.Background(), doc, opts)

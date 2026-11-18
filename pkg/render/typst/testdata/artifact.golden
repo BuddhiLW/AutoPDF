@@ -1,0 +1,9 @@
+main: main.typ
+--- fragments/chart-638b9fd3b767.typ
+Figure 1
+
+#image("/assets/chart-plot-393bafc3.png")
+--- main.typ
+#include "/fragments/chart-638b9fd3b767.typ"
+
+=== asset plot store://plot.png -> assets/chart-plot-393bafc3.png

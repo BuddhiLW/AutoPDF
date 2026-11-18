@@ -6,16 +6,34 @@ package api
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 )
 
 // ValidationUtils provides reusable validation functions
 // These can leverage internal logic from the autopdf application layer
-type ValidationUtils struct{}
+type ValidationUtils struct {
+	registry *backend.Registry // nil means backend.Default()
+}
 
-// NewValidationUtils creates a new ValidationUtils instance
+// NewValidationUtils creates a ValidationUtils over the default backend registry
 func NewValidationUtils() *ValidationUtils {
 	return &ValidationUtils{}
+}
+
+// NewValidationUtilsWithRegistry creates a ValidationUtils whose supported
+// engines are those of registry.
+func NewValidationUtilsWithRegistry(registry *backend.Registry) *ValidationUtils {
+	return &ValidationUtils{registry: registry}
+}
+
+func (vu *ValidationUtils) backends() *backend.Registry {
+	if vu == nil || vu.registry == nil {
+		return backend.Default()
+	}
+	return vu.registry
 }
 
 // ValidatePDFPath validates a PDF file path
@@ -168,10 +186,10 @@ func (vu *ValidationUtils) ValidateTemplatePath(templatePath string) (*ErrorDeta
 	}
 
 	// Check file extension
-	if !strings.HasSuffix(strings.ToLower(templatePath), ".tex") {
+	if extensions := vu.backends().TemplateExtensions(); !slices.Contains(extensions, strings.ToLower(filepath.Ext(templatePath))) {
 		return NewErrorDetails(ErrorCategoryTemplate, ErrorSeverityHigh).
 				WithTemplatePath(templatePath).
-				WithValidation("file_extension", ".tex", filepath.Ext(templatePath)).
+				WithValidation("file_extension", extensions, filepath.Ext(templatePath)).
 				AddContext(ContextKeyError, ErrTemplateFileInvalid),
 			nil
 	}
@@ -227,7 +245,7 @@ func (vu *ValidationUtils) ValidateOutputPath(outputPath string) (*ErrorDetails,
 	return nil, nil
 }
 
-// ValidateEngine validates a LaTeX engine
+// ValidateEngine validates an engine name against the registered backends
 func (vu *ValidationUtils) ValidateEngine(engine string) (*ErrorDetails, error) {
 	if engine == "" {
 		return NewErrorDetails(ErrorCategoryGeneration, ErrorSeverityHigh).
@@ -235,17 +253,9 @@ func (vu *ValidationUtils) ValidateEngine(engine string) (*ErrorDetails, error) 
 			nil
 	}
 
-	// Check if engine is supported
-	supportedEngines := []string{"pdflatex", "xelatex", "lualatex", "latex"}
-	isSupported := false
-	for _, supportedEngine := range supportedEngines {
-		if engine == supportedEngine {
-			isSupported = true
-			break
-		}
-	}
-
-	if !isSupported {
+	// Check if engine is supported by a registered backend
+	supportedEngines := vu.backends().EngineNames()
+	if !slices.Contains(supportedEngines, engine) {
 		return NewErrorDetails(ErrorCategoryGeneration, ErrorSeverityHigh).
 				WithEngine(engine).
 				WithValidation("supported_engines", supportedEngines, engine).

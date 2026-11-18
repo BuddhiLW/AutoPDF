@@ -60,6 +60,10 @@ func (d *DocumentRebuildAdapter) Rebuild(ctx context.Context, templatePath, conf
 	// This ensures LaTeX can find assets (.cls files, images) in template's directory
 	templateDir := filepath.Dir(cfg.Template.String())
 	svc := d.serviceBuilder.BuildDocumentServiceWithWorkingDir(cfg, templateDir)
+	backendOptions, err := d.serviceBuilder.BackendOptions(cfg)
+	if err != nil {
+		return ports.RebuildResult{Success: false, Error: err}, err
+	}
 
 	// Step 3: Build request directly (we have all needed information)
 	// Following CLARITY: direct construction with clear intent
@@ -71,6 +75,7 @@ func (d *DocumentRebuildAdapter) Rebuild(ctx context.Context, templatePath, conf
 		OutputPath:   cfg.Output.String(),
 		DoClean:      false, // Don't clean in watch mode by default
 		DebugEnabled: false,
+		Backend:      backendOptions,
 		Conversion: documentService.ConversionSettings{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: cfg.Conversion.Formats,

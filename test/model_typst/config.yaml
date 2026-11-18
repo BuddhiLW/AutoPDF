@@ -1,0 +1,17 @@
+template: "./main.typ"
+output: "./out/output"
+engine: "typst"
+variables:
+  title: "AutoPDF Typst Report"
+  author: "Ada #1 _Lovelace_ [draft]"
+  date: "2026-11-17"
+  summary: "Rendered by AutoPDF through the typst backend: same config, same delim[[ ]] actions."
+  items:
+    - name: "Templates"
+      note: "delim actions render; Typst brackets stay put"
+    - name: "Escaping"
+      note: "escapeTypst keeps # $ * _ @ < > [ ] literal"
+    - name: "Completeness"
+      note: "the PDF is checked for %PDF- and %%EOF before it is published"
+conversion:
+  enabled: false

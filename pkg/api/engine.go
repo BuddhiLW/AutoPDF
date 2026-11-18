@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/model"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
@@ -26,12 +27,17 @@ type Request struct {
 	TemplatePath string
 	OutputPath   string
 	Variables    map[string]string
-	LaTeXEngine  string
-	WorkingDir   string
-	Passes       int
-	UseLatexmk   bool
-	Debug        bool
-	Conversion   ConversionOptions
+	// Engine names the engine ("pdflatex", "xelatex", "lualatex", "typst", or
+	// any engine a registered backend accepts). Empty selects the backend by
+	// the template's extension. Engine wins over LaTeXEngine when both are set.
+	Engine string
+	// Deprecated: use Engine. LaTeXEngine is read only when Engine is empty.
+	LaTeXEngine string
+	WorkingDir  string
+	Passes      int
+	UseLatexmk  bool
+	Debug       bool
+	Conversion  ConversionOptions
 }
 
 // ConversionOptions controls optional PDF-to-image conversion.
@@ -105,6 +111,18 @@ func WithCapabilities(capabilities Capabilities) Option {
 	}
 }
 
+// WithBackendRegistry advertises the engines of registry instead of the
+// default backend registry's.
+func WithBackendRegistry(registry *backend.Registry) Option {
+	return func(options *engineOptions) error {
+		if registry == nil {
+			return errors.New("api: backend registry must not be nil")
+		}
+		options.capabilities.Engines = registry.EngineNames()
+		return nil
+	}
+}
+
 // Engine is the canonical embeddable AutoPDF facade.
 type Engine struct {
 	generator    Generator
@@ -117,7 +135,7 @@ func NewEngine(options ...Option) (*Engine, error) {
 	settings := engineOptions{
 		logger: NewNoopLogger(),
 		capabilities: Capabilities{
-			Engines:           []string{"pdflatex", "xelatex", "lualatex"},
+			Engines:           backend.Default().EngineNames(),
 			ConversionFormats: []string{"jpeg", "jpg", "png"},
 		},
 	}
@@ -179,17 +197,31 @@ type defaultGenerator struct {
 	logger Logger
 }
 
+// EngineName is the engine the request selects: Engine, else the deprecated
+// LaTeXEngine, else "" (the template's backend decides).
+func (req Request) EngineName() string {
+	if req.Engine != "" {
+		return req.Engine
+	}
+	return req.LaTeXEngine
+}
+
 func (generator *defaultGenerator) Generate(ctx context.Context, req Request) (Result, error) {
 	cfg := config.GetDefaultConfig()
 	cfg.Template = config.Template(req.TemplatePath)
 	cfg.Output = config.Output(req.OutputPath)
-	if req.LaTeXEngine != "" {
-		cfg.Engine = config.Engine(req.LaTeXEngine)
-	}
 	if req.Passes > 0 {
 		cfg.Passes = req.Passes
 	}
 	cfg.UseLatexmk = req.UseLatexmk
+	selected, err := backend.Default().Resolve(req.EngineName(), req.TemplatePath)
+	if err != nil {
+		return Result{}, fmt.Errorf("api: %w", err)
+	}
+	cfg.Engine = config.Engine(selected.EngineOrDefault(req.EngineName()))
+	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk}); err != nil {
+		return Result{}, fmt.Errorf("api: %w", err)
+	}
 	cfg.Conversion = config.Conversion{
 		Enabled: req.Conversion.Enabled,
 		Formats: append([]string(nil), req.Conversion.Formats...),

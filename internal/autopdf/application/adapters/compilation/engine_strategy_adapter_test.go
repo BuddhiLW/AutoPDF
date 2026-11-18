@@ -14,13 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCanHandleClaimsLaTeXTemplatesOnly(t *testing.T) {
+func TestCanHandleClaimsRegisteredTemplateExtensions(t *testing.T) {
 	strategy := NewEngineStrategy(api.GeneratorFunc(
 		func(context.Context, api.Request) (api.Result, error) { return api.Result{}, nil }))
 
 	assert.True(t, strategy.CanHandle("report.tex"))
 	assert.True(t, strategy.CanHandle("/abs/path/Report.TEX"), "extension match is case-insensitive")
 	assert.True(t, strategy.CanHandle("thesis.latex"))
+	assert.True(t, strategy.CanHandle("letter.typ"), "the typst backend claims .typ")
+	assert.True(t, strategy.CanHandle("Letter.TYP"))
 	assert.False(t, strategy.CanHandle("notes.md"))
 	assert.False(t, strategy.CanHandle("noextension"))
 }
@@ -47,7 +49,7 @@ func TestCompilePassesTemplateAndDerivedOutputToGenerator(t *testing.T) {
 	assert.Equal(t, "docs/report.tex", seen.TemplatePath)
 	assert.Equal(t, filepath.Join("docs", "report.pdf"), seen.OutputPath,
 		"output defaults to a .pdf beside the template")
-	assert.Equal(t, "xelatex", seen.LaTeXEngine)
+	assert.Equal(t, "xelatex", seen.EngineName())
 	assert.Equal(t, "docs", seen.WorkingDir)
 
 	assert.Equal(t, "docs/report.tex", result.TemplateFile)
@@ -78,4 +80,25 @@ func TestCompilePropagatesGeneratorFailure(t *testing.T) {
 	result, err := strategy.Compile(context.Background(), "report.tex", "autopdf.yaml")
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, wanted)
+}
+
+func TestCompileTypstTemplateLetsTheExtensionPickTheBackend(t *testing.T) {
+	var seen api.Request
+	strategy := NewEngineStrategy(api.GeneratorFunc(func(_ context.Context, request api.Request) (api.Result, error) {
+		seen = request
+		return api.Result{PDFPath: request.OutputPath}, nil
+	}))
+
+	result, err := strategy.Compile(context.Background(), "docs/letter.typ", "docs/autopdf.yaml")
+	require.NoError(t, err)
+	assert.Equal(t, "docs/letter.typ", seen.TemplatePath)
+	assert.Equal(t, "", seen.EngineName(), "no engine is forced; .typ selects typst")
+	assert.Equal(t, filepath.Join("docs", "letter.pdf"), result.PDFPath)
+
+	_, err = NewEngineStrategy(api.GeneratorFunc(func(_ context.Context, request api.Request) (api.Result, error) {
+		seen = request
+		return api.Result{}, nil
+	}), WithEngine("typst")).Compile(context.Background(), "letter.typ", "autopdf.yaml")
+	require.NoError(t, err)
+	assert.Equal(t, "typst", seen.Engine)
 }

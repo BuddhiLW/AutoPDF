@@ -182,7 +182,7 @@ func (s *PDFGenerationAPIService) generate(ctx context.Context, request generati
 		TemplatePath: request.TemplatePath,
 		OutputPath:   request.OutputPath,
 		Variables:    variables,
-		LaTeXEngine:  request.Engine,
+		Engine:       request.Engine,
 		WorkingDir:   request.Options.WorkingDir,
 		Passes:       request.Options.Passes,
 		UseLatexmk:   request.Options.UseLatexmk,
