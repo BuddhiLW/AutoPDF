@@ -53,6 +53,9 @@ func typstOptions(s Settings) (ports.BackendOptions, error) {
 	if s.UseLatexmk {
 		return nil, &UnsupportedSettingError{Backend: ports.TypstBackendName, Setting: "use_latexmk", Value: true}
 	}
+	if s.FormatFile {
+		return nil, &UnsupportedSettingError{Backend: ports.TypstBackendName, Setting: "format_file", Value: true}
+	}
 	return ports.DefaultTypstOptions(), nil
 }
 

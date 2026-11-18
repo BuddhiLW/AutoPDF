@@ -18,6 +18,10 @@ type Config struct {
 	Conversion Conversion `yaml:"conversion" json:"conversion"`
 	Passes     int        `yaml:"passes" json:"passes" default:"1"`
 	UseLatexmk bool       `yaml:"use_latexmk" json:"use_latexmk" default:"false"`
+	// FormatFile precompiles the template's static preamble into a cached
+	// LaTeX format file (.autopdf-fmt/ in the working directory) and reuses
+	// it while the preamble is unchanged. LaTeX engines only.
+	FormatFile bool `yaml:"format_file,omitempty" json:"format_file,omitempty" default:"false"`
 }
 
 func (c *Config) String() string {

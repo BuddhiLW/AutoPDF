@@ -36,8 +36,11 @@ type Request struct {
 	WorkingDir  string
 	Passes      int
 	UseLatexmk  bool
-	Debug       bool
-	Conversion  ConversionOptions
+	// FormatFile precompiles the LaTeX preamble into a cached format file
+	// under the working directory; refused for Typst.
+	FormatFile bool
+	Debug      bool
+	Conversion ConversionOptions
 }
 
 // ConversionOptions controls optional PDF-to-image conversion.
@@ -214,12 +217,13 @@ func (generator *defaultGenerator) Generate(ctx context.Context, req Request) (R
 		cfg.Passes = req.Passes
 	}
 	cfg.UseLatexmk = req.UseLatexmk
+	cfg.FormatFile = req.FormatFile
 	selected, err := backend.Default().Resolve(req.EngineName(), req.TemplatePath)
 	if err != nil {
 		return Result{}, fmt.Errorf("api: %w", err)
 	}
 	cfg.Engine = config.Engine(selected.EngineOrDefault(req.EngineName()))
-	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk}); err != nil {
+	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk, FormatFile: cfg.FormatFile}); err != nil {
 		return Result{}, fmt.Errorf("api: %w", err)
 	}
 	cfg.Conversion = config.Conversion{

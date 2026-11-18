@@ -28,6 +28,7 @@ func GeneratePDF(cfg *config.Config, template config.Template) ([]byte, map[stri
 		Engine:       cfg.Engine.String(),
 		Passes:       cfg.Passes,
 		UseLatexmk:   cfg.UseLatexmk,
+		FormatFile:   cfg.FormatFile,
 		Conversion: ConversionOptions{
 			Enabled: cfg.Conversion.Enabled,
 			Formats: append([]string(nil), cfg.Conversion.Formats...),

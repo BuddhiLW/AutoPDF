@@ -35,6 +35,12 @@ func (f *OSFileSystem) Remove(ctx context.Context, path string) error {
 	return os.Remove(path)
 }
 
+// Rename moves oldpath to newpath, replacing newpath atomically when both are
+// on the same file system.
+func (f *OSFileSystem) Rename(ctx context.Context, oldpath, newpath string) error {
+	return os.Rename(oldpath, newpath)
+}
+
 // Stat returns file information
 func (f *OSFileSystem) Stat(ctx context.Context, path string) (ports.FileInfo, error) {
 	info, err := os.Stat(path)

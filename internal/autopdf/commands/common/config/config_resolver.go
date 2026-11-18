@@ -232,7 +232,7 @@ func ResolveBackendWith(registry *backend.Registry, cfg *config.Config) error {
 	if cfg.Engine == "" {
 		cfg.Engine = config.Engine(selected.DefaultEngine())
 	}
-	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk}); err != nil {
+	if _, err := selected.Options(backend.Settings{Passes: cfg.Passes, UseLatexmk: cfg.UseLatexmk, FormatFile: cfg.FormatFile}); err != nil {
 		return fmt.Errorf("invalid configuration for the %s backend: %w", selected.Name, err)
 	}
 	return nil

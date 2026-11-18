@@ -100,6 +100,20 @@ func (m *MemFS) Remove(ctx context.Context, path string) error {
 	return nil
 }
 
+// Rename implements ports.FileSystem.
+func (m *MemFS) Rename(ctx context.Context, oldpath, newpath string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	oldpath, newpath = filepath.Clean(oldpath), filepath.Clean(newpath)
+	data, ok := m.files[oldpath]
+	if !ok {
+		return notExist("rename", oldpath)
+	}
+	m.files[newpath] = data
+	delete(m.files, oldpath)
+	return nil
+}
+
 // Stat implements ports.FileSystem.
 func (m *MemFS) Stat(ctx context.Context, path string) (ports.FileInfo, error) {
 	m.mu.Lock()

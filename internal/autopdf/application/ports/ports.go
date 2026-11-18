@@ -89,10 +89,17 @@ const (
 type LaTeXOptions struct {
 	Passes     int  // Number of compilation passes (1..10)
 	UseLatexmk bool // Whether latexmk drives the compile
+	FormatFile bool // Whether the preamble is precompiled into a cached .fmt
 }
 
 // BackendName implements BackendOptions.
 func (LaTeXOptions) BackendName() string { return LaTeXBackendName }
+
+// WithFormatFile returns o with format-file precompilation set to enabled.
+func (o LaTeXOptions) WithFormatFile(enabled bool) LaTeXOptions {
+	o.FormatFile = enabled
+	return o
+}
 
 // DefaultLaTeXOptions returns one pass without latexmk.
 func DefaultLaTeXOptions() LaTeXOptions {
@@ -229,6 +236,7 @@ type FileSystem interface {
 	WriteFile(ctx context.Context, path string, data []byte, perm fs.FileMode) error
 	ReadFile(ctx context.Context, path string) ([]byte, error)
 	Remove(ctx context.Context, path string) error
+	Rename(ctx context.Context, oldpath, newpath string) error
 	Stat(ctx context.Context, path string) (FileInfo, error)
 	IsNotExist(err error) bool
 

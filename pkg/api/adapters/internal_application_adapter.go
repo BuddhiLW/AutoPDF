@@ -107,7 +107,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 	if err != nil {
 		return nil, nil, err
 	}
-	backendOptions, err := selected.Options(backend.Settings{Passes: buildCfg.Passes, UseLatexmk: buildCfg.UseLatexmk})
+	backendOptions, err := selected.Options(backend.Settings{Passes: buildCfg.Passes, UseLatexmk: buildCfg.UseLatexmk, FormatFile: buildCfg.FormatFile})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -189,6 +189,7 @@ func (iaa *InternalApplicationAdapter) mergeConfig(ctx context.Context, cfg *con
 		Conversion: cfg.Conversion,
 		Passes:     cfg.Passes,     // Preserve Passes from template config
 		UseLatexmk: cfg.UseLatexmk, // Preserve UseLatexmk from template config
+		FormatFile: cfg.FormatFile,
 	}
 
 	// Apply template if not set
