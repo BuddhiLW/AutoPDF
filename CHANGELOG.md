@@ -5,6 +5,8 @@ Versioning.
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-18
+
 ### Added
 
 - **Typst backend.** `engine: typst`, or a `.typ` template with no engine,
@@ -309,6 +311,10 @@ closed on the first miss and cannot be waived with `optional`. Documented in
   remain unchanged.
 - Component composition and preview APIs are additive.
 
+[Unreleased]: https://github.com/BuddhiLW/AutoPDF/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.4.0...v1.5.0
