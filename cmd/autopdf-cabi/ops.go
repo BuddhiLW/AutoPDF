@@ -118,7 +118,7 @@ func generate(ctx context.Context, raw json.RawMessage) (any, error) {
 		TemplatePath: req.TemplatePath,
 		OutputPath:   req.OutputPath,
 		Variables:    req.Variables,
-		LaTeXEngine:  req.Engine,
+		Engine:       req.Engine,
 		WorkingDir:   req.WorkingDir,
 		Passes:       req.Passes,
 	})
