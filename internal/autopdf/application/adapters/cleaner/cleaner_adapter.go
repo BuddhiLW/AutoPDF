@@ -10,16 +10,29 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BuddhiLW/AutoPDF/v2/configs"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 )
 
-// CleanerAdapter wraps the existing cleaner
+// CleanerAdapter removes the auxiliary files the registered backends produce.
 type CleanerAdapter struct {
+	auxExtensions []string
 }
 
-// NewCleanerAdapter creates a new cleaner adapter
+// NewCleanerAdapter creates a cleaner over the default backend registry's
+// auxiliary extensions.
 func NewCleanerAdapter() *CleanerAdapter {
-	return &CleanerAdapter{}
+	return NewCleanerAdapterWithExtensions(backend.Default().AuxExtensions())
+}
+
+// NewCleanerAdapterWithExtensions creates a cleaner that removes files with
+// the given auxiliary extensions.
+func NewCleanerAdapterWithExtensions(auxExtensions []string) *CleanerAdapter {
+	return &CleanerAdapter{auxExtensions: append([]string(nil), auxExtensions...)}
+}
+
+// AuxExtensions returns the extensions this cleaner removes.
+func (ca *CleanerAdapter) AuxExtensions() []string {
+	return append([]string(nil), ca.auxExtensions...)
 }
 
 // Clean removes auxiliary files for a given PDF
@@ -27,8 +40,7 @@ func (ca *CleanerAdapter) Clean(ctx context.Context, pdfPath string) error {
 	// Get the directory of the PDF
 	dir := filepath.Dir(pdfPath)
 
-	// Define auxiliary file extensions
-	auxExtensions := configs.AuxiliaryExtensions
+	auxExtensions := ca.auxExtensions
 
 	// Get the base name without extension
 	baseName := strings.TrimSuffix(filepath.Base(pdfPath), filepath.Ext(pdfPath))

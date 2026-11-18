@@ -79,7 +79,7 @@ func TestCompileRemovesOnlyItsOwnStagedFile(t *testing.T) {
 		t.Fatalf("compile: %v", err)
 	}
 
-	staged := filepath.Join(workingDir, "doc"+ports.StagedTemplateSuffix)
+	staged := filepath.Join(workingDir, "doc"+latex.StagedSuffix)
 	if _, err := os.Stat(staged); !os.IsNotExist(err) {
 		t.Fatalf("the staged file must be removed after a non-debug compile: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestDebugModeKeepsTheStagedFileUnderItsOwnName(t *testing.T) {
 		t.Fatalf("compile: %v", err)
 	}
 
-	staged := filepath.Join(workingDir, "doc"+ports.StagedTemplateSuffix)
+	staged := filepath.Join(workingDir, "doc"+latex.StagedSuffix)
 	if _, err := os.Stat(staged); err != nil {
 		t.Fatalf("debug mode must keep the staged file: %v", err)
 	}

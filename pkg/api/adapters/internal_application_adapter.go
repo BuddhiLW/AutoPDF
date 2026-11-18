@@ -13,13 +13,14 @@ import (
 
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/cleaner"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/converter"
-	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/latex"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/adapters/template"
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	autopdfports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	documentService "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/services/document"
 	infraadapters "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/infrastructure/adapters"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
 	errors "github.com/BuddhiLW/AutoPDF/v2/pkg/errors"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/pdf"
 	"gopkg.in/yaml.v3"
 )
 
@@ -102,6 +103,14 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 	}
 
 	docService := iaa.createDocumentServiceWithWorkingDir(ctx, &buildCfg, workspace, iaa.logger)
+	selected, err := backend.Default().Resolve(buildCfg.Engine.String(), buildCfg.Template.String())
+	if err != nil {
+		return nil, nil, err
+	}
+	backendOptions, err := selected.Options(backend.Settings{Passes: buildCfg.Passes, UseLatexmk: buildCfg.UseLatexmk})
+	if err != nil {
+		return nil, nil, err
+	}
 	req := documentService.BuildRequest{
 		TemplatePath: buildCfg.Template.String(),
 		ConfigPath:   configPath,
@@ -111,8 +120,7 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 		WorkingDir:   workspace,
 		DoClean:      false,
 		DebugEnabled: debugEnabled,
-		Passes:       buildCfg.Passes,
-		UseLatexmk:   buildCfg.UseLatexmk,
+		Backend:      backendOptions,
 		Conversion: documentService.ConversionSettings{
 			Enabled: buildCfg.Conversion.Enabled,
 			Formats: append([]string(nil), buildCfg.Conversion.Formats...),
@@ -138,11 +146,8 @@ func (iaa *InternalApplicationAdapter) GeneratePDFContext(ctx context.Context, c
 	if err != nil {
 		return nil, nil, fmt.Errorf("read generated PDF: %w", err)
 	}
-	if len(pdfBytes) == 0 {
-		return nil, nil, fmt.Errorf("generated PDF is empty")
-	}
-	if len(pdfBytes) < 5 || string(pdfBytes[:5]) != "%PDF-" {
-		return nil, nil, fmt.Errorf("generated file is not a valid PDF")
+	if err := publication(buildErr, pdf.Check(stagePDF, pdfBytes)); err != nil {
+		return nil, nil, err
 	}
 
 	// Boundary: atomically publish requested artifacts; workspace files never escape.
@@ -197,6 +202,9 @@ func (iaa *InternalApplicationAdapter) mergeConfig(ctx context.Context, cfg *con
 	}
 	if merged.Engine == "" {
 		merged.Engine = defaultCfg.Engine
+		if selected, err := backend.Default().Resolve("", merged.Template.String()); err == nil {
+			merged.Engine = config.Engine(selected.DefaultEngine())
+		}
 	}
 	// Apply defaults for Passes and UseLatexmk if not set (zero values)
 	if merged.Passes < 1 {
@@ -246,28 +254,22 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	// Create adapters using the internal application layer
 	templateAdapter := template.NewTemplateProcessorAdapter(cfg)
 
-	// Select LaTeX compiler based on UseLatexmk flag
-	var latexAdapter autopdfports.LaTeXCompiler
-	if cfg.UseLatexmk {
-		// Use latexmk adapter with logger for transparency
-		// Log selection for debugging
-		if logger != nil {
-			logger.Info(ctx, "Using latexmk adapter for multi-pass compilation",
-				autopdfports.NewLogField("passes", cfg.Passes),
-				autopdfports.NewLogField("engine", string(cfg.Engine)),
-				autopdfports.NewLogField("working_dir", workingDir))
-		}
-		latexAdapter = latex.NewLatexmkCompilerAdapterWithLogger(executor, fileSystem, logger)
-	} else {
-		// Use regular LaTeX adapter (manual passes)
-		// Log selection for debugging
-		if logger != nil {
-			logger.Info(ctx, "Using manual LaTeX adapter (non-latexmk)",
-				autopdfports.NewLogField("passes", cfg.Passes),
-				autopdfports.NewLogField("engine", string(cfg.Engine)),
-				autopdfports.NewLogField("working_dir", workingDir))
-		}
-		latexAdapter = latex.NewLaTeXCompilerAdapterWithWorkingDir(cfg, fileSystem, executor, workingDir)
+	// The compiler is resolved per request through the backend registry.
+	if logger != nil {
+		logger.Info(ctx, "Resolving compiler through the backend registry",
+			autopdfports.NewLogField("passes", cfg.Passes),
+			autopdfports.NewLogField("use_latexmk", cfg.UseLatexmk),
+			autopdfports.NewLogField("engine", string(cfg.Engine)),
+			autopdfports.NewLogField("working_dir", workingDir))
+	}
+	compilers := backend.CompilerSource{
+		Resolver: backend.Default(),
+		Deps: backend.CompilerDeps{
+			FileSystem: fileSystem,
+			Executor:   executor,
+			Logger:     logger,
+			WorkingDir: workingDir,
+		},
 	}
 
 	converterAdapter := converter.NewConverterAdapter(cfg)
@@ -276,7 +278,7 @@ func (iaa *InternalApplicationAdapter) createDocumentServiceWithWorkingDir(ctx c
 	// Create document service
 	return &documentService.DocumentService{
 		TemplateProcessor: templateAdapter,
-		LaTeXCompiler:     latexAdapter,
+		Compilers:         compilers,
 		Converter:         converterAdapter,
 		Cleaner:           cleanerAdapter,
 		PathOps:           infraadapters.NewOSPathOperations(),
@@ -290,46 +292,6 @@ func normalizePDFOutput(path string) string {
 		return path
 	}
 	return path + ".pdf"
-}
-
-func linkWorkspaceAssets(assetDir, workspace, templatePath, stageName string) error {
-	if assetDir == "" {
-		return nil
-	}
-	assetDir, err := filepath.Abs(assetDir)
-	if err != nil {
-		return fmt.Errorf("resolve asset directory: %w", err)
-	}
-	workspace, err = filepath.Abs(workspace)
-	if err != nil {
-		return fmt.Errorf("resolve workspace: %w", err)
-	}
-	if assetDir == workspace {
-		return nil
-	}
-
-	entries, err := os.ReadDir(assetDir)
-	if err != nil {
-		return fmt.Errorf("read asset directory: %w", err)
-	}
-	templatePath, err = filepath.Abs(templatePath)
-	if err != nil {
-		return fmt.Errorf("resolve template path: %w", err)
-	}
-	for _, entry := range entries {
-		if entry.Name() == "config.yaml" || entry.Name() == stageName {
-			continue
-		}
-		source := filepath.Join(assetDir, entry.Name())
-		if source == templatePath {
-			continue
-		}
-		target := filepath.Join(workspace, entry.Name())
-		if err := os.Symlink(source, target); err != nil {
-			return fmt.Errorf("link workspace asset %q: %w", entry.Name(), err)
-		}
-	}
-	return nil
 }
 
 func publishedImagePath(stagePDF, requestedPDF, stageImage string) string {

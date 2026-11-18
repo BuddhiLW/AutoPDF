@@ -74,7 +74,7 @@ func TestLaTeXCompilerMapsGeneratedDiagnostics(t *testing.T) {
 	}
 	output, err := compiler.Compile(context.Background(), preview.CompileRequest{
 		Workspace: workspace, Main: "main.tex",
-		SourceMap: map[string]latex.SourceLocation{"body": {Path: "fragments/body.tex", Line: 1}},
+		SourceMap: preview.SourceMapFromLaTeX(map[string]latex.SourceLocation{"body": {Path: "fragments/body.tex", Line: 1}}),
 	})
 	if err == nil || len(output.Diagnostics) != 1 || output.Diagnostics[0].ComponentID != "body" || output.Diagnostics[0].Line != 7 {
 		t.Fatalf("diagnostic mapping failed: %+v %v", output.Diagnostics, err)

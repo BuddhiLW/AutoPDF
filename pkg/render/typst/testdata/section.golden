@@ -1,0 +1,15 @@
+main: main.typ
+--- fragments/chapter-a1873e2039a6.typ
+= Results & \#findings
+Opening.
+
+#include "/fragments/para-e4315c5696b6.typ"
+
+--- fragments/para-e4315c5696b6.typ
+Nested \_flow\_.
+
+--- main.typ
+#pagebreak(weak: true)
+#include "/fragments/chapter-a1873e2039a6.typ"
+
+#pagebreak(weak: true)

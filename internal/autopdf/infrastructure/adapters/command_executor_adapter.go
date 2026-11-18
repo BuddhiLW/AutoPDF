@@ -6,6 +6,7 @@ package adapters
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -60,6 +61,9 @@ func (e *OSCommandExecutor) Execute(ctx context.Context, cmd application.Command
 
 	// Execute command
 	err := execCmd.Run()
+	if errors.Is(err, exec.ErrNotFound) {
+		err = &application.ToolchainMissingError{Binary: cmd.Executable, Err: err}
+	}
 	duration := time.Since(startTime)
 
 	// Get exit code

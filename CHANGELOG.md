@@ -3,6 +3,107 @@
 Notable AutoPDF changes are documented here. Versions follow Semantic
 Versioning.
 
+## [Unreleased]
+
+## [2.4.0] - 2026-11-18
+
+### Added
+
+- **Typst backend.** `engine: typst`, or a `.typ` template with no engine,
+  compiles with [Typst](https://github.com/typst/typst) through the same CLI
+  `build`, `pkg/api.Engine`, parallel strategy and `clean` paths as LaTeX. The
+  adapter stages the rendered template as `<job>.autopdf.typ`, runs one
+  `typst compile --root <dir> --diagnostic-format short` pass, reports failures
+  with parsed `file:line:col` diagnostics, and returns a typed
+  `ToolchainMissingError` when `typst` is not installed. Typst output goes
+  through the 2.3.0 completeness gate unchanged. `passes > 1` and
+  `use_latexmk` are refused for Typst with a named `UnsupportedSettingError`
+  instead of being ignored.
+- **Backend registry** (`internal/autopdf/application/backend`), the single
+  source for engine names, template extensions, staged suffix, auxiliary file
+  extensions and the compiler factory of every backend. A request resolves its
+  backend by engine name, then template extension, then the default
+  (`latex`/`pdflatex`); an unknown engine is refused with the known ones
+  listed. Engine capabilities, engine validation, `GET /api/v1/pdf/engines`,
+  parallel template extensions and the `clean` extensions are all read from
+  it. An omitted CLI engine is now chosen by the template's backend.
+- **`api.Request.Engine`**, the backend-neutral engine name, and
+  `Request.EngineName()`. `Engine` wins over the deprecated `LaTeXEngine`.
+  Template-path validation accepts every registered extension.
+- **Typst preview**: `preview.TypstCompiler` renders pages to PNG with typst
+  itself (`--format png --ppi`, no Poppler) and maps diagnostics with column
+  and hints. `rest.NewBackendPreviewCompilerFactory` selects the compiler per
+  backend, and `POST /sessions` accepts an optional
+  `{"backend", "engine", "template"}` body. `preview.Diagnostic` gains
+  `Column` and `Hints`.
+- **Typst projection** of component documents: `pkg/render/typst` projects a
+  manifest into a Typst workspace; the `text`, `section` and `artifact`
+  builtins are supported and any other component is refused by name with
+  `UnsupportedComponentError`. `api.ProjectionBackend`/`ProjectionBackends`
+  select the projector by backend, and `pkg/render/backends.Default()`
+  registers LaTeX and Typst. LaTeX projection output is byte-identical.
+- **`escapeTypst`** template helper (`pkg/template/escape`), installed in both
+  the CLI and `pkg/api` template func maps, backslash-escaping every Typst
+  markup special.
+- `make typst` fetches a pinned typst release (`TYPST_VERSION`, default 0.15.1)
+  into `./bin` and verifies its sha256; `test/model_typst` is an end-to-end
+  example whose test skips when typst is not on `PATH`.
+
+### Changed
+
+- **Breaking (internal packages):** the compile port is split.
+  `ports.DocumentCompiler` takes backend-neutral `CompileOptions` (Engine,
+  OutputPath, WorkingDir, JobName, Cleanup, Debug) plus a typed `Backend`
+  extension (`ports.LaTeXOptions{Passes, UseLatexmk}`,
+  `ports.TypstOptions{Root, FontPaths, Inputs}`); `ports.LaTeXCompiler` remains
+  as a deprecated alias. `CompileOptions.Passes`/`UseLatexmk`, `WithPasses`,
+  `WithLatexmk` and `ports.StagedTemplateSuffix` are removed (each adapter owns
+  its staged suffix, e.g. `latex.StagedSuffix`).
+- **Breaking (internal packages):** `document.BuildRequest.Passes`/`UseLatexmk`
+  are replaced by `BuildRequest.Backend`; `DocumentService.LaTeXCompiler` is
+  replaced by `DocumentService.Compiler` and the per-request
+  `DocumentService.Compilers` resolver; `ServiceBuilder.BuildRequest` now
+  returns `(BuildRequest, error)` so a setting the backend refuses is an error.
+- `preview.CompileRequest.SourceMap` uses the backend-neutral
+  `preview.SourceLocation`; convert LaTeX maps with
+  `preview.SourceMapFromLaTeX`.
+- LaTeX adapters remove stale or partial PDFs on failure and honour context
+  cancellation; latexmk verifies its PDF and removes its staged file unless
+  debug is on.
+
+### Deprecated
+
+- `api.Request.LaTeXEngine` (use `Engine`) and the parallel strategy's
+  `WithLaTeXEngine` (use `WithEngine`).
+
+## [2.3.0] - 2026-10-09
+
+### Added
+
+- **`pkg/pdf`**, a standard-library-only package with the rule for whether
+  bytes are a finished PDF. `pdf.Inspect` returns the first `Defect` (empty,
+  missing `%PDF-` header, or missing `%%EOF` trailer within the 1024 bytes the
+  specification allows after it). `pdf.Check` returns a `*pdf.IncompleteError`
+  that callers match with `errors.As`. Embedding applications can use it
+  instead of keeping their own copy of the rule.
+- The Clojure client under `clients/`, with its README section.
+
+### Fixed
+
+- **The engine no longer publishes an unfinished PDF.** When the compiler
+  failed but had already written part of the output, the build error was
+  dropped and the partial file was published, because only the `%PDF-` header
+  was checked. Now a document without its trailer is refused with
+  `*pdf.IncompleteError`. When the build also failed, the build error leads
+  the message and the defect stays matchable. A finished document still
+  crosses after a non-zero exit, as before, because LaTeX can exit non-zero
+  after writing a complete file.
+- **The request workspace links resolved assets.** Each entry of the caller's
+  working directory is linked to what it resolves to at link time. Before, a
+  caller that shared one directory between concurrent requests could remove a
+  link while another request still compiled, which killed that compilation in
+  the middle of the run.
+
 ## [2.2.0] - 2026-09-16
 
 ### Changed
@@ -210,6 +311,10 @@ closed on the first miss and cannot be waived with `optional`. Documented in
   remain unchanged.
 - Component composition and preview APIs are additive.
 
+[Unreleased]: https://github.com/BuddhiLW/AutoPDF/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/BuddhiLW/AutoPDF/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/BuddhiLW/AutoPDF/compare/v1.4.0...v1.5.0

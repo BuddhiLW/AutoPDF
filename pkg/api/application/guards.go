@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/domain/generation"
@@ -29,9 +30,11 @@ type ValidationGuard interface {
 type RequestValidationGuard struct {
 	templateService  generation.TemplateProcessingService
 	variableResolver generation.VariableResolver
+	registry         *backend.Registry // nil means backend.Default()
 }
 
-// NewRequestValidationGuard creates a new request validation guard
+// NewRequestValidationGuard creates a new request validation guard over the
+// default backend registry
 func NewRequestValidationGuard(
 	templateService generation.TemplateProcessingService,
 	variableResolver generation.VariableResolver,
@@ -40,6 +43,19 @@ func NewRequestValidationGuard(
 		templateService:  templateService,
 		variableResolver: variableResolver,
 	}
+}
+
+// WithRegistry makes the guard accept the engines of registry.
+func (g *RequestValidationGuard) WithRegistry(registry *backend.Registry) *RequestValidationGuard {
+	g.registry = registry
+	return g
+}
+
+func (g *RequestValidationGuard) backends() *backend.Registry {
+	if g.registry == nil {
+		return backend.Default()
+	}
+	return g.registry
 }
 
 // Validate implements ValidationGuard interface
@@ -72,12 +88,19 @@ func (g *RequestValidationGuard) validateTemplatePath(templatePath string) error
 	return nil
 }
 
-// validateEngine guards against empty engine names
+// validateEngine guards against empty engine names and engines no registered
+// backend accepts
 func (g *RequestValidationGuard) validateEngine(engine string) error {
 	if len(engine) < MinEngineNameLength {
 		return domain.PDFGenerationError{
 			Code:    domain.ErrCodeEngineNotFound,
-			Message: "LaTeX engine is required",
+			Message: "Engine is required",
+		}
+	}
+	if _, err := g.backends().Resolve(engine, ""); err != nil {
+		return domain.PDFGenerationError{
+			Code:    domain.ErrCodeEngineNotFound,
+			Message: err.Error(),
 		}
 	}
 	return nil

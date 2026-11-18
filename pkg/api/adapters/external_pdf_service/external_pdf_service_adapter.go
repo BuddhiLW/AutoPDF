@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
 	autopdfports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/api/adapters"
@@ -201,14 +202,9 @@ func (epsa *ExternalPDFServiceAdapter) ValidateRequest(req generation.PDFGenerat
 	return nil
 }
 
-// GetSupportedEngines returns supported LaTeX engines
+// GetSupportedEngines returns the engines of the registered backends
 func (epsa *ExternalPDFServiceAdapter) GetSupportedEngines() []string {
-	return []string{
-		"pdflatex",
-		"xelatex",
-		"lualatex",
-		"latex",
-	}
+	return backend.Default().EngineNames()
 }
 
 // GetSupportedFormats returns supported output formats

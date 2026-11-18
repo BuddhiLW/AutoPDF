@@ -3,6 +3,8 @@
 
 package configs
 
+import "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/backend"
+
 // File and Directory Constants
 const (
 	// Config directory and file names
@@ -11,12 +13,12 @@ const (
 	FallbackConfigDir = "autopdf-config.yaml"
 )
 
-// LaTeX Auxiliary File Extensions
-var AuxiliaryExtensions = []string{
-	".aux", ".log", ".toc", ".lof", ".lot", ".out", ".nav", ".snm",
-	".synctex.gz", ".fls", ".fdb_latexmk", ".bbl", ".blg", ".run.xml",
-	".bcf", ".idx", ".ilg", ".ind", ".brf", ".vrb", ".xdv", ".dvi",
-}
+// AuxiliaryExtensions are the auxiliary file extensions of the built-in
+// backends, projected from the default backend registry at start-up.
+//
+// Deprecated: read backend.Default().AuxExtensions() (or a cleaner built from
+// a registry) so backends registered later are included.
+var AuxiliaryExtensions = backend.Default().AuxExtensions()
 
 // Default Exclusion Patterns for File Watching
 var DefaultExclusionPatterns = []string{
@@ -169,7 +171,7 @@ const (
 
 // Default Configuration Values
 const (
-	DefaultEngine       = "pdflatex"
+	DefaultEngine       = backend.EnginePDFLaTeX
 	DefaultOutputFormat = "pdf"
 	DefaultTemplateName = "template.tex"
 	DefaultConfigName   = "autopdf.yaml"

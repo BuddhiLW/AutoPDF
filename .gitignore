@@ -20,3 +20,6 @@ output.log
 
 .auctex-auto
 .cursor
+
+# Toolchains fetched by make (e.g. make typst)
+bin/

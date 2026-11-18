@@ -16,8 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
 )
 
 var (
@@ -290,20 +288,33 @@ func pageNumber(path string) (int, error) {
 
 var latexDiagnosticPattern = regexp.MustCompile(`(?m)([^:\n]+\.tex):(\d+):\s*([^\n]+)`)
 
-func parseLaTeXDiagnostics(output, workspace string, sourceMap map[string]latex.SourceLocation) []Diagnostic {
+// componentsByPath inverts a source map so diagnostics on a generated file
+// can be addressed to the component that produced it.
+func componentsByPath(sourceMap map[string]SourceLocation) map[string]string {
 	componentByPath := make(map[string]string, len(sourceMap))
 	for componentID, location := range sourceMap {
 		componentByPath[filepath.Clean(filepath.FromSlash(location.Path))] = componentID
 	}
+	return componentByPath
+}
+
+// workspaceRelative reports a compiler-printed path relative to the workspace.
+func workspaceRelative(workspace, path string) string {
+	path = filepath.Clean(strings.TrimSpace(path))
+	if filepath.IsAbs(path) {
+		if relative, err := filepath.Rel(workspace, path); err == nil {
+			path = relative
+		}
+	}
+	return path
+}
+
+func parseLaTeXDiagnostics(output, workspace string, sourceMap map[string]SourceLocation) []Diagnostic {
+	componentByPath := componentsByPath(sourceMap)
 	matches := latexDiagnosticPattern.FindAllStringSubmatch(output, -1)
 	result := make([]Diagnostic, 0, len(matches))
 	for _, match := range matches {
-		path := filepath.Clean(strings.TrimSpace(match[1]))
-		if filepath.IsAbs(path) {
-			if relative, err := filepath.Rel(workspace, path); err == nil {
-				path = relative
-			}
-		}
+		path := workspaceRelative(workspace, match[1])
 		line, _ := strconv.Atoi(match[2])
 		result = append(result, Diagnostic{
 			ComponentID: componentByPath[path], Path: filepath.ToSlash(path), Line: line,

@@ -6,6 +6,7 @@ package wiring
 import (
 	"testing"
 
+	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/commands/common/args"
 	"github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/domain/options"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
@@ -33,7 +34,10 @@ func TestServiceBuilder_BuildDocumentService(t *testing.T) {
 
 	assert.NotNil(t, service)
 	assert.NotNil(t, service.TemplateProcessor)
-	assert.NotNil(t, service.LaTeXCompiler)
+	require.NotNil(t, service.Compilers)
+	compiler, err := service.Compilers.CompilerFor(cfg.Engine.String(), cfg.Template.String(), ports.NewLaTeXOptions(1, false))
+	require.NoError(t, err)
+	assert.NotNil(t, compiler)
 	assert.NotNil(t, service.Converter)
 	assert.NotNil(t, service.Cleaner)
 }
@@ -65,7 +69,8 @@ func TestServiceBuilder_BuildRequest(t *testing.T) {
 		}(),
 	}
 
-	req := builder.BuildRequest(args, cfg)
+	req, err := builder.BuildRequest(args, cfg)
+	require.NoError(t, err)
 
 	assert.Equal(t, "template.tex", req.TemplatePath)
 	assert.Equal(t, "config.yaml", req.ConfigPath)
@@ -74,8 +79,7 @@ func TestServiceBuilder_BuildRequest(t *testing.T) {
 	assert.Equal(t, "pdflatex", req.Engine)
 	assert.Equal(t, "output", req.OutputPath)
 	assert.Equal(t, ".", req.WorkingDir)
-	assert.Equal(t, 2, req.Passes)
-	assert.True(t, req.UseLatexmk)
+	assert.Equal(t, ports.LaTeXOptions{Passes: 2, UseLatexmk: true}, req.Backend)
 	assert.True(t, req.DoClean)
 	assert.True(t, req.Conversion.Enabled)
 	assert.Equal(t, []string{"jpeg"}, req.Conversion.Formats)

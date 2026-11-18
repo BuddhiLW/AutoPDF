@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/config"
+	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/escape"
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/template/strict"
 )
 
@@ -62,6 +63,9 @@ func (tpa *TemplateProcessorAdapter) Process(ctx context.Context, templatePath s
 		// Add more helper functions as needed
 	}
 	for name, fn := range strict.Funcs() {
+		funcMap[name] = fn
+	}
+	for name, fn := range escape.Funcs() {
 		funcMap[name] = fn
 	}
 

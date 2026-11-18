@@ -5,15 +5,17 @@ package latex
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	ports "github.com/BuddhiLW/AutoPDF/v2/internal/autopdf/application/ports"
 )
 
-// LatexmkCompilerAdapter implements LaTeXCompiler using latexmk
+// LatexmkCompilerAdapter implements DocumentCompiler using latexmk
 // This adapter provides multi-pass compilation with automatic dependency tracking
 type LatexmkCompilerAdapter struct {
 	commandExecutor ports.CommandExecutor
@@ -35,18 +37,64 @@ func NewLatexmkCompilerAdapterWithLogger(commandExecutor ports.CommandExecutor, 
 	}
 }
 
-// Compile compiles LaTeX content using latexmk
-func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, opts ports.CompileOptions) (string, error) {
+var _ ports.DocumentCompiler = (*LatexmkCompilerAdapter)(nil)
+
+// Compile compiles LaTeX content using latexmk and returns the PDF path.
+// On any error no PDF is left at the output path.
+func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, opts ports.CompileOptions) (pdfPath string, err error) {
+	if opts.JobName == "" {
+		opts.JobName = "document"
+	}
+	if opts.OutputPath != "" {
+		// latexmk names the PDF from -jobname; keep it equal to OutputPath's base.
+		opts.JobName = strings.TrimSuffix(filepath.Base(opts.OutputPath), ".pdf")
+	}
+	target := filepath.Join(a.outputDir(opts), opts.JobName+".pdf")
+	pdfPath = target
+	defer func() {
+		if err != nil {
+			discardOutput(ctx, a.fileSystem, target)
+			pdfPath = ""
+		}
+	}()
+
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	if content == "" {
+		return "", errors.New("no LaTeX content provided")
+	}
+	if _, err := ports.LaTeXOptionsFrom(opts); err != nil {
+		return "", err
+	}
+
+	engine := opts.Engine
+	if engine == "" {
+		engine = DefaultEngine
+	}
+	for _, binary := range []string{"latexmk", engine} {
+		if err := probeToolchain(ctx, a.commandExecutor, binary,
+			ports.NewCommand("which", []string{binary}, "")); err != nil {
+			return "", err
+		}
+	}
+
 	// Write content to the staged .tex file. The suffix keeps it off the source
 	// template's path; latexmk names its output from -jobname, not from this file.
-	texPath := filepath.Join(opts.WorkingDir, fmt.Sprintf("%s%s", opts.JobName, ports.StagedTemplateSuffix))
-	err := a.fileSystem.WriteFile(ctx, texPath, []byte(content), 0644)
+	texPath := stagedSourcePath(opts.WorkingDir, opts.JobName)
+	err = a.fileSystem.WriteFile(ctx, texPath, []byte(content), 0644)
 	if err != nil {
 		a.logError(ctx, "Failed to write LaTeX content to file",
 			ports.NewLogField("tex_path", texPath),
 			ports.NewLogField("error", err.Error()))
 		return "", fmt.Errorf("failed to write LaTeX content: %w", err)
 	}
+	if !opts.Debug {
+		defer removeStaged(ctx, a.fileSystem, texPath)
+	}
+
+	// A PDF left by an earlier run must not pass for this run's output.
+	discardOutput(ctx, a.fileSystem, pdfPath)
 
 	// Build latexmk command
 	cmd := a.buildLatexmkCommand(opts, texPath)
@@ -62,6 +110,12 @@ func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, op
 
 	// Execute latexmk
 	result, err := a.commandExecutor.Execute(ctx, cmd)
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", fmt.Errorf("latexmk compilation cancelled: %w", ctxErr)
+	}
+	if missing, ok := asToolchainMissing(err); ok {
+		return "", missing
+	}
 	if err != nil {
 		// Build log fields - handle case where result might be empty
 		logFields := []ports.LogField{
@@ -116,14 +170,9 @@ func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, op
 			ports.NewLogField("stderr", result.Stderr))
 	}
 
-	// Determine output PDF path - use OutputPath's directory (where PDF was written)
-	// This matches where -outdir was set during compilation
-	outputDir := filepath.Dir(opts.OutputPath)
-	// Fallback to WorkingDir if OutputPath is empty or just a filename
-	if outputDir == "." || outputDir == "" {
-		outputDir = opts.WorkingDir
+	if err := verifyPDF(ctx, a.fileSystem, pdfPath); err != nil {
+		return "", err
 	}
-	pdfPath := filepath.Join(outputDir, fmt.Sprintf("%s.pdf", opts.JobName))
 
 	// Cleanup aux files if requested and not in debug mode
 	if opts.Cleanup && !opts.Debug {
@@ -141,13 +190,7 @@ func (a *LatexmkCompilerAdapter) Compile(ctx context.Context, content string, op
 
 // buildLatexmkCommand constructs the latexmk command with appropriate options
 func (a *LatexmkCompilerAdapter) buildLatexmkCommand(opts ports.CompileOptions, texPath string) ports.Command {
-	// Use OutputPath's directory for -outdir (where PDF should be written)
-	// This allows compilation to happen in WorkingDir while outputs go to OutputPath's directory
-	outputDir := filepath.Dir(opts.OutputPath)
-	// Fallback to WorkingDir if OutputPath is empty or just a filename
-	if outputDir == "." || outputDir == "" {
-		outputDir = opts.WorkingDir
-	}
+	outputDir := a.outputDir(opts)
 
 	args := []string{
 		"-silent", // Suppress output except errors (for clean logs)
@@ -176,6 +219,16 @@ func (a *LatexmkCompilerAdapter) buildLatexmkCommand(opts ports.CompileOptions, 
 
 	return ports.NewCommand("latexmk", args, opts.WorkingDir).
 		WithTimeout(5 * time.Minute)
+}
+
+// outputDir is where latexmk writes the PDF (-outdir): OutputPath's directory,
+// or WorkingDir when OutputPath is empty or a bare file name.
+func (a *LatexmkCompilerAdapter) outputDir(opts ports.CompileOptions) string {
+	outputDir := filepath.Dir(opts.OutputPath)
+	if outputDir == "." || outputDir == "" {
+		outputDir = opts.WorkingDir
+	}
+	return outputDir
 }
 
 // cleanupAuxFiles runs latexmk -c to clean auxiliary files

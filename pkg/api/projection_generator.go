@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/BuddhiLW/AutoPDF/v2/pkg/render/latex"
@@ -43,6 +42,8 @@ type ProjectionGeneratorOptions struct {
 	UseLatexmk    bool
 	Debug         bool
 	Conversion    ConversionOptions
+	// Backends overrides DefaultProjectionBackends.
+	Backends ProjectionBackends
 }
 
 // ProjectionDiagnostic maps a compiler message back to generated source and,
@@ -64,7 +65,8 @@ func (failure *ProjectionGenerationError) Error() string { return failure.Err.Er
 func (failure *ProjectionGenerationError) Unwrap() error { return failure.Err }
 
 // LocalProjectionGenerator is the supported production adapter from a pure
-// LaTeX projection to the canonical Engine.Generate boundary.
+// projection to the canonical Engine.Generate boundary. The projection's main
+// file selects its ProjectionBackend (engine default, diagnostics format).
 type LocalProjectionGenerator struct {
 	options ProjectionGeneratorOptions
 }
@@ -83,6 +85,9 @@ func NewProjectionGenerator(options ProjectionGeneratorOptions) (*LocalProjectio
 		return nil, ErrProjectionEngineRequired
 	}
 	options.Conversion.Formats = append([]string(nil), options.Conversion.Formats...)
+	if options.Backends == nil {
+		options.Backends = DefaultProjectionBackends()
+	}
 	return &LocalProjectionGenerator{options: options}, nil
 }
 
@@ -109,11 +114,16 @@ func (generator *LocalProjectionGenerator) GenerateProjection(ctx context.Contex
 	if err != nil {
 		return Result{}, err
 	}
+	backend := generator.options.Backends.ForProjection(projection)
+	engineName := generator.options.LaTeXEngine
+	if engineName == "" {
+		engineName = backend.Engine
+	}
 	result, err := generator.options.Engine.Generate(ctx, Request{
 		TemplatePath: mainPath,
 		OutputPath:   generator.options.OutputPath,
 		WorkingDir:   workspace,
-		LaTeXEngine:  generator.options.LaTeXEngine,
+		LaTeXEngine:  engineName,
 		Passes:       generator.options.Passes,
 		UseLatexmk:   generator.options.UseLatexmk,
 		Debug:        generator.options.Debug,
@@ -123,7 +133,7 @@ func (generator *LocalProjectionGenerator) GenerateProjection(ctx context.Contex
 		},
 	})
 	if err != nil {
-		return Result{}, &ProjectionGenerationError{Err: err, Diagnostics: mapProjectionDiagnostics(workspace, projection, err)}
+		return Result{}, &ProjectionGenerationError{Err: err, Diagnostics: mapBackendDiagnostics(backend, workspace, projection, err)}
 	}
 	return result, nil
 }
@@ -223,22 +233,26 @@ func matchesSHA256(declared string, data []byte) bool {
 
 var projectionDiagnosticPattern = regexp.MustCompile(`(?m)([^:\n]+\.tex):(\d+):\s*([^\n]+)`)
 
-func mapProjectionDiagnostics(workspace string, projection latex.Projection, compileErr error) []ProjectionDiagnostic {
+func mapBackendDiagnostics(backend ProjectionBackend, workspace string, projection latex.Projection, compileErr error) []ProjectionDiagnostic {
 	componentByPath := make(map[string]string, len(projection.SourceMap))
 	for componentID, location := range projection.SourceMap {
 		componentByPath[filepath.Clean(filepath.FromSlash(location.Path))] = componentID
 	}
-	matches := projectionDiagnosticPattern.FindAllStringSubmatch(compileErr.Error(), -1)
+	matches := backend.parseDiagnostics(compileErr.Error())
 	diagnostics := make([]ProjectionDiagnostic, 0, len(matches))
 	for _, match := range matches {
-		path := filepath.Clean(match[1])
+		path := filepath.Clean(match.path)
 		if filepath.IsAbs(path) {
 			if relative, err := filepath.Rel(workspace, path); err == nil {
 				path = relative
 			}
 		}
-		line, _ := strconv.Atoi(match[2])
-		diagnostics = append(diagnostics, ProjectionDiagnostic{ComponentID: componentByPath[path], Path: filepath.ToSlash(path), Line: line, Message: strings.TrimSpace(match[3])})
+		if backend.RootRelativePaths && filepath.IsAbs(filepath.Clean(match.path)) {
+			if _, known := componentByPath[path]; !known {
+				path = filepath.Clean(filepath.FromSlash(strings.TrimPrefix(match.path, "/")))
+			}
+		}
+		diagnostics = append(diagnostics, ProjectionDiagnostic{ComponentID: componentByPath[path], Path: filepath.ToSlash(path), Line: match.line, Message: match.message})
 	}
 	if len(diagnostics) == 0 {
 		diagnostics = append(diagnostics, ProjectionDiagnostic{Path: projection.Main, Message: compileErr.Error()})
